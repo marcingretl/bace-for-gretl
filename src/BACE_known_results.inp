@@ -1,0 +1,32 @@
+function void BACE_known_results (bundle *M,
+                                  bundles *known_models_array,
+                                  bundle *known_models_bundle,
+                                  matrix *known_models_indexes,
+                                  strings *known_models_hex_indexes)
+    /*
+       Function saves already known results in bundle/array of bundles and assicieted decimal keys in the matrix
+    */
+    bundle model
+    if ((M.model_index_new != 0) || (M.model_hex_index_new != ""))
+        model.lprob = M.lprob_new
+        model.mod_struct_new = M.mod_struct_new
+        model.k_new = M.k_new
+        model.count = 0
+        model.bhat = M.bhat_tmp
+        model.bvar = M.bvar_tmp
+        model.ess = M.ess_new
+        # For forecasting
+        if (M.h_predict > 0)
+            model.XtXinv = M.XtXinv
+        endif
+        if (M.max_dim_array_of_models == 0)
+            key = M.model_hex_index_new
+            known_models_bundle[key] = model
+            tmp = defarray(key)
+            known_models_hex_indexes += tmp
+        else
+            known_models_array[M.model_index_new] = model
+            known_models_indexes = known_models_indexes ~ M.model_index_new
+        endif
+    endif
+end function

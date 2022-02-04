@@ -1,0 +1,51 @@
+function void BACE_build_rank (bundle *M,
+                               bundles *known_models_array,
+                               bundle *known_models_bundle,
+                               matrix *known_models_indexes,
+                               strings *known_models_hex_indexes)
+    /*
+       Function creates both analitycal and numerical model rankings.
+       *M							- pointer to the main bundle
+       *known_models_array			- pointer to the array of (already estimated) models (for small k)
+       *known_models_bundle		- pointer to the bundle of (already estimated) models (for big k)
+       *known_models_indexes		- pointer to the matrix with models indexes (for small k)
+       *known_models_hex_indexes	- pointer to the array of strings with models indexes in hex format (for big k)
+    */
+    # We choose l_rank of best models
+    string names
+    bundle tmp
+    bundle model
+    bundle models
+    scalar nr
+    bundle lprob_data
+    # Models structures
+    loop i=1..M.l_rank --quiet
+        nr = M.mod_prob[i,3]
+        if (nr != 0)
+            if (M.max_dim_array_of_models == 0)
+                key = known_models_hex_indexes[nr]
+                tmp = known_models_bundle[key]
+            else
+                index = known_models_indexes[nr]
+                tmp = known_models_array[index]
+            endif
+            names = "const"
+            loop j=1..cols(tmp.mod_struct_new) --quiet
+                if (tmp.mod_struct_new[j] == 1)
+                    names += "," ~ M.all_names_sp_m[j]
+                endif
+            endloop
+            if (M.with_const != 1 && strlen(names) > 0)
+                names = substr(names, 7, strlen(names))
+            endif
+            model.bhat = tmp.bhat
+            model.bvar = tmp.bvar
+            model.names = names
+            models["$i"] = model
+        endif
+    endloop
+    M.mod_rank_prob = M.mod_prob[,1]
+    M.mod_nume_prob = M.mod_prob[,2]
+    M.model = models
+    M.lprob_data = lprob_data
+end function

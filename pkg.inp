@@ -1,0 +1,7 @@
+set verbose off
+
+string dtd = "/usr/local/share/gretl/functions/gretlfunc.dtd"
+
+include BACE.inp
+
+makepkg BACE.gfn --index --quiet --dtd="@dtd"

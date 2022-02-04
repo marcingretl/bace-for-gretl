@@ -1,0 +1,20 @@
+function void BACE_model_structure (bundle *M)
+/*
+   Function constructs structure vector of starting model
+    */
+    # Starting values
+    matrix M.mod_struct_new = zeros(1,M.k)
+    # Setting 1 for variables in current draw
+    loop i=1..cols(M.StartModel) --quiet
+        loop j=1..M.k --quiet
+            if (M.var_numbers2[1,j] == M.StartModel[i])
+                M.mod_struct_new[M.var_numbers2[2,j]-1] = 1
+                break
+            endif
+        endloop
+    endloop
+    # Filling in the mod_rank with starting structure
+    loop i=1..M.l_rank --quiet
+        M.mod_rank[i,] = M.mod_struct_new
+    endloop
+end function

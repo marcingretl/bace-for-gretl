@@ -1,0 +1,104 @@
+\documentclass[a4paper]{article}
+\usepackage{gretlwp}
+\usepackage[utf8]{inputenc}
+\usepackage{enumitem}
+\usepackage{pifont}
+\usepackage{amsmath,amssymb,amsfonts,textcomp}
+\usepackage{url}
+\usepackage[colorlinks]{hyperref}
+    \hypersetup{citecolor=blue}
+\usepackage[authoryear]{natbib}
+
+\newcommand{\proglang}[1]{\texttt{#1}}
+\newcommand{\pkg}[1]{{\fontseries{b}\selectfont #1}}
+% \newcommand{\code}{\bgroup\@makeother\_\@makeother\~\@makeother\$\@codex}
+\newcommand{\E}{\mathsf{E}}
+\newcommand{\VAR}{\mathsf{VAR}}
+\newcommand{\COV}{\mathsf{COV}}
+\newcommand{\Prob}{\mathsf{P}}
+\newcommand{\Code}[1]{\texttt{#1}}
+
+\newenvironment{CodeChunk}{}{}
+
+% \DefineVerbatimEnvironment{Code}{Verbatim}{}
+\DefineVerbatimEnvironment{CodeInput}{Verbatim}{fontshape=sl,fontsize=\small}
+\DefineVerbatimEnvironment{CodeOutput}{Verbatim}{}
+
+\author{Marcin Błażejowski\\
+  {\small WSB University in Torun}\\
+  {\small \url{marcin.blazejowski@wsb.torun.pl}}\\\\
+  Jacek Kwiatkowski\\ 
+  {\small Nicolaus Copernicus University in Toru\'{n}}\\
+  {\small \url{jkwiat@umk.pl}}}
+\title{Bayesian Averaging of Classical Estimates (BACE) for \pkg{gretl}}
+\prognum{6}
+
+\date{August 25, 2018}
+
+\begin{document}
+
+\pagestyle{headings}
+
+\maketitle
+
+\begin{abstract}
+This paper presents a software package that implements
+Bayesian Averaging of Classical Estimates \pkg{BACE}~ver.~1.2 for the \pkg{gretl}
+(the GNU regression, econometrics and time-series library).
+% Bayesian model averaging is a model-building strategy that takes account of model uncertainty in
+% conclusions about estimated parameters. It is an efficient tool for
+% discovering the most probable models and obtaining estimates of
+% their posterior characteristics. In recent years we have observed an
+% increasing number of software packages devoted to Bayesian model
+% averaging for different statistical and econometric software. In
+% this paper, we propose the \pkg{BMA} package for \pkg{gretl}, which is an
+% increasingly popular free, open-source software for econometric
+% analysis with an easy-to-use graphical user interface. We introduce
+% the \pkg{BACE} package for linear regression models with jointness measures
+% proposed by \cite{LeySteel2007} and \cite{DoppelhoferWeeks2009}.
+
+\vspace*{50pt}\noindent The package code changelog:
+\begin{description} 
+ \item[1.2] Several changes:
+    \begin{itemize}[label={--}]
+     \item Some typos in output.
+     \item Getting rid of calls to deprecated functions.
+     \item New jointness measures.
+    \end{itemize} 
+ \item[1.1] Several changes:
+    \begin{itemize}[label={--}]
+     \item Documentation in PDF.
+     \item Fix of several issues and bugs for model with only one explanatory
+        variable and without constant.
+     \item Change the option of the constant type from ,,random'' to ,,can be dropped''.
+    \end{itemize}
+ \item[1.0] Initial version.
+\end{description}
+
+\end{abstract}
+
+\jelcodes{C11, C21, C51}
+
+% \begin{keywords}
+% \pkg{gretl}, \proglang{Hansl}
+% \end{keywords}
+
+\section{Introduction}
+\input{Introduction}
+
+\section{Bayesian Averaging of Classical Estimates}
+\input{BACE_theory}
+
+\section[Usage of the BACE package]{Usage of the \pkg{BACE} package}%
+\label{sec:usage_of_the_BACE package}
+\input{Usage}
+%\input{UK_Wages}
+
+\bibliographystyle{jae}
+\bibliography{BACE}
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

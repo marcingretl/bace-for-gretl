@@ -1,0 +1,72 @@
+function void BACE_main (bundle *M)
+/*
+   This is main BACE function with complete MC3 simulation procedure
+    */
+    # Local variables
+    scalar progress = floor(M.Nrep/10) # progress of MC3
+    scalar percentage = progress # percentage of progress of MC3
+    scalar kwnown_model = 0 # do we know current (1) or do we have to estimate it (0)
+    bundles known_models_array = array(M.max_dim_array_of_models) # we have to manage empty model: we shift the numeration by 1 to the right!!!
+    bundle known_models_bundle
+    matrix known_models_indexes
+    strings known_models_hex_indexes
+    # Sample setting for prediction
+    if M.h_predict > 0
+        smpl M.first_obs M.last_obs
+    endif
+    ##################
+    # Part 1: Starting model
+    # We estimate starting model
+    BACE_initial_model(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
+    ##################
+    # Part 2: MC3
+    if M.show_progress == 1
+        printf "\nOverall progress: "
+    endif
+    flush
+    loop rep=1..M.Nrep --quiet
+        # Saving data for the old model
+        BACE_model_switch("SAVE", &M)
+        # Now we draw the number of candidate variable
+        potential_var = randint(0, M.k)
+        # Now we modify the list of variables (remove an existing variable or add a new variable)
+        if potential_var > 0
+            M.mod_struct_new = M.mod_struct
+            M.mod_struct_new[potential_var] = !M.mod_struct_new[potential_var]
+            /*
+               if sumc(M.mod_struct_new) == 0
+               endif
+            */
+            kwnown_model = BACE_find_model(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
+            if kwnown_model == 0
+                # We see model for the first time
+                # We create the new matrix of indenpendent variables and run some precomputes based on it
+                M.k_new = sumr(M.mod_struct_new)
+                BACE_new_X_matrix("NORMAL", &M)
+                BACE_matrix_precompute(&M)
+                BACE_estimate(&M)
+                BACE_lprob(&M)
+                BACE_known_results(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
+            endif
+            BACE_accep_model(&M, &known_models_array, &known_models_bundle)
+        endif
+        # Essentials of MC3: building of rankings, averaging the results and jointness stuff
+        if rep > M.Nburn
+            # We count how many times given model has appeared
+            BACE_model_count(&M, &known_models_array, &known_models_bundle)
+        endif
+        if M.show_progress == 1
+            BACE_show_progress(&rep, &percentage, &progress, M.Nrep)
+        endif
+    endloop
+    # Results collection
+    BACE_collect_results(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
+    # We build rangings
+    BACE_build_rank(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
+    ###
+    # We must delete known_models array (memory free)
+    delete known_models_array
+    delete known_models_bundle
+    delete known_models_indexes
+    delete known_models_hex_indexes
+end function

@@ -1,0 +1,21 @@
+function void BACE_forecast_dynamic_matrix (scalar *period,
+                                            matrix *Y_AR_cols,
+                                            matrix *Yhat_predict,
+                                            matrix *X_new_predict_row)
+    /*
+       This function substitutes lagged Y values in the X_new_predict_row vector
+       by its forecast calculated for previous periods.
+       *period				- poriod for which we construct X_new_predict_row vector
+       *Y_AR_cols			- pointer to the vector indicating cols with AR(p) coefficients
+       *Yhat_predict		- pointer to the vector with forecasts
+       *X_new_predict_row	- pointer to the vector with values of X-es (out-of-sample)
+       #
+    */
+    # Local variables
+    matrix Y_lags = selifr(period - Y_AR_cols, Y_AR_cols .< period)
+    scalar Y_lags_rows = rows(Y_lags)
+    if (Y_lags_rows != 0)
+        matrix columns = seq(1, Y_lags_rows)
+        X_new_predict_row[columns] = Yhat_predict[Y_lags]'
+    endif
+end function

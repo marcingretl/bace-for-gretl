@@ -1,0 +1,187 @@
+function bundle BACE_setup (series Y,
+                            int Y_AR_p,
+                            matrix X_list_m,
+                            int acc_type[1:2:1],
+                            scalar av_model_size[0::1],
+                            scalar alpha[0:1:0.6],
+                            int l_rank[2::4],
+                            int g_type[0:5:1],
+                            int do_joint[0:2:0],
+                            int h_predict[0::],
+                            int Nrep[1e+06],
+                            int burn[0:99:10],
+                            int MC_rep[0::24000],
+                            int verbosity[1:2:1],
+                            string Y_name,
+                            bool show_progress[1],
+                            int CPU_num,
+                            int with_const)
+    /*
+       This function creates BUNDLE holding all BACE information
+       #
+       Local variables:
+       tmp_str - general purpose string
+    */
+    bundle M
+    list X_list = X_list_m
+    ####
+    scalar M.with_const = with_const
+    if (M.with_const == 1)
+        string M.const_type = "Always"
+    elif (M.with_const == 2)
+        string M.const_type = "Can be dropped"
+        X_list = X_list const
+    else
+        string M.const_type = "Never"
+    endif
+    ####
+    if (Y_AR_p > 0)
+        X_list = lags(Y_AR_p, Y) X_list
+    endif
+    list big_list = Y X_list
+    string tmp_str = ""
+    # Basic parsing and checking
+    # Global variables
+    series M.Y = Y
+    matrix M.X_list = X_list
+    scalar M.acc_type = acc_type
+    scalar M.av_model_size = av_model_size
+    scalar M.alpha = alpha
+    scalar M.l_rank = l_rank
+    scalar M.g_type = g_type
+    scalar M.do_joint = do_joint
+    scalar M.h_predict = h_predict
+    scalar M.Nrep = Nrep
+    scalar M.burn = burn
+    scalar M.verbosity = verbosity
+    scalar M.show_progress = show_progress
+    # Local variables
+    matrix M.StartModel = {} # list with variables selected in starting model UWAGA: do wyrzucenia!!!
+    bundle StartModel_b
+    bundle M.StartModel_b = StartModel_b
+    matrix M.X_list = X_list # List of all explanatory variables
+    scalar M.k = nelem(X_list) # total number of indenpendent variables
+    scalar M.Nburn = round(burn/100*Nrep) # number of burn-in draws
+    matrix M.var_numbers = big_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
+    matrix M.var_numbers2 = transp(msortby(transp(M.var_numbers[2:1+M.k] | seq(2,1+M.k)), 1)) # vector containing the dataset numbers of all variables and their order in the 'big_list'
+    matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
+    matrix M.big_mat_dem = M.big_mat
+    # In case of "out-of-sample" prediction
+    if (h_predict > 0)
+        ####
+        scalar M.first_obs = Y_AR_p+1 # the first observation for smpl command
+        scalar M.last_obs = $nobs-h_predict # the last observation for smpl command
+        matrix M.big_mat_predict = M.big_mat[rows(M.big_mat)-h_predict+1:rows(M.big_mat),] # "out-of-sample" matrix of all variables (including Y)
+        matrix M.big_mat_dem_predict = M.big_mat_dem[rows(M.big_mat_dem)-h_predict+1:rows(M.big_mat_dem),] # "out-of-sample" matrix M.of all demeaned variables (including Y)
+        #scalar M.last_obs = rows(M.big_mat)-h_predict # number of "out-of-sample" forecasts
+        #matrix M.big_mat_predict = M.big_mat[M.last_obs+1:rows(M.big_mat),] # "out-of-sample" matrix of all variables (including Y)
+        #matrix M.big_mat_dem_predict = M.big_mat_dem[M.last_obs+1:rows(M.big_mat),] # "out-of-sample" matrix M.of all demeaned variables (including Y)
+        ####
+        matrix M.Y_mat_predict = M.big_mat_predict[,1] # "out-of-sample" matrix of the dependent variable
+        matrix M.Yhat_predict = zeros(h_predict,1) # vector of Y predictions in current draw
+        matrix M.precision = zeros(h_predict,1) # prediction precision
+        matrix M.Yhat_predict_avg = zeros(h_predict,1) # vector of Y predictions - average
+        matrix M.Yhat_predict_var_avg = zeros(h_predict,1) # predicion variance
+        matrix M.prediction = {} # matrix with prediction results
+        loop i=($nobs-h_predict+1)..$nobs --quiet
+            tmp_str += strsub(obslabel(i), " ", "") ~ " "
+        endloop
+        string M.predict_obs_names = tmp_str # obs labels for forecasts
+        smpl M.first_obs M.last_obs #$nobs-h_predict-Y_AR_p #M.last_obs # setting sample
+        matrix M.big_mat = M.big_mat[1:rows(M.big_mat)-h_predict,] # big_mat for limited sample
+        matrix M.big_mat_dem = M.big_mat_dem[1:rows(M.big_mat_dem)-h_predict,] # big_mat_dem for limited sample
+    else
+        matrix M.big_mat_dem_predict = {}
+        matrix M.Yhat_avg = {}
+        matrix M.Yhat_var_avg = {}
+        matrix M.Y_mat_predict = {}
+        string M.predict_obs_names = ""
+    endif
+    # New model
+    matrix M.ZtZinv_new = {} # inverse of Z'Z (X's without constant term)
+    scalar M.k_new = 0 # number of variables in the current (new) model
+    scalar M.lprob_new = 0 # scalar M.with natural logarithm of marginal density of the new model
+    matrix M.X_new_num = {} # vector containing numbers of variables in the new model
+    matrix M.X_new = {} # the X matrix M.for the current (new) model (demeaned)
+    # Old model
+    matrix M.ZtZinv_old = {} # old inverse of Z'Z (X's without constant term)
+    scalar M.k_old = 0 # number of variables in the previous (old) model
+    scalar M.lprob_old = 0 # scalar M.with natural logarithm of marginal density of the old model
+    matrix M.X_old_num = {} # vector containing numbers of variables in the old model
+    scalar M.dj_new = 0 # scalar M.needed for prediction precision computation
+    scalar M.dj_old = 0 # scalar M.needed for prediction precision computation
+    matrix M.X_new_predict = {} # "out-of-sample" the X matrix M.for the current (new) model (demeaned)
+    matrix M.X_old_predict = {} # "out-of-sample" the X matrix M.for the previous (old) model (demeaned)
+    matrix M.Y_mat = M.big_mat[,1] # matrix of the dependent variable
+    scalar M.y_dem_sq = M.big_mat_dem[,1]'M.big_mat_dem[,1] # sum of squares of the demeaned Y
+    scalar M.y_mean = meanc(M.Y_mat) # mean of the Y
+    scalar M.mod_size = 0 # size of models in MC3 (sum)
+    scalar M.yMy = 0 # scalar M.for P_y computation
+    matrix M.scaling_f = zeros(7,1) # vector containing the scaling factors
+    matrix M.mod_struct = zeros(1,M.k) # 0-1 vector containing the structure of the current model
+    matrix M.mod_struct_new = zeros(1,M.k) # 0-1 vector containing the structure of the current model
+    matrix M.mod_rank = -1 * ones(l_rank,M.k) # 0-1 matrix M.containing structure of models in ranking
+    matrix M.mod_rank_prob = zeros(l_rank,1) # probability of the models in ranking (analytical)
+    matrix M.mod_nume_prob = zeros(l_rank,1) # probability of the models in ranking (numerical)
+    matrix M.var_prob = zeros(1,M.k) # vector containing PIPs
+    strings M.all_names_sp_m = varnames(X_list)
+    loop i=1..Y_AR_p --quiet
+        M.all_names_sp_m[i] = strsub(M.all_names_sp_m[i], "Y_$i", Y_name~"_$i")
+    endloop
+    string M.Y_name = Y_name # string with name of denpendent variable
+    if (do_joint != 0)
+        matrix M.jointness_m = zeros(M.k, M.k) # square matrix M.containing counts of coexistence (jointness) of every pair of indenpendent variables
+    else
+        matrix M.jointness_m = {}
+    endif
+    if (acc_type == 1) # options for the prior
+        string M.prior_name = "Binomial"
+        scalar M.a = ln(av_model_size/M.k)
+        scalar M.b = ln(1 - av_model_size/M.k)
+        scalar M.c = 0
+    else
+        string M.prior_name = "Binomial-Beta"
+        scalar M.a = 1
+        scalar M.b = (M.k - av_model_size)/av_model_size
+        scalar M.c = lngamma(M.a + M.b) - lngamma(M.a) - lngamma(M.b)
+    endif
+    matrix M.bhat = {} # vector containing the estimated coefficients for the current model
+    matrix M.bvar = {} # vector containing the variances of the coefficients for the current model
+    matrix M.XtY = {} # X'Y (part of OLS)
+    matrix M.XtXinv = {} # inverse of X'X (part of OLS)
+    matrix M.bhat_avg = zeros(M.k, 1) # vector containing average values of coefficients (over MCMC)
+    matrix M.bvar_avg = zeros(M.k, 1) # vector containing average values of variances of the coefficients (over MCMC)
+    matrix M.Numerical_Likelihood = {} # column vector containing numerical probabilities for models
+    matrix M.Post_Results = {} # matrix with all posterior results
+    ########################
+    ########################
+    string M.model_type = "BACE"
+    scalar M.N = rows(M.big_mat)
+    scalar M.CPU_num = 1
+    scalar M.Y_AR_p = Y_AR_p # max Y lag order
+    matrix M.bhat_tmp = {} # temporary column vector containing the estimated coefficients for the current model (candidates)
+    matrix M.bvar_tmp = {} # temporary column vector containing the variances of the coefficients for the current model (candidates)
+    scalar M.ess_new = 0 # Error sum of squares in new model
+    scalar M.ess_old = 0 # Error sum of squares in old model
+    scalar M.consthat_avg = 0
+    scalar M.constvar_avg = 0
+    if (M.k > 24) # Upper limit for the size of array of bundles (preventing huge memory allocation)
+        scalar M.max_dim_array_of_models = 0
+    else
+        scalar M.max_dim_array_of_models = xmin(2^24, 2^M.k)
+    endif
+    scalar M.post_n_models = 0 # number of considered models
+    scalar M.post_n_models_accepted = 0 # number of accepted models
+    scalar M.model_index_new = 0 # decimal index of new model
+    scalar M.model_index_old = 0 # decimal index of old model
+    string M.model_hex_index_new = "" # hex index of model
+    string M.model_hex_index_old = "" # hex index of model
+    matrix M.mod_prob = {} # matrix with models probabilities
+    scalar M.seed = $seed
+    bundle model # current model (to and from the array of bundles)
+    ########################
+    if (verbosity == 1)
+        set warnings off
+    endif
+    return M
+end function

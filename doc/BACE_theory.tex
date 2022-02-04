@@ -1,0 +1,84 @@
+Consider simple regression model $M_j$: 
+\begin{equation}
+ y = X_j\beta_j + \epsilon
+\end{equation}
+where $y$ is $(T x 1)$ vector of observations,  $X_j$ is  $(T x k_j)$ matrix containing the set of independent variables and constant, $\beta_j$ is a $(k_j x 1)$ vector of unknown parameters, $\epsilon$ is a $(N x 1)$ vector of errors which are assumed to be normally distributed i.e. $\epsilon \sim N(0_T, \sigma^2I_T)$, $N(\mu, \Sigma)$ denotes a normal distribution
+with location $\mu$ and covariance $\Sigma$.
+
+By applying Ordinary Least Squares (OLS) estimates (see \cite{SalaMartinDoppelhoferMiller_BACE}) we can
+calculate approximation of posterior probability of model $M_j$ i.e.  $\Pr(M_j|y)$ using the following
+formula:
+
+\begin{equation}
+\Pr(M_j|y) \approx \frac{\Pr(M_j)T^{-k_j/2}SSE_j^{-T/2}}
+    {\sum_{i=1}^{2^K}\Pr(M_i)T^{-k_i/2}SSE_i^{-T/2}},
+\end{equation}
+where  $SSE_j$ and $SSE_i$ are the OLS sum of squared errors, $2^K$ denotes the total number of potential combinations of the \textit{K} independent variables, $k_j$ and $k_i$ are the number of regression parameters $\beta_j$ and $\beta_i$. Prior probabilities $\Pr(M_j)$ and $\Pr(M_i)$ of models $M_j$ and $M_i$ are  binomially distributed, namely:
+\begin{equation}
+\Pr(M_j)=\theta^{k_i}(1-\theta)^{K-k_i}, \theta \in [0, 1].
+\end{equation}
+Note that the Binomial distribution implies that we only need to specify a prior expected model size  $\E(\Xi)=K\theta$ where $\E(\Xi) \in (0, K]$. If we define the value of $\E(\Xi)$ our BACE package will automatically produce a value of prior inclusion probability for all competitive models.  In case of  $\theta = 0.5$ prior expected model size  is equal to the average of number of potential regressors,  model prior distribution is uniform $\left( \Pr(M_i) = 2^{-K} \right)$ and reflects a lack of previous knowledge about models.
+
+Using BACE we can also easily evaluate the mean and variance of
+the posterior distribution of regression parameters $\beta$ across the whole model space (see \cite{Leamer1978}):
+\begin{equation}
+E(\beta |y) \approx \sum _{i=1}^{2^K}\Pr(M_i|y)E(\beta_i |y,M_i),
+\end{equation}
+
+\begin{equation}
+Var(\beta |y) \approx 
+\sum_{i=1}^{2^K}\Pr(M_i|y)Var(\beta_i |y,M_i) +
+\sum_{i=1}^{2^K}\Pr(M_i|y) \left(E(\beta_i |y,M_i) - E(\beta |y)\right)^2,
+\end{equation}
+where $E(\beta_i |y,M_i)$ and $Var(\beta_i |y,M_i)$ are the OLS estimates of $\beta_i$
+from model $M_i$. 
+
+Another useful characteristic popular in BACE approach is a Posterior
+Inclusion Probability (PIP). It is defined as the posterior probability that the variable $x_i$ is relevant in explaining the
+dependent variable  (see \cite{Leamer1978, mitchell_beauchamp_1988}). In our case the PIP is calculated (using Monte Carlo integration) as the sum of the posterior model probabilities for all of the models including specific variable:
+\begin{equation}
+\Pr(\beta_i \neq 0| y) = \sum_{i=1}^{2^K}\Pr(M_i|y)
+\end{equation}
+
+In many cases,  despite of the interest of posterior characteristics it is valuable to predict future values of the dependent variable. 
+In BACE approach we can carry out predictive inference across the whole model space. 
+Given the matrix $X_j^*$ containing explanatory variables for each of the out-of-sample data points we can predict inference on unobserved values of dependent variable as a weighted average of the individual model forecasts. 
+
+%Doppelhofer-Weeks Measure (DW1)
+%\begin{equation}
+%J_{DW1}(A,B)=\ln \left( \frac{p(A \cap B|y)}{p(A|y)p(B|y)} \right)
+%\end{equation}
+
+\cite{DoppelhoferWeeks2009}(DW2)
+\begin{equation}
+J_{DW2}(i,j)=\ln \left( \frac{p(i\cap j|y)p(\overline i \cap \overline j|y)}{p (i \cap \overline j|y) p(\overline i \cap j|y)} \right)
+\end{equation}
+
+
+\cite{LeySteel2007}(LS2)
+\begin{equation}
+J_{LS1}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i|y)+p(j|y) - 2p(i \cap j|y)} \right)
+\end{equation}
+%
+%\cite{LeySteel2007} (LS2)
+%\begin{equation}
+%J_{LS2}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)+p(\overline i \cap j|y)} \right)
+%\end{equation}
+
+Strachan Measure \cite{Strachan2009}
+\begin{equation}
+J_{St}(i,j)=\ p(i|y)p(j|y) \ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)p(\overline i \cap j|y)} \right)
+\end{equation}
+
+%Yule's Q Measure (YQ) \cite{}
+%\begin{equation}
+%J_{YQ}(A,B)=\ln \left( \frac{p(A \cap B|y)p(\overline A \cap \overline B|y) - p(A \cap \overline B|y)p(\overline A \cap  B|y)}{p(A \cap %B|y)p(\overline A \cap \overline B|y) + p(A \cap \overline B|y)p(\overline A \cap  B|y)} \right)
+%\end{equation}
+
+Modified Yule's Q Measure (YQM) \cite{Hofmarcher2018}
+\begin{equation}
+J_{YQ}(i,j)=\ln \left( \frac{\left(p(i \cap j|y)+ \frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) - \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right)}
+{\left(p(i \cap j|y)+\frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) + \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right) -\frac{1}{2}} \right)
+\end{equation}
+
+A (B ) indicates that event A (B) did not occur.

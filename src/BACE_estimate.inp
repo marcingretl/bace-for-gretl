@@ -1,0 +1,6 @@
+function void BACE_estimate (bundle *M)
+/*
+   This is wrapper for different estimators used in different methods (for future)
+    */
+    BACE_ols(&M)
+end function

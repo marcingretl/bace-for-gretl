@@ -1,0 +1,21 @@
+function scalar BACE_forecast_generic_variance (matrix *XT,
+                                                matrix *XtXinv,
+                                                scalar *sigma2,
+                                                matrix *Yhat_predict_var[null])
+    /*
+       Function computes forecast variance as:
+       - scalar, if XT is a row vector
+       - vector, if XT is matrix
+       *XT					- pointer to the vector with values of X-es (out-of-sample)
+       *XtXinv				- pointer to the inverse of covariance matrix
+       *sigma2				- pointer to the scalar with sigma-square value
+       *Yhat_predict_var	- pointer to the matrix with forecast variances (null if we return scalar)
+       Returns: forecast variance (if XT is a vector), NA elsewhere
+    */
+    if rows(XT) > 1
+        Yhat_predict_var = diag(sigma2 * (1 + qform(XT, XtXinv)))
+        return NA
+    else
+        return sigma2 * (1 + qform(XT, XtXinv))
+    endif
+end function

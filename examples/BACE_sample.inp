@@ -1,0 +1,90 @@
+set verbose off
+
+# Usage:
+open greene9_1.gdt
+include BACE.gfn
+list greene = capital labor nfirm
+
+# We set the seed in order to exact reproduction of results
+set seed 1000000
+
+scalar y_lags = 0
+scalar with_const = 1
+scalar model_prior = 1
+scalar prior_avg_model_size = 1.5
+scalar alpha = 0.6
+scalar top_ranked_model = 4
+scalar joint = 1
+scalar forecasts = 0
+scalar Nrep = 2000
+scalar Nburn = 10
+scalar verbosity = 1
+scalar progress = 1
+
+BACE_GUI(valadd, y_lags, greene, with_const, model_prior, prior_avg_model_size, alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
+
+/*
+The above example consists of three blocks.
+The first block is just opening of the so called \cmd{greene9\_1}
+dataset, which is bundled in every standard gretl installation.
+This dataset contains cross-sectional data on manufacturing
+of transportation equipment presented as Table 9.1 in
+Greene, Econometric Analysis, 4e}.
+We also set the seed in order to exact reproduction of the results.
+
+The second block is the definition of the greene list which
+contains three independent variables available in the greene9_1 dataset.
+
+The third block contains the definition for Bayesian Averaging of Classical
+Estimates analysis: no lags for Y variable (not applicable since we have
+cross-sectional data), constant always included, binomial model prior,
+prior average model size set to 1.5 (which means that we have uniform model prior),
+significance level for the initial model set to 0.6, 4 top ranked models,
+jointness analysis with Ley-Steel Measure, without out-of-sample predictions,
+10000 replications with 10% burn-in draws, basic output (verbosity set to 1)
+and progress overall progress is printed.
+*/
+####################################################################################
+
+/*
+Suppose we want to run the same analysis but following
+Occam's razor principle. The simplest way is setting the prior
+average model size to 1. We also want to have ''random'' constant,
+i.e. intercept can be dropped in any model. We also want to save
+results of the BACE analysis in the bundle \cmd{results\_b},
+the code should be as follows:
+*/
+prior_avg_model_size = 1
+with_const = 2
+results_b = BACE_GUI(valadd, y_lags, greene, with_const, model_prior, prior_avg_model_size, alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
+
+/*
+Suppose we want to compute forecasts for 3 observations and print
+additional information in results (verbosity set to 2) and we don't
+want to see any progress. The code would be as follows:
+*/
+/*
+forecasts = 3
+verbosity = 2
+progress = 0
+BACE_GUI(valadd, y_lags, greene, with_const, model_prior, prior_avg_model_size, alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
+*/
+
+/*
+Suppose we want to calculate Doppelhofer-Weeks Measure instead of
+already computed Ley-Steel Measure. Since the type of jointness measure
+is controlled by do_join field in the result bundle, the only thing
+we have to do is to set the value of do_join to 2 and print BACE
+results again. The code should be as follows:
+*/
+results_b.do_joint = 2
+BACE_Print(&results_b)
+
+results_b.do_joint = 3
+BACE_Print(&results_b)
+
+results_b.do_joint = 4
+BACE_Print(&results_b)
+
+results_b.do_joint = 7
+BACE_Print(&results_b)

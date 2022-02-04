@@ -1,0 +1,116 @@
+The article \cite{SalaMartinDoppelhoferMiller_BACE} suggests a
+technique for averaging the parameter estimates -- Bayesian Averaging
+of Classical Estimates, which enables to measure the importance of
+particular potential regressors. This approach is alternative to the
+familiar and earlier-applied Bayesian Model Averaging (BMA) technique,
+from which it differs mainly because of its less restrictive \textit{a
+  priori} assumptions. The authors showed that a weighting method may
+be understood as a limiting case of Bayesian analysis when the prior
+information is dominated by the data. Averaging of the parameter
+estimates is performed across all possible combinations of models
+obtained by means of Classical Ordinary Least Squares (OLS)
+estimation.
+
+The BACE approach has several interesting features in relation to
+the techniques such as BMA or robustness-checking methods.
+First of all, it is not necessary to make assumptions concerning
+the \textit{a priori} distribution for parameters, and only
+one simple assumption, on the expected model size.
+% The weights for particular models
+% are built based on the logarithm of the likelihood function
+% corrected for degrees of freedom. 
+% The estimation of parameters
+% is realised by means of Classical OLS. Moreover, there are
+% considered all possible models and there are not taken any
+% assumptions concerning the individual regressors (no variable is of
+% fixed type).
+
+% Let's start with Bayes' rule:
+% 
+% \begin{equation}\label{eq:Bayes rule}
+%   g(\beta | y)= \frac{f(y|\beta )g(\beta )}{f(y)}.
+% \end{equation}
+% 
+% In equation (\ref{eq:Bayes rule}) $g(\beta)$ is the prior density
+% of vector $\beta$ and $f(y)$ is density of observed data. Given
+% two subsets of variables (two models) – $M_0$ and $M_1$ – 
+% under Bayes' rule we get:
+% 
+% \begin{equation}\label{eq:refText6}
+%     g(\beta | y) = P(M_0)\frac{f(y|\beta )g(\beta | M_0)}{f(y)}
+%     + P(M_1)\frac{f(y|\beta)g(\beta|M_1)}{f(y)}.
+% \end{equation}
+% Now, we can rewrite (\ref{eq:refText6}) in terms of posterior probabilities of two models:
+% 
+% \begin{equation}
+%     g(\beta |y) = P(M_0|y)\frac{f(y|\beta )g(\beta |M_0)}{f(y|M_0)}
+%     + P(M_1|y)\frac{f(y|\beta )g(\beta |M_1)}{f(y|M_1)},
+% \end{equation}
+% where $P(M_i|y)$ is the posterior probability of the i'th model.
+
+By applying diffuse priors we obtain the posterior odds ratio for two
+regression models:
+\begin{equation}
+\frac{P(M_0|y)}{P(M_1|y)} \approx
+\frac{P(M_0)}{P(M_1)}\left(\frac{|A_0|/|A_0 + X_0^{'}X_0|}{|A_1|/|A_1 + X_1^{'}X_1|}\right)^{-1/2}
+\left(\frac{SSE_0+Q_0}{SSE_1+Q_1}\right)^{-T/2},
+\end{equation}
+where
+\begin{itemize}
+\item $P(M_i)$ and $P(M_i|y)$ are the prior and posterior
+  probabilities, respectively, for model $M_i$;
+\item $X_0$ and $X_1$ are matrices with the observations for the
+  independent variables for $M_0$ and $M_1$;
+  $SSE_i$ is the OLS sum of squared errors for model $i$;
+\item $T$ is the sample size;
+\item $A_0^{-1}$ and $A_1^{-1}$ are covariance matrices;
+\item  $Q_i$ is a quadratic form of estimated parameters.
+\end{itemize}
+
+If we use Zellner's \textit{g}-prior \cite{Zellner1986} for
+$A_0=\mathit{gX_0}^{'}X_0$ and $A_1=\mathit{gX_1}^{'}X_1$
+and assume that $g\rightarrow 0$ and $X^{T}X\rightarrow \infty$
+we will finally obtain the following posterior odds ratio:
+\begin{equation}\label{eq:refText9}
+\frac{P(M_0|y)}{P(M_1|y)}=\frac{P(M_0)}{P(M_1)}T^{(k_1-k_0)/2}
+\left(\frac{SSE_0}{SSE_1}\right)^{-T/2},
+\end{equation}
+where $k_i$ is the number of parameters in model $M_i$.  We can
+calculate posterior probability of $P(M_j|y)$ via the following
+formula:
+
+\begin{equation}
+P(M_j|y)=\frac{P(M_j)T^{-k_j/2}SSE_j^{-T/2}}
+    {\sum_{i=1}^{2^K}P(M_i)T^{-k_i/2}SSE_i^{-T/2}}.
+\end{equation}
+where $2^K$ denotes the total number of potential combinations of the
+\textit{K} independent variables.
+
+Using BACE we can also easily evaluate the mean and variance of
+the posterior distribution of slope parameters (see \cite{Leamer1978}):
+\begin{equation}\label{eq:refText11}
+E(\beta |y)=\sum_{i=1}^{2^K}P(M_j|y)E(\beta |y,M_j)
+\end{equation}
+
+Equation (\ref{eq:refText11}) can be rewritten as:
+\begin{equation}
+E(\beta |y)=\sum _{i=1}^{2^K}P(M_j|y)\hat{\beta}
+\end{equation}
+where $\hat{\beta}=E(\beta |y,M_j)$ is the OLS estimate of $\beta$
+from model $M_j$. The posterior variance of $\beta$ is given by:
+\begin{equation}
+Var(\beta |y) = 
+\sum_{i=1}^{2^K}P(M_j|y)Var(\beta |y,M_j) +
+\sum_{i=1}^{2^K}P(M_j|y)\left(\hat{\beta}_j -
+\sum_{i=1}^{2^K}P(M_j|y)\hat{\beta}_j\right)^2.
+\end{equation}
+
+An example of the application of the BACE technique for forecasting
+macroeconomic indicators can be found, among others, in the articles
+\cite{vanDijk2004Forecasting,BialowolskiKuszewskiWitkowski2015Empirica,
+  AlbisMapa2014MPRA55902}.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "BACE_package_for_gretl"
+%%% End:

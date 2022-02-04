@@ -1,0 +1,101 @@
+function void BACE_collect_results (bundle *M,
+                                    bundles *known_models_array,
+                                    bundle *known_models_bundle,
+                                    matrix *known_models_indexes,
+                                    strings *known_models_hex_indexes)
+    /*
+       Function collects posterior results from an array of bundles
+       and stores it in main (MODEL) bundle
+       *M							- pointer to the main bundle
+       *known_models_array			- pointer to the array of (already estimated) models (for small k)
+       *known_models_bundle		- pointer to the bundle of (already estimated) models (for big k)
+       *known_models_indexes		- pointer to the matrix with models indexes (for small k)
+       *known_models_hex_indexes	- pointer to the array of strings with models indexes in hex format (for big k)
+    */
+    scalar mod_size = 0
+    matrix mod_prob # for ranking
+    matrix var_prob = zeros(1, M.k)
+    if M.with_const == 1
+        matrix bhat_avg = zeros(M.k+1, 1)
+        matrix bvar_avg = zeros(M.k+1, 1)
+    else
+        matrix bhat_avg = zeros(M.k, 1)
+        matrix bvar_avg = zeros(M.k, 1)
+    endif
+    matrix indexes
+    scalar index
+    string key
+    bundle model
+    matrix var_numbers2 = transp(msortby(transp(M.var_numbers2[2,]),1))
+    if M.max_dim_array_of_models == 0
+        M.post_n_models = nelem(known_models_hex_indexes)
+    else
+        M.post_n_models = cols(known_models_indexes)
+    endif
+    if M.do_joint != 0
+        matrix jointness_m = zeros(M.k, M.k)
+    endif
+    loop i=1..M.post_n_models --quiet
+        if M.max_dim_array_of_models == 0
+            key = known_models_hex_indexes[i]
+            model = known_models_bundle[key]
+        else
+            index = known_models_indexes[i]
+            model = known_models_array[index]
+        endif
+        if model.count != 0
+            M.post_n_models_accepted += 1
+            mod_prob = mod_prob | { model.lprob , model.count , i }
+            mod_size += model.k_new * model.count
+            var_prob += model.mod_struct_new * model.count
+            if M.with_const == 1
+                indexes = { 1 } ~ selifc(var_numbers2, model.mod_struct_new)
+            else
+                if sumr(model.mod_struct_new) != 0
+                    indexes = selifc(var_numbers2, model.mod_struct_new) - 1
+                else
+                    indexes = {}
+                endif
+            endif
+            # We don't average when we have trully empty model (no const end no variables)
+            if nelem(indexes) > 0
+                bhat_avg[indexes] += model.bhat * model.count
+                bvar_avg[indexes] += (model.bvar + model.bhat .^ 2) * model.count
+            endif
+            # Jointness analysis
+            if (M.do_joint != 0)
+                # This piece of code was written by Jack (instead of our version which was much much slower)
+                jointness_m = upper(jointness_m .+ model.count * ((model.mod_struct_new .* model.mod_struct_new') .> 0))
+            endif
+            # Out-of-sample forecasts
+            if M.h_predict > 0
+                BACE_forecast(&M, &model)
+            endif
+        endif
+    endloop
+    # For coefficients
+    if M.with_const == 1
+        M.bhat_avg = bhat_avg[2:,]
+        M.bvar_avg = bvar_avg[2:,]
+        M.consthat_avg = bhat_avg[1]
+        M.constvar_avg = bvar_avg[1]
+    else
+        M.bhat_avg = bhat_avg
+        M.bvar_avg = bvar_avg
+    endif
+    # For posteriori model size and PIPs
+    M.mod_size = mod_size
+    M.var_prob = var_prob
+    # Model rankings
+    mod_prob = mreverse(msortby((mod_prob), 2))
+    if (M.l_rank > rows(mod_prob))
+        mod_prob = mod_prob | zeros(M.l_rank-rows(mod_prob), 3)
+    else
+        mod_prob = mod_prob[1:M.l_rank,]
+    endif
+    M.mod_prob = mod_prob
+    # Jointness
+    if M.do_joint != 0
+        M.jointness_m = jointness_m
+    endif
+end function

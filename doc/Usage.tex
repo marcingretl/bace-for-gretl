@@ -1,0 +1,370 @@
+\subsection{BACE main function}
+The BACE package defines two public functions:
+\cmd{BACE\_GUI()} and \cmd{BACE\_Print()}.
+The \cmd{BACE\_GUI()} takes following parameters:
+\begin{itemize}
+ \item \textbf{Dependent variable} as series [required].
+ \item \textbf{Y lags} as integer with zero (only for time-series).
+ \item \textbf{List of independent variables (X)} as list [may be null].
+ \item \textbf{Constant in model} as integer [required]:
+    \begin{enumerate}
+     \item Never -- all models without constant,
+     \item Always -- all models with constant,
+     \item Can be dropped -- constant may be removed from or added to any model.
+    \end{enumerate}
+ \item \textbf{Model prior} as integer [required]:
+    \begin{enumerate}
+     \item Binomial -- binomial distribution,
+     \item Binomial-Beta -- binomial-beta distribution%
+       \footnote{Note: this option may generate errors as this
+         distribution follows Occam's razor principle in a very
+         aggressive way.}.
+    \end{enumerate}
+ \item \textbf{Prior average model size} as scalar with zero [required].
+ \item \textbf{Significance level for the initial model} as scalar from $(0,1)$
+    [required].
+ \item \textbf{Number of the top ranked models} as integer [required].
+ \item \textbf{Jointness analysis} as integer with zero [required]%
+    \footnote{Values $\pm 999.000000$ should be interpreted as $\pm \infty$.}:
+    \begin{enumerate}
+     \item None -- we do not perform any jointness analysis,
+     \item Ley-Steel Measure -- we perform jointness analysis with Ley-Steel measure,
+     \item Doppelhofer-Weeks Measure -- we perform jointness analysis with Doppelhofer-Weeks measure.
+    \end{enumerate}
+ \item \textbf{Number of out-of-sample forecasts} as integer with zero [required].
+ \item \textbf{Total number of replications} as integer [required].
+ \item \textbf{Percentage of burn-in draws} as integer from (0, 99) [required].
+ \item \textbf{Verbosity} as integer [required].
+ \item \textbf{Show overall progress} as Boolean.
+\end{itemize}
+
+The \cmd{BACE\_GUI()} function returns a bundle with all information
+needed to print results anytime. One can print the results by calling
+\cmd{BACE\_Print(\&RES)}, where \texttt{RES} is the bundle returned by the
+\cmd{BACE\_GUI()} function.
+
+\subsection{The GUI way}
+Once you start \pkg{gretl}, you must open a data file and then you can
+load the relevant \pkg{BACE} package from the \pkg{gretl} server. In the main
+window, go to File $\rightarrow$ Function packages $\rightarrow$ On server
+heading. By selecting \pkg{BACE}, you will download the package on your
+local machine. Next, go to File $\rightarrow$ Function packages $\rightarrow$
+On local machine and by selecting BACE from the list open a window similar
+to the one shown in Figure~\ref{fig:Main window for BACE}:
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.7\columnwidth, keepaspectratio]{PNG/BACE_main_window}
+  \caption{Main window for \pkg{BACE}.}
+  \label{fig:Main window for BACE}
+\end{figure}
+  
+According to Figure~\ref{fig:Main window for BACE}, we can specify the following
+entries in the GUI \pkg{BACE} window\label{text:module_parameters}
+\begin{itemize}
+\item \textbf{Dependent variable} -- The dependent variable.
+\item \textbf{Y lags} -- number of lags for dependent variable
+    (for time-series only).
+\item \textbf{List of independent variables}
+  -- Loading variables from the database, which must have been
+  opened previously.  Note that by
+  default we assume that you want to estimate an intercept; therefore,
+  a constant is implicitly included in the list of the variables.
+\item \textbf{Constant in model} -- Do we include intercept? It can be:
+always, never or can be dropped.
+\item \textbf{Model prior} -- Indicates the choice of model prior. One
+  can employ the binomial model prior or the binomial-beta model
+  prior. Note that the uniform model prior is a special case of the
+  binomial model prior. Therefore, in fact, our package allows for
+  three types of priors.
+\item \textbf{Prior average model size} -- Specifies the prior
+  expected model size $\E(\Xi)$.  The expected model size may range
+  from 0 to \textit{K}. The default value equals 1.  It is the
+  smallest reasonable prior expected model size. It means that we
+  penalize large models and we assign high probability to small ones
+  following Occam's razor principle.
+
+  Note that for the binomial model prior and with $\E(\Xi)=0.5K$ one
+  can define the uniform prior on the model space. For example, for
+  $K=10$ regressors we can define the uniform prior with
+  $\E(\Xi)=5$. For $\E(\Xi) < 5$ we assign high probability to small
+  models.  The smaller the prior expected model size $\E(\Xi)$, the
+  less probable are larger models.
+\item \textbf{Significance level for the initial model} -- Defines the
+  significance level which is used to build the initial model. An
+  explanatory variable enters the initial model if its \textit{p}~value is
+  less than the significance level. If the significance level equals
+  1, the initial model will be randomly chosen (with equal
+  probability) from all available models. Note that if all available
+  explanatory variables enter the initial model, you will get the
+  following \pkg{gretl} error message ``No independent variables were
+  omitted''.
+\item \textbf{Number of top ranked models} -- Specifies the number of
+  best models for which detailed information is stored.
+\item \textbf{Jointness analysis} -- If \cmd{None} (the default),
+  the jointness analysis is omitted. Alternatively, one can choose the
+  jointness measures of \cite{LeySteel2007} or \cite{DoppelhoferWeeks2009}.
+\item \textbf{Number of out-of-sample forecasts} -- Defines the total
+  number of out-of-sample forecasts of the dependent variable.
+\item \textbf{Total number of replications} -- Defines the total
+  number of iteration draws to be sampled.
+\item \textbf{Percentage of burn-in draws} -- Specifies the number of
+  burn-in replications, calculated as the percentage of the total
+  number of iteration draws.
+\item \textbf{Verbosity} -- An integer value of 1 or 2; the default is
+  1, which allows to see the basic Bayesian Averaging of Classical Estimates
+  results. If Verbosity equals 2, a more detailed description of the
+  analysis is provided (initial model, speed of convergence,
+  estimation results for top ranked models).
+\item \textbf{Show overall progress} -- The output is flushed every 10\%
+  of MC$^3$ and the progress is printed. Note: this consumes a lot of CPU time.
+\end{itemize}
+
+\subsection{The script way}
+\subsubsection{General remarks}
+The \pkg{BACE} package can also be used inside \proglang{Hansl} scripts.
+\begin{CodeChunk}
+\begin{CodeInput}
+open greene9_1.gdt
+include BACE.gfn
+set seed 1000000
+
+list greene = capital labor nfirm
+
+scalar y_lags = 0
+scalar with_const = 1
+scalar model_prior = 1
+scalar prior_avg_model_size = 1.5
+scalar alpha = 0.6
+scalar top_ranked_model = 4
+scalar joint = 1
+scalar forecasts = 0
+scalar Nrep = 2000
+scalar Nburn = 10
+scalar verbosity = 1
+scalar progress = 1
+
+BACE_GUI(valadd, y_lags, greene, with_const, model_prior, prior_avg_model_size,
+    alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
+\end{CodeInput}
+\end{CodeChunk}
+
+The above example consists of three blocks.
+The first block is just opening of the so called \cmd{greene9\_1}
+dataset, which is bundled in every standard gretl installation.
+This dataset contains cross-sectional data on manufacturing
+of transportation equipment presented as Table 9.1 in
+\cite{greene_Econometric_A}%
+\footnote{This dataset is also available at link
+  \url{http://people.stern.nyu.edu/wgreene/Text/Edition7/TableF7-2.txt}.}.
+We also set the seed in order to exact reproduction of the results.
+
+The second block is the definition of the \cmd{greene} list which
+contains three independent variables available in the \cmd{greene9\_1} dataset.
+
+The third block contains the definition for Bayesian Averaging of Classical
+Estimates analysis: no lags for Y variable (not applicable since we have
+cross-sectional data), constant always included, binomial model prior,
+prior average model size set to 1.5 (which means that we have uniform model prior),
+significance level for the initial model set to 0.6, 4 top ranked models,
+jointness analysis with Ley-Steel Measure, without out-of-sample predictions,
+10000 replications with 10\% burn-in draws, basic output (verbosity set to 1)
+and progress overall progress is printed.
+
+Suppose we want to run the same analysis but following
+Occam's razor principle. The simplest way is setting the prior
+average model size to 1. We also want to have ''random'' constant,
+i.e. intercept can be dropped in any model. We also want to save
+results of the BACE analysis in the bundle \cmd{results\_b},
+the code should be as follows:
+\begin{CodeChunk}
+\begin{CodeInput}
+prior_avg_model_size = 1
+with_const = 2
+
+results_b = BACE_GUI(valadd, y_lags, greene, with_const, model_prior, 
+    prior_avg_model_size, alpha, top_ranked_model, joint, forecasts,
+    Nrep, Nburn, verbosity, progress)
+\end{CodeInput}
+\end{CodeChunk}
+
+Suppose we want to calculate Doppelhofer-Weeks Measure instead of
+already computed Ley-Steel Measure. Since the type of jointness measure
+is controlled by \cmd{do\_join} field in the result bundle, the only thing
+we have to do is to set the value of \cmd{do\_join} to 2 and print BACE
+results again. The code should be as follows:
+\begin{CodeChunk}
+\begin{CodeInput}
+results_b.do_joint = 2
+BACE_Print(&results_b)
+\end{CodeInput}
+\end{CodeChunk}
+
+
+\subsection{Output}\label{sec:outputs}
+If you select the appropriate entries in the GUI \pkg{BACE} window,
+our package returns: Posterior Inclusion Probabilities (PIP), the
+averages of the posterior means and standard deviations of parameters
+(``Mean'' and ``Std.Dev.'', respectively) and the posterior mean and
+standard deviation of each coefficient conditional on the variable
+being included in the model (``Cond.Mean'' and
+``Cond.Std.Dev.''). Furthermore, the package also returns the
+predictive results for the dependent variable (``Mean'' and
+``Std.Dev.'').
+
+Let us consider the data used in previous example
+(\cmd{australia.gdt}).  This dataset contains the Australian macro
+data used in \cite{Johansen1995Likelihood} and originally supplied by
+Tony Hall.  The variables used in the text are:
+\begin{itemize}
+ \item lpau -- log of Australian CPI (dependent variable),
+ \item lpus -- log of US CPI,
+ \item le -- log of exchange rate (price of US dollars in Aus. dollars),
+ \item iau2 -- 5-year Treasury bond rate, Australia,
+ \item ius2 -- 5-year Treasury bond rate, USA. 
+\end{itemize}
+Suppose we want to perform BACE analysis up to $ADL(2,2)$ specification,
+i.e. all possible combinations from $ADL(0,0)$ to $ADL(2,2)$.
+The example script would be as follows:
+\begin{CodeChunk}
+\begin{CodeInput}
+set verbose off
+include BACE.gfn
+open australia.gdt
+genr time
+
+# We create lagged values
+adl_lags = 2
+lags(adl_lags, ius2)
+lags(adl_lags, iau2)
+lags(adl_lags, e2)
+lags(adl_lags, lpus)
+lags(adl_lags, le)
+
+# We define list with all X-es (including lags)
+list X_list = time ius2 ius2_* iau2 iau2_* e2 e2_* lpus lpus_* le le_*
+
+set seed 1000000
+scalar y_lags = 2
+scalar with_const = 2
+scalar model_prior = 1
+scalar prior_avg_model_size = (nelem(X_list) + y_lags + (with_const > 0)) / 2
+scalar alpha = 0.6
+scalar top_ranked_model = 4
+scalar joint = 0
+scalar forecasts = 4
+scalar Nrep = 20000
+scalar Nburn = 10
+scalar verbosity = 2
+scalar progress = 0
+
+RES = BACE_GUI(lpau, y_lags, X_list, with_const, model_prior, prior_avg_model_size,
+    alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
+\end{CodeInput}
+\end{CodeChunk}
+In the above analysis all variables (including dependent variable $lpau_t$)
+are lagged by 2 periods. Additionally we compute 4 forecasts:
+
+\begin{CodeChunk}
+\begin{CodeOutput}
+Posterior moments (unconditional and conditional on inclusion):
+                 PIP         Mean     Std.Dev.    Cond.Mean Cond.Std.Dev
+lpau_1      1.000000     0.894595     0.091656     0.894595     0.091656
+  ius2      0.996500    -0.418560     0.102196    -0.420030     0.099314
+lpus_2      0.790611    -0.303217     0.212152    -0.383523     0.161647
+lpus_1      0.780500     0.356760     0.260342     0.457092     0.202432
+  iau2      0.752222     0.224487     0.161678     0.298432     0.112617
+  le_2      0.506944    -0.027670     0.046149    -0.054582     0.052271
+ const      0.392778    -0.074241     0.125663    -0.189015     0.136050
+  e2_2      0.335667     0.002317     0.033496     0.006903     0.057540
+  lpus      0.296222     0.037894     0.107134     0.127924     0.165014
+  le_1      0.282500    -0.023085     0.062683    -0.081716     0.095485
+lpau_2      0.253056     0.037914     0.087083     0.149825     0.114894
+  e2_1      0.245222     0.015275     0.052532     0.062292     0.091240
+  time      0.233778     0.000053     0.000269     0.000226     0.000520
+iau2_1      0.231389     0.035210     0.090726     0.152166     0.133328
+    le      0.211667     0.010063     0.042201     0.047542     0.081437
+    e2      0.176222    -0.005057     0.034623    -0.028698     0.078258
+ius2_1      0.175222     0.021296     0.072659     0.121539     0.133961
+ius2_2      0.140111    -0.009023     0.048048    -0.064400     0.113626
+iau2_2      0.132000     0.005342     0.042150     0.040469     0.109717
+
+----------------------------------
+
+Posterior probability of models:
+Model 1:	0.024278
+Model 2:	0.020556
+Model 3:	0.012889
+Model 4:	0.009278
+Total probability of the models in ranking (numerical): 0.067000
+
+Correlation coefficient between the analytical
+and numerical probabilities of the above models: 0.932557
+
+----------------------------------
+
+Predictive results:
+                  lpau           Mean       Std.Dev.
+1990:2        5.334649       5.340552       0.007950
+1990:3        5.341856       5.356902       0.008400
+1990:4        5.368310       5.378660       0.010094
+1991:1        5.366443       5.395817       0.013705
+\end{CodeOutput}
+\end{CodeChunk}
+
+% The \pkg{BMA} estimate function accepts a scalar, which sets the verbosity
+% of the output. Its default value is 1, which causes the estimation
+% output to be printed out. A value of 2 forces the \pkg{BMA} function to
+% print out all the details of the estimation. You can print out the
+% above-mentioned results and additionally the following information:
+% the total CPU time, type of model prior, prior average model size,
+% significance level for the initial model, type of g-prior, total
+% number of iterations and, finally, the number of burn-in
+% draws. Moreover, the \pkg{BMA} estimate function produces the estimation
+% results for the initial and top ranked models. The jointness analysis
+% is inactive by default. If it is active, you will get: posterior joint
+% probability of explanatory variables, jointness statistic as given in
+% Equations~\ref{LS_jointness} or~\ref{DW_jointness} and classification
+% of jointness measures.  The jointness analysis for the previous
+% example should look like this:
+% %
+% \begin{CodeChunk}
+% \begin{CodeOutput}
+% Posterior joint probability of variables:
+%               GDPsh560 Confuncious   Life_Exp  Equip_Inv ...  
+%    GDPsh560   0.000000    0.889256   0.932182   0.903349 ...
+% Confuncious   0.000000    0.000000   0.826208   0.816956 ...
+%    Life_Exp   0.000000    0.000000   0.000000   0.839068 ...
+%   Equip_Inv   0.000000    0.000000   0.000000   0.000000 ...
+%         ...        ...         ...        ...        ... ...
+% Jointness statistics (Ley-Steel Measure):
+%               GDPsh560 Confuncious   Life_Exp  Equip_Inv ...
+%    GDPsh560   0.000000    2.083161   2.643181   2.235000 ...
+% Confuncious   0.000000    0.000000   1.576599   1.618373 ...
+%    Life_Exp   0.000000    0.000000   0.000000   1.662559 ...
+%   Equip_Inv   0.000000    0.000000   0.000000   0.000000 ...  
+%         ...        ...         ...        ...        ... ... 
+% Strong substitutes:
+%         Rev_Coup,Area       -4.516140
+% Rev_Coup,Publ_Edu_pct       -4.459739
+%                   ...             ...
+% Significant substitutes:   
+%        GDPsh560,Hindu       -1.997989
+%      Mining,War_Dummy       -1.989541
+%                   ...             ...   
+% Significant complements:
+%  Confuncious,Life_Exp        1.576599
+% Confuncious,Equip_Inv        1.618373
+%                   ...             ...
+% Strong complements:   
+%   DPsh560,Confuncious        2.083161
+%    GDPsh560,Equip_Inv        2.235000
+%                   ...             ...  
+% \end{CodeOutput}
+% \end{CodeChunk}
+% %
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "BACE_package_for_gretl"
+%%% End:

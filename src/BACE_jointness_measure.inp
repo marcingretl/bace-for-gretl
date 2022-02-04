@@ -1,0 +1,97 @@
+function matrix BACE_jointness_measure (bundle *M)
+/*
+   Function computes jointness measure based on given jointness matrix.
+   Local variables:
+   var_prob - vector with posterior probability of indenpendent variables
+   a, b, c, d	 - scalars according to
+   Paul Hofmarcher, Jesus Crespo Cuaresma, Bettina Grün, Stefan Humer, Mathias Moser, Bivariate jointness measures in Bayesian Model Averaging: Solving the conundrum, Journal of Macroeconomics, Volume 57, 2018, Pages 150-165, ISSN 0164-0704, DOI: 10.1016/j.jmacro.2018.05.005.
+   #
+   Returns: matrix with computed jointness measure
+    */
+    scalar a
+    scalar b
+    scalar c
+    scalar d
+    scalar N
+    scalar loghuge = 999 # proxy for infty
+    if (M.with_const == 1)
+        matrix var_prob = M.Post_Results[2:,1]
+    else
+        matrix var_prob = M.Post_Results[,1]
+    endif
+    matrix jointness_measure = zeros(rows(M.jointness_m), cols(M.jointness_m))
+    loop i=1..M.k --quiet
+        loop j=i+1..M.k --quiet
+            # We compute a,b,c,d
+            a = M.jointness_m[i,j] # p(i & j)
+            b = var_prob[i] - a	   # p(i & ~j)
+            c = var_prob[j] - a	   # p(~i & j)
+            d = 1 - b - c - a	   # p(~i & ~j)
+            N = a + b + c + d
+            if (M.do_joint == 1) # Ley-Steel Measure (LS2)
+                if (a == 1)
+                    jointness_measure[i,j] = loghuge
+                elif (a == 0)
+                    jointness_measure[i,j] = -loghuge
+                else
+                    jointness_measure[i,j] = log(a/(b + c))
+                endif
+            elif (M.do_joint == 2) # Doppelhofer-Weeks Measure (DW2)
+                if (b * c == 0)
+                    jointness_measure[i,j] = loghuge
+                else
+                    if (a * d == 0)
+                        jointness_measure[i,j] = -loghuge
+                    else
+                        jointness_measure[i,j] = log((a*d)/(b*c))
+                    endif
+                endif
+            elif (M.do_joint == 3) # Ley-Steel Measure (LS1)
+                jointness_measure[i,j] = log(a/(a + b + c))
+            elif (M.do_joint == 4) # Doppelhofer-Weeks Measure (DW1)
+                jointness_measure[i,j] = log(a*N/((a + b)*(a + c)))
+            elif (M.do_joint == 5) # Strachan Measure
+                jointness_measure[i,j] = (a+b)/N * (a+c)/N * log(a*N/(b*c))
+            elif (M.do_joint == 6) # Yule's Q (YQ)
+                jointness_measure[i,j] = (a*d - b*c) / (a*d + b*c)
+            elif (M.do_joint == 7) # Modified Yule's Q (YQM)
+                jointness_measure[i,j] = ((a+0.5)*(d+0.5)-(b+0.5)*(c+0.5)) / ((a+0.5)*(d+0.5)+(b+0.5)*(c+0.5)-0.5)
+            endif
+        endloop
+    endloop
+    /*
+       loop i=1..M.k --quiet
+       loop j=i+1..M.k --quiet
+       if (M.do_joint == 1) # Ley-Steel Measure
+       if (M.jointness_m[i,j] == 1)
+       jointness_measure[i,j] = loghuge
+       elif (M.jointness_m[i,j] == 0)
+       jointness_measure[i,j] = -loghuge
+       else
+       jointness_measure[i,j] = log(M.jointness_m[i,j]/(var_prob[i] + var_prob[j] - 2*M.jointness_m[i,j]))
+       endif
+       elif (M.do_joint == 2) # Doppelhofer-Weeks Measure
+       scalar D = var_prob[j] - M.jointness_m[i,j]
+       scalar B = 1 - var_prob[i] - D
+       scalar C = var_prob[i] - M.jointness_m[i,j]
+       if (C * D == 0)
+       if (M.jointness_m[i,j] * B == 0)
+       jointness_measure[i,j] = loghuge
+       else
+       jointness_measure[i,j] = -loghuge
+       endif
+       else
+       if (M.jointness_m[i,j] * B <= 0) # This must be fixed (sometimes we get -0.0)
+       jointness_measure[i,j] = -loghuge
+       else
+       jointness_measure[i,j] = log((M.jointness_m[i,j]*B)/(C*D))
+       endif
+       endif
+       endif
+       endloop
+       endloop
+    */
+    cnameset(jointness_measure, M.all_names_sp_m)
+    rnameset(jointness_measure, M.all_names_sp_m)
+    return jointness_measure
+end function

@@ -1,0 +1,15 @@
+function matrix BACE_new_X_matrix_predict (bundle *M,
+                                           bundle *model[null])
+    /*
+       Function constructs X_matrix for out-of-sample forecasts
+       for given model (if model is 'null' we take mod_struct_new from
+       the M bundle)
+       *model	- pointer to the bundle with certain model
+       *M		- pointer to the main bundle
+    */
+    if !exists(model)
+        return selifc(M.big_mat_dem_predict[,2:], M.mod_struct_new)
+    else
+        return selifc(M.big_mat_dem_predict[,2:], model.mod_struct_new)
+    endif
+end function

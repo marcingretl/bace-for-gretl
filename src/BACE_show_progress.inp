@@ -1,0 +1,14 @@
+function void BACE_show_progress (scalar *rep,
+                                  scalar *percentage,
+                                  scalar *progress,
+                                  scalar Nrep)
+    /*
+       Function prints overall progress
+    */
+    if (rep == percentage)
+        printf "%d%s..", floor(100 * rep/Nrep), "%"
+        percentage += progress
+        mwrite({floor(100 * rep/Nrep)}, "BACE_progress")
+    endif
+    #flush
+end function

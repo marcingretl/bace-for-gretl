@@ -1,0 +1,35 @@
+function scalar BACE_find_model (bundle *M,
+                                 bundles *known_models_array,
+                                 bundle *known_models_bundle,
+                                 matrix *known_models_indexes,
+                                 strings *known_models_hex_indexes)
+    /*
+       This function looking for model in known_models_array/bundle
+       *M							- pointer to the main bundle
+       *known_models_array			- pointer to the array of (already estimated) models (for small k)
+       *known_models_bundle		- pointer to the bundle of (already estimated) models (for big k)
+       *known_models_indexes		- pointer to the matrix with models indexes (for small k)
+       *known_models_hex_indexes	- pointer to the array of strings with models indexes in hex format (for big k)
+       #
+       Returns: 1 if model exists, 0 elswhere.
+    */
+    bundle model
+    # We restore already estimated model
+    if M.max_dim_array_of_models == 0
+        key = BACE_bintohexconvert(&M)
+        #catch model = known_models_bundle[key]
+        if inbundle(known_models_bundle, key)
+            model = known_models_bundle[key]
+        endif
+    else
+        BACE_bintodecconvert(&M)
+        model = known_models_array[M.model_index_new]
+    endif
+    M.model = model
+    if (inbundle(model, "count"))
+        M.lprob_new = model.lprob
+        return 1
+    else
+        return 0
+    endif
+end function

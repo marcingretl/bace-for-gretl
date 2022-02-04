@@ -1,0 +1,32 @@
+function bundle BACE_GUI (series Y "Dependent variable",
+                          int Y_AR_p[0::0] "Y lags",
+                          list X_list[null] "List of independent variables (X)",
+      int with_const[0:2:1] "Constant in model" {"Never", "Always", "Can be dropped"},
+      int acc_type[1:2:1] "Model prior" {"Binomial", "Binomial-Beta"},
+      scalar av_model_size[0::1] "Prior average model size",
+      scalar alpha[0:1:0.6] "Significance level for the initial model",
+      int l_rank[2::4] "Number of the top ranked models",
+      int do_joint[0:7:0] "Jointness analysis" {"None", "Ley-Steel Measure (LS2)", "Doppelhofer-Weeks Measure (DW2)", "Ley-Steel Measure (LS1)", "Doppelhofer-Weeks Measure (DW1)", "Strachan Measure", "Yule's Q Measure (YQ)", "Modified Yule's Q Measure (YQM)"},
+      int h_predict[0::0] "Number of out-of-sample forecasts",
+      int Nrep[1e+06] "Total number of replications",
+      int burn[0:99:10] "Percentage of burn-in draws",
+      int verbosity[1:2:1] "Verbosity",
+      bool show_progress[1] "Show overall progress")
+    /*
+       Main public function to carry out BACE analysis
+       Function returns bundle MODEL with (formatted) results
+    */
+    # Basic parsing and checking
+    bundle MODEL
+    err = BACE_parse(&MODEL, Y, argname(Y), Y_AR_p, X_list, &av_model_size, &l_rank, &alpha, &with_const)
+    if strlen(err) != 0
+        funcerr "@err !!!"
+    else
+        MODEL = BACE_setup(Y, Y_AR_p, MODEL.X_list, acc_type, av_model_size, alpha, l_rank, 0, do_joint, h_predict, Nrep, burn, 0, verbosity, argname(Y), show_progress, 1, with_const)
+        BACE_main(&MODEL)
+        BACE_summary(&MODEL)
+        BACE_Print(&MODEL)
+    endif
+    set warnings on
+    return MODEL
+end function

@@ -1,0 +1,13 @@
+function void BACE_forecast (bundle *M,
+                             bundle *model)
+    /*
+       This is a wrapper for functions which compute forecasts
+    */
+    # Local variables
+    matrix Yhat_predict = zeros(M.h_predict,1)
+    matrix Yhat_predict_var = zeros(M.h_predict,1)
+    BACE_forecast_BACE(&M, &model, &Yhat_predict, &Yhat_predict_var)
+    # Averaging
+    M.Yhat_predict_avg += Yhat_predict * model.count
+    M.Yhat_predict_var_avg += Yhat_predict_var * model.count
+end function

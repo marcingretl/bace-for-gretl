@@ -1,0 +1,121 @@
+function void BACE_summary (bundle *M)
+/*
+   We summarise some BACE results and deleting redundand items from the returned bundle
+    */
+    ###
+    M.bhat_avg = transp(M.bhat_avg)
+    M.bvar_avg = transp(M.bvar_avg)
+    ###
+    # Normalisation of numerical probabilities of models in ranking
+    M.Numerical_Likelihood = M.mod_nume_prob ./ (M.Nrep - M.Nburn)
+    M.bhat_avg = M.bhat_avg ./ (M.Nrep - M.Nburn)
+    M.bvar_avg = M.bvar_avg ./ (M.Nrep - M.Nburn)
+    M.consthat_avg = M.consthat_avg / (M.Nrep - M.Nburn)
+    M.constvar_avg = M.constvar_avg / (M.Nrep - M.Nburn)
+    if M.with_const == 1
+        M.var_prob = { (M.Nrep - M.Nburn) } ~ M.var_prob
+        M.bhat_avg = { M.consthat_avg } ~ M.bhat_avg
+        M.bvar_avg = { M.constvar_avg } ~ M.bvar_avg
+    endif
+    M.Post_Results = transp(M.var_prob ./ (M.Nrep - M.Nburn))
+    # We construct Post_Results matrix
+    matrix bvar = sqrt(M.bvar_avg - M.bhat_avg.^2)
+    matrix tmp = M.bhat_avg' ~ bvar'
+    M.Post_Results = M.Post_Results ~ tmp
+    tmp = M.Post_Results[,2] ./ M.Post_Results[,1]
+    M.Post_Results = M.Post_Results ~ tmp
+    tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
+    M.Post_Results = M.Post_Results ~ tmp
+    strings title = defarray("PIP", "Mean", "Std.Dev.", "Cond.Mean", "Cond.Std.Dev")
+    cnameset(M.Post_Results, title)
+    if M.with_const == 1
+        strings all_names_sp_m = array(nelem(M.all_names_sp_m) + 1)
+        all_names_sp_m[1] = "const"
+        loop i=1..nelem(M.all_names_sp_m) --quiet
+            all_names_sp_m[i+1] = M.all_names_sp_m[i]
+        endloop
+    else
+        all_names_sp_m = M.all_names_sp_m
+    endif
+    rnameset(M.Post_Results, all_names_sp_m)
+    # Forecasts
+    if M.h_predict > 0
+        printf("jestem!!!\n\n")
+        M.Yhat_predict_avg = M.Yhat_predict_avg ./ (M.Nrep - M.Nburn)
+        M.Yhat_predict_var_avg = M.Yhat_predict_var_avg ./ (M.Nrep - M.Nburn)
+        M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
+        M.prediction = M.Y_mat_predict ~ M.Yhat_predict_avg ~ M.Yhat_predict_var_avg
+        cnameset(M.prediction, M.Y_name ~ " Mean Std.Dev.")
+        rnameset(M.prediction, M.predict_obs_names)
+    endif
+    # Jointess analysis
+    if M.do_joint != 0
+        # We must clean up principal diagonal
+        M.jointness_m[diag] = 0
+        M.jointness_m = M.jointness_m ./ (M.Nrep - M.Nburn)
+        cnameset(M.jointness_m, M.all_names_sp_m)
+        rnameset(M.jointness_m, M.all_names_sp_m)
+    endif
+    # Cleaning up the bundle
+    delete M.show_progress
+    delete M.var_numbers2
+    delete M.big_mat
+    delete M.ZtZinv_new
+    delete M.k_new
+    delete M.lprob_new
+    delete M.X_new_num
+    delete M.X_new
+    delete M.ZtZinv_old
+    delete M.k_old
+    delete M.lprob_old
+    delete M.X_old_num
+    delete M.dj_new
+    delete M.dj_old
+    delete M.X_new_predict
+    delete M.X_old_predict
+    delete M.y_dem_sq
+    delete M.y_mean
+    delete M.yMy
+    delete M.mod_struct
+    delete M.mod_struct_new
+    delete M.var_prob
+    delete M.a
+    delete M.b
+    delete M.c
+    delete M.bhat
+    delete M.bvar
+    delete M.XtY
+    delete M.XtXinv
+    delete M.bhat_avg
+    delete M.bvar_avg
+    ###
+    delete M.X_list
+    delete M.N
+    delete M.scaling_f
+    delete M.g_type
+    delete M.CPU_num
+    delete M.ess_new
+    delete M.ess_old
+    delete M.bhat_tmp
+    delete M.bvar_tmp
+    delete M.consthat_avg
+    delete M.constvar_avg
+    delete M.mod_prob
+    delete M.big_mat_dem
+    delete M.model_index_new
+    delete M.model_index_old
+    delete M.model_hex_index_new
+    delete M.model_hex_index_old
+    delete M.max_dim_array_of_models
+    ###
+    if M.h_predict > 0
+        delete M.big_mat_predict
+        delete M.big_mat_dem_predict
+        delete M.Y_mat_predict
+        delete M.precision
+        delete M.Yhat_predict_avg
+        delete M.Yhat_predict_var_avg
+        delete M.predict_obs_names
+        catch delete M.ess
+    endif
+end function

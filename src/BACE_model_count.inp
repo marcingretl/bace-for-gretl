@@ -1,0 +1,14 @@
+function void BACE_model_count (bundle *M,
+                                bundles *known_models_array,
+                                bundle *known_models_bundle)
+    /*
+       Function counts how many times given model appeared
+    */
+    string key
+    if M.max_dim_array_of_models == 0
+        key = M.model_hex_index_old
+        known_models_bundle[key].count++
+    else
+        known_models_array[M.model_index_old].count++
+    endif
+end function

@@ -1,0 +1,14 @@
+author = Marcin Błażejowski, Jacek Kwiatkowski
+email = marcin.blazejowski@wsb.torun.pl
+version = 1.21
+date = 2022-01-27
+description = This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.
+tags = C20 C11
+min-version = 2018a
+gui-main = BACE_GUI
+label = BACE
+menu-attachment = MAINWIN/Model/LinearModels
+bundle-print = BACE_Print
+public = BACE_Print BACE_GUI 
+help = BACE.pdf
+sample-script = examples/BACE_sample.inp

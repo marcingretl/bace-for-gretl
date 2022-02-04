@@ -1,0 +1,29 @@
+function string BACE_bintohexconvert (bundle *M)
+/*
+   This code was written by Jack
+   Function converts binary vector into hexadecimal representation.
+   #
+   Returns: string with hex.
+    */
+    # x must be a binary vector
+    x = vec(M.mod_struct_new) # force column
+    n = rows(x)
+    d = n % 4
+    if d > 0
+        x = zeros(4-d, 1) | x
+        n += 4-d
+    endif
+    done = 0
+    ret = ""
+    ini = 1
+    fin = 4
+    loop while done < n --quiet
+        z = {8,4,2,1} * x[ini:fin]
+        ret += sprintf("%1x", z)
+        done += 4
+        ini = fin+1
+        fin += 4
+    endloop
+    M.model_hex_index_new = ret
+    return ret
+end function

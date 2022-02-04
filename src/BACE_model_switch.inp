@@ -1,0 +1,36 @@
+function void BACE_model_switch (string MODE,
+                                 bundle *M)
+    /*
+       This is general purpose model switching function which
+       save and restore old model or save the new model
+    */
+    if (MODE == "SAVE")
+        M.X_old_num = M.X_new_num
+        M.model_index_old = M.model_index_new
+        M.model_hex_index_old = M.model_hex_index_new
+        if (M.h_predict > 0)
+            M.X_old_predict = M.X_new_predict
+            M.ZtZinv_old = M.ZtZinv_new
+            M.dj_old = M.dj_new
+            M.ess_old = M.ess_new
+        endif
+    elif (MODE == "RESTORE")
+        M.X_new_num = M.X_old_num
+        M.k_new = M.k_old
+        M.model_index_new = M.model_index_old
+        M.model_hex_index_new = M.model_hex_index_old
+        if (M.h_predict > 0)
+            M.X_new_predict = M.X_old_predict
+            M.ZtZinv_new = M.ZtZinv_old
+            M.dj_new = M.dj_old
+            M.ess_new = M.ess_old
+        endif
+    elif (MODE == "ACCEPT")
+        M.lprob_old = M.lprob_new
+        M.k_old = M.k_new
+        M.ess_old = M.ess_new
+        M.mod_struct = M.mod_struct_new
+        M.model_index_old = M.model_index_new
+        M.model_hex_index_old = M.model_hex_index_new
+    endif
+end function

@@ -1,0 +1,128 @@
+function void BACE_initial_model (bundle *M,
+                                  bundles *known_models_array,
+                                  bundle *known_models_bundle,
+                                  matrix *known_models_indexes,
+                                  strings *known_models_hex_indexes)
+    /*
+    Function creates list of variables in the initial model.
+    *M							- pointer to the main bundle
+    *known_models_array			- pointer to the array of (already estimated) models (for small k)
+    *known_models_bundle		- pointer to the bundle of (already estimated) models (for big k)
+    *known_models_indexes		- pointer to the matrix with models indexes (for small k)
+    *known_models_hex_indexes	- pointer to the array of strings with models indexes in hex format (for big k)
+    #
+    Local variables:
+    Y		- dependent variable
+    max_k	- number of given indenpendent variables
+    X_list2	- M.X_list in a form of list (not matrix)
+    */
+    # Starting values of the local variables
+    if M.h_predict > 0
+        if M.Y_AR_p == 0
+            smpl 1 M.N
+        else
+            if M.CPU_num == 1
+                smpl M.first_obs+($nobs-M.N) M.last_obs #+($t1-1)
+            else
+                smpl M.last_obs-M.N+1 M.last_obs
+            endif
+        endif
+    endif
+    series YyY = M.Y_mat
+    if M.Y_AR_p > 0
+        lags M.Y_AR_p ; YyY
+    endif
+    list X_list2 = M.X_list
+    list last = {}
+    scalar max_k = cols(M.var_numbers2)
+    #M.var_numbers2 = transp(msortby(transp(M.var_numbers2), 2))
+    if (M.alpha == 0) # Empty model (const only)
+        if (M.with_const == 2)
+            last += const
+            M.k_new = 1
+        else
+            M.k_new = 0
+        endif
+    elif (M.alpha == 1)	# Trully random model
+        M.k_new = randint(0, max_k)
+        matrix last_tmp
+        if (M.k_new > 0)
+            if (M.k_new == max_k) # All variables in the starting model, nothing to draw
+                last = X_list2
+            else
+                loop i=1..M.k_new --quiet
+                    scalar accept = 0
+                    #set loop_maxiter 99999 # This should be set if we cannot construct random list
+                    loop while (accept == 0) --quiet
+                        cand = transp(M.var_numbers2)[randint(1, max_k), 1]
+                        if (inlist(last, cand) == 0)
+                            last_tmp = last_tmp ~ {cand}
+                            accept = 1
+                        endif
+                    endloop
+                endloop
+                # We have to sort variables in created list
+                matrix last_mat = zeros(2, M.k_new)
+                last_mat[1,] = last_tmp
+                loop i=1..M.k_new --quiet
+                    loop j=1..max_k --quiet
+                        if (last_mat[1,i] == M.var_numbers2[1,j])
+                            last_mat[2,i] = M.var_numbers2[2,j]
+                            break
+                        endif
+                    endloop
+                endloop
+                last_mat = transp(msortby(transp(last_mat),2))
+                last = last_mat[1,]
+                if (M.with_const == 1)
+                    ols YyY const last --quiet
+                else
+                    ols YyY last --quiet
+                endif
+                last = $xlist
+                if (M.with_const == 1)
+                    last -= const
+                    M.k_new = $ncoeff-1
+                else
+                    M.k_new = $ncoeff
+                endif
+                M.StartModel_b = $model
+                strings M.StartModel_xnames = varnames($xlist)
+            endif
+        endif
+    else
+        # Model reduced at given M.alpha (classic OLS)
+        if (M.with_const == 1)
+            ols YyY const X_list2 --quiet
+        else
+            ols YyY X_list2 --quiet
+        endif
+        if (nelem($xlist) > 1)
+            omit --auto=M.alpha --silent
+        endif
+        last = $xlist
+        if (M.with_const == 1)
+            last -= const
+            M.k_new = $ncoeff - 1
+        else
+            M.k_new = $ncoeff
+        endif
+        M.StartModel_b = $model
+        strings M.StartModel_xnames = varnames($xlist)
+    endif
+    M.k_old = nelem(last)
+    matrix M.StartModel = last
+    BACE_new_X_matrix("START", &M)
+    BACE_matrix_precompute(&M)
+    BACE_estimate(&M)
+    BACE_lprob(&M)
+    M.lprob_old = M.lprob_new
+    M.mod_struct = M.mod_struct_new
+    M.ess_old = M.ess_new
+    if (M.max_dim_array_of_models == 0)
+        key = BACE_bintohexconvert(&M)
+    else
+        BACE_bintodecconvert(&M)
+    endif
+    BACE_known_results(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
+end function

@@ -1,0 +1,19 @@
+function void BACE_ols (bundle *M)
+/*
+   Function computes OLS for BACE
+    */
+    matrix uhat = {}
+    matrix vcv = {}
+    if (M.k_new > 0)
+        M.bhat_tmp = mols(M.Y_mat, M.X_new, &uhat, &vcv)
+        M.bvar_tmp = diag(vcv)
+        M.ess_new = uhat'uhat
+        if (M.h_predict > 0)
+            M.XtXinv = invpd(M.X_new'M.X_new)
+        endif
+    else
+        M.bhat_tmp = {}
+        M.bvar_tmp = {}
+        M.ess_new = M.y_dem_sq
+    endif
+end function

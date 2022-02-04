@@ -1,0 +1,18 @@
+function scalar BACE_accept_prob (bundle *M)
+/*
+   Function computes log of probability (P_y) of given model based on selected model prior.
+   Local variables:
+   A, B - scalars for computing probability based on Binomial-beta
+   #
+   Returns: the scalar with probability of current draw
+    */
+    if (M.acc_type == 1) # Binomial
+        return (M.k_new - M.k_old)*(M.a - M.b) + M.lprob_new - M.lprob_old
+    elif (M.acc_type == 2) # Binomial-beta
+        scalar A = 0
+        scalar B = 0
+        A = lngamma(M.k + 1) - lngamma(M.k_new + 1) - lngamma(M.k - M.k_new + 1)
+        B = lngamma(M.a + M.k_new) + lngamma(M.k + M.b - M.k_new) - lngamma(M.a + M.b + M.k)
+        return A + B + M.c
+    endif
+end function
