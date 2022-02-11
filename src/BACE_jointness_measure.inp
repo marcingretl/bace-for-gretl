@@ -43,7 +43,11 @@ function matrix BACE_jointness_measure (bundle *M)
                     if (a * d == 0)
                         jointness_measure[i,j] = -loghuge
                     else
-                        jointness_measure[i,j] = log((a*d)/(b*c))
+                        if (a*d)/(b*c) <= 0
+                            jointness_measure[i,j] = -loghuge
+                        else
+                            jointness_measure[i,j] = log((a*d)/(b*c))
+                        endif
                     endif
                 endif
             elif (M.do_joint == 3) # Ley-Steel Measure (LS1)

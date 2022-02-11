@@ -11,7 +11,7 @@ function void BACE_jointness_pairs (string MODE,
        *n_pairs		- pointer to the scalar with number of pairs of related variables
        *var_numbers	- pointer to the matrix holding numbers of variables
        *shift			- pointer to the scalar holding total number of previous pairs (shift in the "pairs" vector)
-       *pairs			- pointer to the cevtor holding (ordered) pairs of hightly releated variables
+       *pairs			- pointer to the vector holding (ordered) pairs of hightly related variables
        jointness_m		- matrix with counts for every pair
     */
     matrix pairs_related = pairs[shift + 1 : shift + n_pairs, ]
