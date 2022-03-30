@@ -1,6 +1,6 @@
 /*
-   BMA -- package implementing Bayesian Model Averaging for gretl
-   Copyright (C) 2012 Marcin Błażejowski and Jacek Kwiatkowski
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_Print (bundle *M)
-    /*
-    Function prints BACE results.
+/*
+   Function prints BACE results.
     */
     # We re-create Y process
     string Y_name = M.Y_name
@@ -47,6 +47,9 @@ function void BACE_Print (bundle *M)
     endif
     printf "Number of models visited: %d\n", M.post_n_models
     printf "Number of models accepted: %d\n", M.post_n_models_accepted
+    if exists(M.Norig) == 1
+        printf "Original number of observations (with missing): %d\n", M.Norig
+    endif
     if M.verbosity == 2
         printf "\n"
         print "----------------------------------"

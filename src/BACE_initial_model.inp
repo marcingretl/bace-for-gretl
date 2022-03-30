@@ -1,6 +1,6 @@
 /*
-   BMA -- package implementing Bayesian Model Averaging for gretl
-   Copyright (C) 2012 Marcin Błażejowski and Jacek Kwiatkowski
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

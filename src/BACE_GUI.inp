@@ -1,6 +1,6 @@
 /*
-   BMA -- package implementing Bayesian Model Averaging for gretl
-   Copyright (C) 2012 Marcin Błażejowski and Jacek Kwiatkowski
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,20 +30,26 @@ function bundle BACE_GUI (series Y "Dependent variable",
       int verbosity[1:2:1] "Verbosity",
       bool show_progress[1] "Show overall progress")
     /*
-       Main public function to carry out BACE analysis
-       Function returns bundle MODEL with (formatted) results
+       GUI-based function to carry out BACE analysis.
+       Function is a wrapper to bundle-based BACE() interface.
     */
     # Basic parsing and checking
-    bundle MODEL
-    err = BACE_parse(&MODEL, Y, argname(Y), Y_AR_p, X_list, &av_model_size, &l_rank, &alpha, &with_const)
-    if strlen(err) != 0
-        funcerr "@err !!!"
-    else
-        MODEL = BACE_setup(Y, Y_AR_p, MODEL.X_list, acc_type, av_model_size, alpha, l_rank, 0, do_joint, h_predict, Nrep, burn, 0, verbosity, argname(Y), show_progress, 1, with_const)
-        BACE_main(&MODEL)
-        BACE_summary(&MODEL)
-        BACE_Print(&MODEL)
-    endif
-    set warnings on
-    return MODEL
+    bundle Options
+    string Y_name = argname(Y)
+    series @Y_name = Y
+    scalar Options["Y_AR_p"] = 0
+    scalar Options["with_const"] = 1
+    scalar Options["acc_type"] = acc_type
+    scalar Options["av_model_size"] = av_model_size
+    scalar Options["alpha"] = alpha
+    scalar Options["l_rank"] = l_rank
+    scalar Options["do_joint"] = do_joint
+    scalar Options["h_predict"] = h_predict
+    scalar Options["Nrep"] = Nrep
+    scalar Options["burn"] = burn
+    scalar Options["verbosity"] = verbosity
+    scalar Options["show_progress"] = show_progress
+    #scalar Options["do_plot"] = do_plot
+    
+    return BACE(@Y_name, X_list, Options)
 end function

@@ -1,6 +1,6 @@
 /*
-   BMA -- package implementing Bayesian Model Averaging for gretl
-   Copyright (C) 2012 Marcin Błażejowski and Jacek Kwiatkowski
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,23 +22,28 @@ function bundle BACE_setup (series Y,
                             scalar av_model_size[0::1],
                             scalar alpha[0:1:0.6],
                             int l_rank[2::4],
-                            int g_type[0:5:1],
                             int do_joint[0:2:0],
                             int h_predict[0::],
                             int Nrep[1e+06],
                             int burn[0:99:10],
-                            int MC_rep[0::24000],
                             int verbosity[1:2:1],
                             string Y_name,
                             bool show_progress[1],
-                            int CPU_num,
-                            int with_const)
+                            int with_const,
+                            int Norig,
+                            bool do_plot)
     /*
        This function creates BUNDLE holding all BACE information
        #
        Local variables:
        tmp_str - general purpose string
     */
+    printf "\n#############################################################################\n"
+    printf "To do:"
+    printf "\n * Switch from M.mod_struct to M.mod_struct_old for consistency."
+    printf "\n * Work on speed."
+    printf "\n * Clean up the code."
+    printf "\n#############################################################################\n"
     bundle M
     list X_list = X_list_m
     ####
@@ -65,13 +70,16 @@ function bundle BACE_setup (series Y,
     scalar M.av_model_size = av_model_size
     scalar M.alpha = alpha
     scalar M.l_rank = l_rank
-    scalar M.g_type = g_type
     scalar M.do_joint = do_joint
     scalar M.h_predict = h_predict
     scalar M.Nrep = Nrep
     scalar M.burn = burn
     scalar M.verbosity = verbosity
     scalar M.show_progress = show_progress
+    if ok(Norig)
+        scalar M.Norig = Norig
+    endif
+    scalar M.do_plot = do_plot
     # Local variables
     matrix M.StartModel = {} # list with variables selected in starting model UWAGA: do wyrzucenia!!!
     bundle StartModel_b
@@ -174,7 +182,6 @@ function bundle BACE_setup (series Y,
     ########################
     string M.model_type = "BACE"
     scalar M.N = rows(M.big_mat)
-    scalar M.CPU_num = 1
     scalar M.Y_AR_p = Y_AR_p # max Y lag order
     matrix M.bhat_tmp = {} # temporary column vector containing the estimated coefficients for the current model (candidates)
     matrix M.bvar_tmp = {} # temporary column vector containing the variances of the coefficients for the current model (candidates)
@@ -196,9 +203,11 @@ function bundle BACE_setup (series Y,
     matrix M.mod_prob = {} # matrix with models probabilities
     scalar M.seed = $seed
     bundle model # current model (to and from the array of bundles)
+
     ########################
-    if (verbosity == 1)
+    if verbosity == 1
         set warnings off
     endif
+
     return M
 end function

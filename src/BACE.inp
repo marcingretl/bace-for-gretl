@@ -1,0 +1,73 @@
+/*
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+function bundle BACE (series Y "Dependent variable",
+                     list X_list "List of indenpendent variables (X)",
+      bundle Options[null])
+    /*
+       Bundle-based to carry out BMA analysis.
+       Function returns bundle MODEL with (formatted) results.
+    */
+    bundle MODEL
+    string Y_name = argname(Y)
+    series @Y_name = Y
+    scalar Y_AR_p,with_const,acc_type,av_model_size,alpha,l_rank,do_joint,h_predict,Nrep,burn,verbosity,show_progress,do_plot
+    string err
+
+    if !exists(Options)
+        bundle Options
+    endif
+
+    # Basic parsing and checking
+    err = BACE_bcheck(Options, nelem(X_list), &Y_AR_p, &with_const, &acc_type,
+      &av_model_size, &alpha, &l_rank, &do_joint, &h_predict, &Nrep, &burn,
+      &verbosity, &show_progress, &do_plot)
+    if strlen(err) != 0
+        funcerr "@err !!!"
+        return MODEL
+    endif
+    Norig = $nobs
+    
+    smpl Y X_list --no-missing --quiet
+    if Norig != $nobs
+        printf "\nThere are missing values in dataset!"
+    else
+        Norig = NA
+    endif
+
+    err = BACE_parse(&MODEL, Y, argname(Y), Y_AR_p, X_list, &av_model_size, &l_rank, &alpha, &with_const)
+    if strlen(err) != 0
+        funcerr "@err !!!"
+    else
+        MODEL = BACE_setup(Y, Y_AR_p, MODEL.X_list, acc_type, av_model_size, alpha,
+          l_rank, do_joint, h_predict, Nrep, burn, verbosity,
+          argname(Y), show_progress, with_const, Norig, do_plot)
+        # Setting sample for forecasting
+        if MODEL.h_predict > 0
+            smpl 1 MODEL.last_obs
+        endif
+        BACE_main(&MODEL)
+        BACE_summary(&MODEL)
+        BACE_Print(&MODEL)
+        if MODEL.do_plot
+            BACE_Plot(&MODEL)
+        endif        
+    endif
+
+    set warnings on
+    return MODEL
+end function

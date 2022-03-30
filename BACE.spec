@@ -9,6 +9,6 @@ gui-main = BACE_GUI
 label = BACE
 menu-attachment = MAINWIN/Model/LinearModels
 bundle-print = BACE_Print
-public = BACE_Print BACE_GUI 
+public = BACE BACE_Print BACE_GUI 
 help = BACE.pdf
 sample-script = examples/BACE_sample.inp

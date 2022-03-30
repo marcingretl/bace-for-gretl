@@ -1,0 +1,128 @@
+/*
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *with_const,
+                             scalar *acc_type, scalar *av_model_size, scalar *alpha, scalar *l_rank,
+                             scalar *do_joint, scalar *h_predict, scalar *Nrep, scalar *burn,
+                             scalar *verbosity, scalar *show_progress, scalar *do_plot)
+    /*
+       This function checks options bundle and returns error message in
+       any problem found.
+       Parameters:
+
+       UserOpts - bundle with user-defined options for BACE
+       k - number of independent variables
+    */
+    string err = ""
+    scalar err2
+    bundle Options
+    scalar arg_val
+    string arg_name
+    strings Integers = defarray("Y_AR_p", "with_const", "acc_type", "l_rank", "do_joint", "h_predict", "Nrep", "burn", "verbosity")
+    strings Booleans = defarray("show_progress", "do_plot")
+    strings Scalars = defarray("av_model_size", "alpha")
+
+    # We set the default Nrep conditional on k
+    if k <= 10
+        Nrep = 1000
+    elif k <= 15
+        Nrep = 10000
+    elif k <= 19
+        Nrep = 100000
+    else
+        Nrep = 1e+06
+    endif
+
+    # Template bundle with default values
+    scalar Options["Y_AR_p"] = 0
+    scalar Options["with_const"] = 1
+    scalar Options["acc_type"] = 1
+    scalar Options["av_model_size"] = k/2
+    scalar Options["alpha"] = 0.6
+    scalar Options["l_rank"] = xmin(2^(k-1), 40)
+    scalar Options["do_joint"] = 0
+    scalar Options["h_predict"] = 0
+    scalar Options["Nrep"] = Nrep
+    scalar Options["burn"] = 10
+    scalar Options["verbosity"] = 2
+    scalar Options["show_progress"] = 1
+    scalar Options["do_plot"] = 0
+
+    # General checking, but still needs some manual work
+    err2 = bcheck(&Options, UserOpts)
+    if err2
+        err = "Look at the PDF documentation for expected types of arguments."
+    endif
+
+    # We check integers
+    loop i=1..nelem(Integers) --quiet
+        arg_name = Integers[i]
+        arg_val = Options[arg_name]
+        if arg_val != int(arg_val)
+            err += sprintf("Argument %s must be an integer", arg_name)
+        endif
+    endloop
+
+    # We check booleans
+    loop i=1..nelem(Booleans) --quiet
+        arg_name = Booleans[i]
+        arg_val = Options[arg_name]
+        if arg_val != int(arg_val) || arg_val < 0 || arg_val > 1
+            err += sprintf("Argument %s must be a bool", arg_name)
+        endif
+    endloop
+
+    # We set arguments
+    Y_AR_p = Options["Y_AR_p"]
+    with_const = Options["with_const"]
+    acc_type = Options["acc_type"]
+    av_model_size = Options["av_model_size"]
+    alpha = Options["alpha"]
+    l_rank = Options["l_rank"]
+    do_joint = Options["do_joint"]
+    h_predict = Options["h_predict"]
+    Nrep = Options["Nrep"]
+    burn = Options["burn"]
+    verbosity = Options["verbosity"]
+    show_progress = Options["show_progress"]
+    do_plot = Options["do_plot"]
+
+    # We check arguments for valid values
+    if Y_AR_p < 0
+        err += "Y lags (Y_AR_p) takes the integer values"
+    elif with_const < 0 || with_const > 2
+        err += "Constant in model takes the integer values in the range [0; 2]"
+    elif acc_type < 1 || acc_type > 2
+        err += "Model prior takes the integer values in the range [1; 2]"
+    elif alpha < 0 || alpha > 1
+        err += "The significance level (alpha) takes the real values in the range [0; 1]"
+    elif do_joint < 0 || do_joint > 7
+        err += "Jointess type (do_joint) takes the integer values in the range [1; 7]"
+    elif h_predict < 0
+        err += "Number of out-of-sample forecasts (h_predict) takes the integer values"
+    elif h_predict >= round($nobs/2)
+        printf("Number of out-of-sample forecasts is more than 50%s of sample length.\n", "%")
+    elif Nrep < 0
+        err += "Total number of replications (Nrep) takes the integer values"
+    elif burn < 0 || burn > 99
+        err += "Percentage of burn-in draws (do_burn) takes the integer values in the range [0; 99]"
+    elif verbosity < 1 || verbosity > 2
+        err += "Verbosity takes the integer values in the range [1; 2]"
+    endif
+
+    return err
+end function
