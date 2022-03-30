@@ -1,9 +1,9 @@
 author = Marcin Błażejowski, Jacek Kwiatkowski
-email = marcin.blazejowski@wsb.torun.pl
-version = 1.21
-date = 2022-01-27
+email = marcin@gretlconference.org
+version = 1.3-svn
+date = 2022-03-30
 description = This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.
-tags = C20 C11
+tags = C20 C52
 min-version = 2018a
 gui-main = BACE_GUI
 label = BACE
