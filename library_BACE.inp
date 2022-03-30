@@ -30,5 +30,6 @@ include src/BACE_forecast_dynamic_matrix.inp
 include src/BACE_forecast_generic_variance.inp
 include src/BACE_forecast_generic.inp
 include src/BACE_jointness_measure.inp
+include src/BACE_main.inp
 include src/BACE_Print.inp
 include src/BACE_GUI.inp

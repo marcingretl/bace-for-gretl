@@ -2,6 +2,6 @@ set verbose off
 
 string dtd = "/usr/local/share/gretl/functions/gretlfunc.dtd"
 
-include BACE.inp
+include library_BACE.inp
 
 makepkg BACE.gfn --index --quiet --dtd="@dtd"

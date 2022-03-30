@@ -694,7 +694,7 @@ MODE			- string with type of relation between variables
 *n_pairs		- pointer to the scalar with number of pairs of related variables
 *var_numbers	- pointer to the matrix holding numbers of variables
 *shift			- pointer to the scalar holding total number of previous pairs (shift in the &quot;pairs&quot; vector)
-*pairs			- pointer to the cevtor holding (ordered) pairs of hightly releated variables
+*pairs			- pointer to the vector holding (ordered) pairs of hightly related variables
 jointness_m		- matrix with counts for every pair
 */
 matrix pairs_related = pairs[shift + 1 : shift + n_pairs, ]
@@ -1624,7 +1624,11 @@ loop i=1..M.k --quiet
         if (a * d == 0)
           jointness_measure[i,j] = -loghuge
         else
-          jointness_measure[i,j] = log((a*d)/(b*c))
+          if (a*d)/(b*c) &lt;= 0
+            jointness_measure[i,j] = -loghuge
+          else
+            jointness_measure[i,j] = log((a*d)/(b*c))
+          endif
         endif
       endif
     elif (M.do_joint == 3) # Ley-Steel Measure (LS1)
