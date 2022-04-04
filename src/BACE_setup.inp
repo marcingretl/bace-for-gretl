@@ -41,23 +41,25 @@ function bundle BACE_setup (series Y,
     printf "\n#############################################################################\n"
     printf "To do:"
     printf "\n * Switch from M.mod_struct to M.mod_struct_old for consistency."
+    printf "\n * Fix const type selection in GUI."
     printf "\n * Work on speed."
+    printf "\n * Modify in BACE_setup(): M.mod_rank."
     printf "\n * Clean up the code."
     printf "\n#############################################################################\n"
     bundle M
     list X_list = X_list_m
     ####
     scalar M.with_const = with_const
-    if (M.with_const == 1)
+    if M.with_const == 1
         string M.const_type = "Always"
-    elif (M.with_const == 2)
+    elif M.with_const == 2
         string M.const_type = "Can be dropped"
         X_list = X_list const
     else
         string M.const_type = "Never"
     endif
     ####
-    if (Y_AR_p > 0)
+    if Y_AR_p > 0
         X_list = lags(Y_AR_p, Y) X_list
     endif
     list big_list = Y X_list
@@ -92,12 +94,13 @@ function bundle BACE_setup (series Y,
     matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
     matrix M.big_mat_dem = M.big_mat
     # In case of "out-of-sample" prediction
-    if (h_predict > 0)
+    if h_predict > 0
         ####
         scalar M.first_obs = Y_AR_p+1 # the first observation for smpl command
         scalar M.last_obs = $nobs-h_predict # the last observation for smpl command
         matrix M.big_mat_predict = M.big_mat[rows(M.big_mat)-h_predict+1:rows(M.big_mat),] # "out-of-sample" matrix of all variables (including Y)
         matrix M.big_mat_dem_predict = M.big_mat_dem[rows(M.big_mat_dem)-h_predict+1:rows(M.big_mat_dem),] # "out-of-sample" matrix M.of all demeaned variables (including Y)
+        # This was commented out before last changes => OUT!!!!!!!
         #scalar M.last_obs = rows(M.big_mat)-h_predict # number of "out-of-sample" forecasts
         #matrix M.big_mat_predict = M.big_mat[M.last_obs+1:rows(M.big_mat),] # "out-of-sample" matrix of all variables (including Y)
         #matrix M.big_mat_dem_predict = M.big_mat_dem[M.last_obs+1:rows(M.big_mat),] # "out-of-sample" matrix M.of all demeaned variables (including Y)
@@ -148,6 +151,7 @@ function bundle BACE_setup (series Y,
     matrix M.mod_rank = -1 * ones(l_rank,M.k) # 0-1 matrix M.containing structure of models in ranking
     matrix M.mod_rank_prob = zeros(l_rank,1) # probability of the models in ranking (analytical)
     matrix M.mod_nume_prob = zeros(l_rank,1) # probability of the models in ranking (numerical)
+    matrices M.mod_rank_estimates = array(l_rank) # estimates of models in ranking
     matrix M.var_prob = zeros(1,M.k) # vector containing PIPs
     strings M.all_names_sp_m = varnames(X_list)
     loop i=1..Y_AR_p --quiet
@@ -159,7 +163,7 @@ function bundle BACE_setup (series Y,
     else
         matrix M.jointness_m = {}
     endif
-    if (acc_type == 1) # options for the prior
+    if acc_type == 1 # options for the prior
         string M.prior_name = "Binomial"
         scalar M.a = ln(av_model_size/M.k)
         scalar M.b = ln(1 - av_model_size/M.k)
@@ -178,6 +182,10 @@ function bundle BACE_setup (series Y,
     matrix M.bvar_avg = zeros(M.k, 1) # vector containing average values of variances of the coefficients (over MCMC)
     matrix M.Numerical_Likelihood = {} # column vector containing numerical probabilities for models
     matrix M.Post_Results = {} # matrix with all posterior results
+    matrix M.mod_sizes = {} # Vector with models size distribution
+    matrix M.models_probs_percents = {} # CDF-like matrix for accepted models
+    matrix M.models_probs_cdf = {} # accepted models CDF
+    matrix M.models_probs_cum = {} # accepted models cumulation
     ########################
     ########################
     string M.model_type = "BACE"
@@ -189,7 +197,7 @@ function bundle BACE_setup (series Y,
     scalar M.ess_old = 0 # Error sum of squares in old model
     scalar M.consthat_avg = 0
     scalar M.constvar_avg = 0
-    if (M.k > 24) # Upper limit for the size of array of bundles (preventing huge memory allocation)
+    if M.k > 24 # Upper limit for the size of array of bundles (preventing huge memory allocation)
         scalar M.max_dim_array_of_models = 0
     else
         scalar M.max_dim_array_of_models = xmin(2^24, 2^M.k)

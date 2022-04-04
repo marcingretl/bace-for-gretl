@@ -74,13 +74,13 @@ function void BACE_collect_results (bundle *M,
                     indexes = {}
                 endif
             endif
-            # We don't average when we have trully empty model (no const end no variables)
+            # We don't average when we have trully empty model (no const and no variables)
             if nelem(indexes) > 0
                 bhat_avg[indexes] += model.bhat * model.count
                 bvar_avg[indexes] += (model.bvar + model.bhat .^ 2) * model.count
             endif
             # Jointness analysis
-            if (M.do_joint != 0)
+            if M.do_joint != 0
                 # This piece of code was written by Jack (instead of our version which was much much slower)
                 jointness_m = upper(jointness_m .+ model.count * ((model.mod_struct_new .* model.mod_struct_new') .> 0))
             endif
