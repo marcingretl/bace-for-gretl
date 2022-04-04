@@ -38,6 +38,7 @@ function void BACE_main (bundle *M)
     matrix models_k_new = zeros(M.Nrep+1) # To delete
     matrices models_estimates = array(M.Nrep+1)
     matrices models_structure = array(M.Nrep+1)
+    matrices models_X_new_num = array(M.Nrep+1)
     matrix mod_struct_draw
     if M.h_predict > 0
         matrices models_forecasts = array(M.Nrep+1)
@@ -63,6 +64,7 @@ function void BACE_main (bundle *M)
     models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
     models_ess[model_nr] = M.ess_new
     models_k_new[model_nr] = M.k_new # ??? Probably to delete
+    models_X_new_num[model_nr] = M.X_new_num # !!!
     if M.h_predict > 0 && M.k_new > 0
         BMA_forecast(&M)
         models_forecasts[model_nr] = M.Yhat ~ M.Yhat_var
@@ -88,7 +90,7 @@ function void BACE_main (bundle *M)
             mod_struct_draw[potential_var] = !mod_struct_draw[potential_var]
             M.k_new = sum(mod_struct_draw) # To uncomment
             M.mod_struct_new = mod_struct_draw
-            model_id = sprintf("%d", mod_struct_draw)[1:end-1]            
+            model_id = sprintf("%d", mod_struct_draw)[1:end-1]
             ### End ########
 
             kwnown_model = BACE_find_model(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
@@ -102,7 +104,7 @@ function void BACE_main (bundle *M)
                 BACE_lprob(&M)
                 BACE_known_results(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
             endif
-            
+
             ### New code ###
             if inbundle(known_models, model_id)
                 model_nr = known_models[model_id]
@@ -117,6 +119,7 @@ function void BACE_main (bundle *M)
                 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
                 models_ess[model_nr] = M.ess_new
                 models_k_new[model_nr] = M.k_new # ??? Probably to delete
+                models_X_new_num[model_nr] = M.X_new_num # !!!
                 # Out-of-sample forecasts
                 if M.h_predict > 0 && M.k_new > 0
                     BMA_forecast(&M)
@@ -146,6 +149,12 @@ function void BACE_main (bundle *M)
     bundle M_new = M
     delete M_new.mod_rank # (!!!) => change in BACE_setup()
     matrices M_new.mod_rank = array(M.l_rank) # estimates of models in ranking
+    strings const_name = defarray("const")
+    if M_new.with_const == 1
+        M_new.all_names_sp_m = const_name + M_new.all_names_sp_m
+    elif M_new.with_const == 20
+        M_new.all_names_sp_m = const_name + M_new.all_names_sp_m[1:end-1]
+    endif
     ### End ########
 
     # Results collection
@@ -157,33 +166,75 @@ function void BACE_main (bundle *M)
     ### New code ###
     printf("\n")
     /*
-    models_counter = models_counter ~ seq(1, M.Nrep+1)'
-    models_counter = selifr(models_counter, models_counter[,1] .> 0)
-    loop i=1..nelem(known_models_array) --quiet
-        F = known_models_array[i]
-        if nelem(F) && F.count > 0
-            loop j=1..rows(models_counter) --quiet
-                if F.count == models_counter[j,1]
-                    indeks = models_counter[j,2]
-                    eval F
-                    eval F.bhat - models_estimates[indeks][,1]
-                    eval F.bvar - models_estimates[indeks][,2]
-                    eval F.ess - models_ess[indeks]
-                    eval F.k_new - models_k_new[indeks]
-                    eval F.lprob - models_lprob[indeks]
-                    eval F.mod_struct_new - models_structure[indeks]                    
-                    printf("\n###\n")
-                endif
-            endloop
+       models_counter = models_counter ~ seq(1, M.Nrep+1)'
+       models_counter = selifr(models_counter, models_counter[,1] .> 0)
+       loop i=1..nelem(known_models_array) --quiet
+       F = known_models_array[i]
+       if nelem(F) && F.count > 0
+       loop j=1..rows(models_counter) --quiet
+       if F.count == models_counter[j,1]
+       indeks = models_counter[j,2]
+       eval F
+       eval F.bhat - models_estimates[indeks][,1]
+       eval F.bvar - models_estimates[indeks][,2]
+       eval F.ess - models_ess[indeks]
+       eval F.k_new - models_k_new[indeks]
+       eval F.lprob - models_lprob[indeks]
+       eval F.mod_struct_new - models_structure[indeks]
+       eval models_X_new_num[indeks]
+       printf("\n###\n")
+       endif
+       endloop
+       endif
+       endloop
+    */
+    BACE_collect_results2(&M_new, &known_models, &models_counter,
+      &models_lprob, &models_estimates, &models_structure, &models_forecasts)
+
+    ### OK ###
+    loop i=1..nelem(M_new.mod_rank_estimates) --quiet
+        tmp = M_new.mod_rank_estimates[i]
+        if nelem(tmp)
+            tmp2 = tmp[,1] ~ tmp[,2]
+            S = M_new.all_names_sp_m[tmp[,3]]
+            modprint tmp2 S
         endif
     endloop
-    */    
-    #BACE_collect_results2(&M_new, &known_models, &models_counter, &models_lprob, &models_estimates, &models_structure, &models_forecasts)
+    printf "mod_nume_prob: \n%f\n", M_new.mod_nume_prob / (M.Nrep - M.Nburn)
+    printf "mod_rank_prob: \n%f\n", M_new.mod_rank_prob / (M.Nrep - M.Nburn)
+    printf "post_n_models: %d\n", M_new.post_n_models
+    printf "post_n_models_accepted: %d\n", M_new.post_n_models_accepted
+    if M_new.with_const == 1
+        M_new.bhat_avg = M_new.consthat_avg | M_new.bhat_avg
+        M_new.bvar_avg = M_new.constvar_avg | M_new.bvar_avg
+    endif
+    M_new.bhat_avg = M_new.bhat_avg / (M.Nrep - M.Nburn)
+    M_new.bvar_avg = M_new.bvar_avg / (M.Nrep - M.Nburn)
+    M_new.var_prob = M_new.var_prob' / (M.Nrep - M.Nburn)
+    if M_new.with_const == 1
+        M_new.var_prob = {1} | M_new.var_prob
+    endif
+    #printf "Mean: \n%f\n", M_new.bhat_avg
+    #printf "Std.Dev.: \n%f\n", sqrt(M_new.bvar_avg - M_new.bhat_avg .^ 2)
+    tmp = M_new.var_prob ~ M_new.bhat_avg ~ sqrt(M_new.bvar_avg - M_new.bhat_avg .^ 2)
+    cnameset(tmp, "PIP Mean Std.Dev")
+    rnameset(tmp, M_new.all_names_sp_m)
+    eval tmp
+    M_new.jointness_m = M_new.jointness_m ./ (M.Nrep - M.Nburn)
+    if M_new.with_const == 1
+        cnameset(M_new.jointness_m, M_new.all_names_sp_m[2:end])
+        rnameset(M_new.jointness_m, M_new.all_names_sp_m[2:end])
+    else
+        cnameset(M_new.jointness_m, M_new.all_names_sp_m)
+        rnameset(M_new.jointness_m, M_new.all_names_sp_m)
+    endif    
+    eval M_new.jointness_m
     ### End ########
-    
+
     # We must delete known_models array (memory free)
     delete known_models_array
     delete known_models_bundle
     delete known_models_indexes
     delete known_models_hex_indexes
 end function
+

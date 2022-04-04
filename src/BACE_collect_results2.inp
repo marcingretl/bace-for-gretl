@@ -16,9 +16,9 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_collect_results2 (bundle *M, bundle *known_models,
-                                   matrix *models_counter, matrix *models_lprob,
-                                   matrices *models_estimates, matrices *models_structure,
-                                   matrices *models_forecasts[null])
+                                     matrix *models_counter, matrix *models_lprob,
+                                     matrices *models_estimates, matrices *models_structure,
+                                     matrices *models_forecasts[null])
     /*
        Function collects results from MC3 experiment.
     */
@@ -26,11 +26,15 @@ function void BACE_collect_results2 (bundle *M, bundle *known_models,
     matrices models_structure_rank, models_estimates_rank
     scalar nr
     scalar weight = 0
-    matrix bhat_avg = zeros(M.k)
-    matrix bvar_avg = zeros(M.k)
+    if M.with_const == 1
+        matrix bhat_avg = zeros(M.k+1)
+        matrix bvar_avg = zeros(M.k+1)
+    else
+        matrix bhat_avg = zeros(M.k)
+        matrix bvar_avg = zeros(M.k)
+    endif
     matrix mod_sizes = zeros(M.k)
     matrix var_prob = zeros(1,M.k)
-    matrix Post_Results, tmp
     if M.do_joint
         matrix jointness_m = zeros(M.k,M.k)
     endif
@@ -53,10 +57,10 @@ function void BACE_collect_results2 (bundle *M, bundle *known_models,
         models_forecasts = models_forecasts[idx]
     endif
 
-    # Models size cumulative distribution    
+    # Models size cumulative distribution
     models_probs = mreverse(msortby(models_counter ~ idx ~ seq(1, M.post_n_models_accepted)', 1))
     M.models_probs_cum = cum(dsort(models_probs[,1]))
-    
+
     # We build analytical and numerical rankings
     M.l_rank = xmin(M.l_rank, M.post_n_models_accepted)
     models_probs = models_probs[1:M.l_rank,]
@@ -67,26 +71,41 @@ function void BACE_collect_results2 (bundle *M, bundle *known_models,
 
     # We restore estimates for models in ranking
     loop i=1..M.l_rank --quiet
-        M.mod_rank[i] = models_structure_rank[i]
-        M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(0 ~ (selifc(M.var_numbers2_const[2,2:], models_structure_rank[i])-2))
+        var_idx = {}
+        mod_struct = models_structure_rank[i]
+        M.mod_rank[i] = mod_struct
+        if M.with_const == 1
+            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
+        elif M.with_const == 20
+            eval mod_struct
+            eval M.var_numbers2[2,2:] ~ {0}
+            var_idx = selifc(M.var_numbers2[2,2:] ~ {0}, mod_struct)
+        else
+            if sum(mod_struct) != 0
+                var_idx = selifc(M.var_numbers2[2,], mod_struct) - 1
+            endif
+        endif
+        #M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(0 ~ (selifc(M.var_numbers2_const[2,2:], models_structure_rank[i])-2))
+        M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
     endloop
 
     # We average over all accepted models
     loop i=1..nelem(models_counter) --quiet
         weight = models_counter[i]
         mod_struct = models_structure[i]
-        #var_idx = (models_X_new_num[i][2:]) - 2
-
-        if nelem(mod_struct) > 0 && sum(mod_struct) > 0
-            X_new_num = selifc(M.var_numbers2_const[2,], 1 ~ mod_struct)
+        ## Original BACE
+        if M.with_const == 1
+            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
         else
-            X_new_num = { 2 }
+            if sum(mod_struct) != 0
+                var_idx = selifc(M.var_numbers2[2,], mod_struct) - 1
+            else
+                var_idx = {}
+            endif
         endif
-        var_idx = X_new_num[2:] - 2
-
-        bhat = models_estimates[i][2:,1]
+        bhat = models_estimates[i][,1]
         bhat_avg[var_idx] += weight * bhat
-        bvar_avg[var_idx] += weight * (models_estimates[i][2:,2] + bhat .^ 2)
+        bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
         #mod_size += weight * sum(mod_struct)
         ###
         mod_sizes[sum(mod_struct)] += weight
@@ -105,8 +124,15 @@ function void BACE_collect_results2 (bundle *M, bundle *known_models,
 
     # We save collected results in bundle M
     # Coefficients and variances
-    M.bhat_avg = bhat_avg'
-    M.bvar_avg = bvar_avg'
+    if M.with_const == 1
+        M.bhat_avg = bhat_avg[2:,]
+        M.bvar_avg = bvar_avg[2:,]
+        M.consthat_avg = bhat_avg[1]
+        M.constvar_avg = bvar_avg[1]
+    else
+        M.bhat_avg = bhat_avg
+        M.bvar_avg = bvar_avg
+    endif
 
     # Probability of variables
     M.var_prob = var_prob
