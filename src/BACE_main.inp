@@ -66,7 +66,7 @@ function void BACE_main (bundle *M)
     models_k_new[model_nr] = M.k_new # ??? Probably to delete
     models_X_new_num[model_nr] = M.X_new_num # !!!
     if M.h_predict > 0 && M.k_new > 0
-        BMA_forecast(&M)
+        BACE_forecast(&M)
         models_forecasts[model_nr] = M.Yhat ~ M.Yhat_var
     endif
     ### End ########
@@ -122,7 +122,7 @@ function void BACE_main (bundle *M)
                 models_X_new_num[model_nr] = M.X_new_num # !!!
                 # Out-of-sample forecasts
                 if M.h_predict > 0 && M.k_new > 0
-                    BMA_forecast(&M)
+                    BACE_forecast(&M)
                     models_forecasts[model_nr] = M.Yhat ~ M.Yhat_var
                 endif
             endif
@@ -161,35 +161,12 @@ function void BACE_main (bundle *M)
     # We build rangings
     BACE_build_rank(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
 
-    ### New code ###
-    printf("\n")
-    /*
-       models_counter = models_counter ~ seq(1, M.Nrep+1)'
-       models_counter = selifr(models_counter, models_counter[,1] .> 0)
-       loop i=1..nelem(known_models_array) --quiet
-       F = known_models_array[i]
-       if nelem(F) && F.count > 0
-       loop j=1..rows(models_counter) --quiet
-       if F.count == models_counter[j,1]
-       indeks = models_counter[j,2]
-       eval F
-       eval F.bhat - models_estimates[indeks][,1]
-       eval F.bvar - models_estimates[indeks][,2]
-       eval F.ess - models_ess[indeks]
-       eval F.k_new - models_k_new[indeks]
-       eval F.lprob - models_lprob[indeks]
-       eval F.mod_struct_new - models_structure[indeks]
-       eval models_X_new_num[indeks]
-       printf("\n###\n")
-       endif
-       endloop
-       endif
-       endloop
-    */
+    ### New code ###    
     BACE_collect_results2(&M_new, &known_models, &models_counter,
       &models_lprob, &models_estimates, &models_structure, &models_forecasts)
 
     ### OK ###
+    /*
     loop i=1..nelem(M_new.mod_rank_estimates) --quiet
         tmp = M_new.mod_rank_estimates[i]
         if nelem(tmp)
@@ -225,6 +202,10 @@ function void BACE_main (bundle *M)
         rnameset(M_new.jointness_m, M_new.all_names_sp_m)
     endif    
     eval M_new.jointness_m
+    */
+    BACE_summary(&M_new)
+    BACE_Print(&M_new)
+    printf "\n#### bosko ####\n\n\n"
     ### End ########
 
     # We must delete known_models array (memory free)

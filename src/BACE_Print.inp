@@ -16,9 +16,10 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_Print (bundle *M)
-/*
-   Function prints BACE results.
+    /*
+    Function prints BACE results.
     */
+    matrix coeffmat
     # We re-create Y process
     string Y_name = M.Y_name
     series @Y_name = M.Y
@@ -60,13 +61,14 @@ function void BACE_Print (bundle *M)
                     M.StartModel_xnames[i] = strsub(M.StartModel_xnames[i], "YyY", M.Y_name)
                 endif
             endloop
-            matrix coeffmat = M.StartModel_b.coeff ~ M.StartModel_b.stderr
+            coeffmat = M.StartModel_b.coeff ~ M.StartModel_b.stderr
             strings coeffmat_xnames = M.StartModel_xnames
             modprint coeffmat coeffmat_xnames
         else
             printf("The initial model was empty.\n")
         endif
     endif
+    
     # Standard information (PIPs, Means and so on)
     print "----------------------------------"
     printf "\n"
@@ -97,6 +99,7 @@ function void BACE_Print (bundle *M)
     printf "\n"
     printf "Correlation coefficient between the analytical\n"
     printf "and numerical probabilities of the above models: %f\n", BACE_correlation_coeff(&M)
+    
     # Forecasts
     if M.h_predict > 0
         printf "\n"
@@ -106,6 +109,7 @@ function void BACE_Print (bundle *M)
         printf "%15f", M.prediction
         printf "\n"
     endif
+    
     # Jointess analysis
     if M.do_joint != 0
         matrix jointess_measure = BACE_jointness_measure(&M)
@@ -178,19 +182,23 @@ function void BACE_Print (bundle *M)
         endif
     endif
     # Printing models in ranking
-    if M.verbosity == 2
-        bundle model
-        model = M.model
+    if M.verbosity == 2        
+        strings Xnames # names of X-es
+        printf "\n\nBest models estimates:"
         loop i=1..M.l_rank --quiet
-            if M.mod_nume_prob[i] == 0
-                break
+            if M.mod_nume_prob[i]
+                printf "\n"
+                print "----------------------------------"
+                printf "\nModel: %d, posterior probability: %f", i, M.Numerical_Likelihood[i]
+                if sumr(M.mod_rank[i]) == 0
+                    printf "\n\n  %s\n", "None of the variables were significant."
+                    printf "  %s\n", "Model includes only the intercept term which is simply the average of the dependent variable."
+                else
+                    coeffmat = M.mod_rank_estimates[i][,1:2]
+                    Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
+                    modprint coeffmat Xnames
+                endif
             endif
-            printf "\n"
-            print "----------------------------------"
-            printf "\nModel: %d, posterior probability: %f", i, M.Numerical_Likelihood[i]
-            coeffmat = model["$i"].bhat ~ sqrt(model["$i"].bvar)
-            Xnames = model["$i"].names
-            modprint coeffmat Xnames
         endloop
     endif
     print "----------------------------------"

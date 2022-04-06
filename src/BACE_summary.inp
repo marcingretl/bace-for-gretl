@@ -16,25 +16,98 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_summary (bundle *M)
-    /*
-    We summarise some BACE results and deleting redundand items from the returned bundle.
+/*
+   We summarise some BACE results and deleting redundand items from the returned bundle.
     */
-    ###
+    scalar tmps, factor
+    strings title
+    matrix percents1, percents2
+    scalar NORM = M.Nrep - M.Nburn
+
     M.bhat_avg = transp(M.bhat_avg)
     M.bvar_avg = transp(M.bvar_avg)
-    ###
+
     # Normalisation of numerical probabilities of models in ranking
-    M.Numerical_Likelihood = M.mod_nume_prob ./ (M.Nrep - M.Nburn)
-    M.bhat_avg = M.bhat_avg ./ (M.Nrep - M.Nburn)
-    M.bvar_avg = M.bvar_avg ./ (M.Nrep - M.Nburn)
-    M.consthat_avg = M.consthat_avg / (M.Nrep - M.Nburn)
-    M.constvar_avg = M.constvar_avg / (M.Nrep - M.Nburn)
+    M.Numerical_Likelihood = M.mod_nume_prob / NORM
+    M.Post_Results = transp(M.var_prob / NORM)
+    M.bhat_avg = M.bhat_avg / NORM
+    M.bvar_avg = M.bvar_avg / NORM
+    M.consthat_avg = M.consthat_avg / NORM
+    M.constvar_avg = M.constvar_avg / NORM
     if M.with_const == 1
-        M.var_prob = { (M.Nrep - M.Nburn) } ~ M.var_prob
-        M.bhat_avg = { M.consthat_avg } ~ M.bhat_avg
-        M.bvar_avg = { M.constvar_avg } ~ M.bvar_avg
+        M.bhat_avg = M.consthat_avg ~ M.bhat_avg
+        M.bvar_avg = M.constvar_avg ~ M.bvar_avg
+        M.Post_Results = {1} | M.Post_Results
     endif
-    M.Post_Results = transp(M.var_prob ./ (M.Nrep - M.Nburn))
+
+    # Average model size (including matrix for plot)
+    M.mod_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
+    M.mod_sizes[,2] = M.mod_sizes[,2] ./ NORM
+    M.mod_size_av = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
+    M.mod_size_sd = sqrt(sum((M.mod_sizes[,1] - M.mod_size_av) .^2 .* M.mod_sizes[,2]))
+    M.mod_sizes = M.mod_sizes ~ zeros(rows(M.mod_sizes),1)
+    tmps = M.av_model_size/M.k
+    loop i=1..rows(M.mod_sizes) --quiet
+        if i == M.k
+            factor = 1
+        else
+            factor = prodr(seq(1,M.k)) / (prodr(seq(1,i)) * prodr(seq(1,M.k-i)))
+        endif
+        M.mod_sizes[i,3] = (tmps^i * (1-tmps)^(M.k-i)) * factor
+    endloop
+    M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.av_model_size) .^2 .* M.mod_sizes[,3]))
+
+    # Models size distribution
+    title = defarray("Size", "Posterior", "Prior")
+    cnameset(M.mod_sizes, title)
+
+    # Models size CDF
+    M.models_probs_cum = M.models_probs_cum / NORM
+    if M.post_n_models_accepted < 100
+        factor = 1
+    else
+        factor = int(M.post_n_models_accepted/100)
+    endif
+    M.models_probs_cdf = seq(1, M.post_n_models_accepted, factor)'
+    M.models_probs_cdf = M.models_probs_cum[M.models_probs_cdf] ~ M.models_probs_cdf
+
+    # Best 100 models
+    percents1 = { 5; 25; 50; 75; 100 }
+    #percents1 = selifr(percents1, percents1 .> M.l_rank)
+    percents1 = selifr(percents1, percents1 .< M.post_n_models_accepted)
+    percents1 = percents1 ~ zeros(nelem(percents1))
+    if rows(percents1) > 0
+        loop i=1..rows(percents1) --quiet
+            percents1[i,2] = M.models_probs_cum[percents1[i,1]]
+        endloop
+        percents1 = selifr(percents1, percents1[,2] .> 0)
+    endif
+
+    # We look for certain percentiles
+    percents2 = { 50; 75; 90; 95; 99 }
+    if nelem(percents1) > 0
+        percents2 = selifr(percents2, percents2 .> percents1[rows(percents1),2]) # In future: use [end,end] syntax
+        tmps = percents1[rows(percents1),1]
+    else
+        tmps = 1
+    endif
+    percents2 = zeros(nelem(percents2)) ~ percents2
+    nr = 1
+    loop i=tmps..M.post_n_models_accepted-1 --quiet
+        if 100*M.models_probs_cum[i] >= percents2[nr,2]
+            percents2[nr,1] = i
+            percents2[nr++,2] = M.models_probs_cum[i]
+        endif
+        if nr == rows(percents2)+1 || nr > M.post_n_models_accepted
+            break
+        endif
+    endloop
+    percents2 = selifr(percents2, percents2[,1] .> 0)
+    M.models_probs_percents = percents2 | { M.post_n_models_accepted , 1 }
+    if nelem(percents1) > 0
+        M.models_probs_percents = percents1 | M.models_probs_percents
+    endif
+
     # We construct Post_Results matrix
     matrix bvar = sqrt(M.bvar_avg - M.bhat_avg.^2)
     matrix tmp = M.bhat_avg' ~ bvar'
@@ -43,18 +116,11 @@ function void BACE_summary (bundle *M)
     M.Post_Results = M.Post_Results ~ tmp
     tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
     M.Post_Results = M.Post_Results ~ tmp
-    strings title = defarray("PIP", "Mean", "Std.Dev.", "Cond.Mean", "Cond.Std.Dev")
+    title = defarray("PIP", "Mean", "Std.Dev.", "Cond.Mean", "Cond.Std.Dev")
+    printf "\n"
     cnameset(M.Post_Results, title)
-    if M.with_const == 1
-        strings all_names_sp_m = array(nelem(M.all_names_sp_m) + 1)
-        all_names_sp_m[1] = "const"
-        loop i=1..nelem(M.all_names_sp_m) --quiet
-            all_names_sp_m[i+1] = M.all_names_sp_m[i]
-        endloop
-    else
-        all_names_sp_m = M.all_names_sp_m
-    endif
-    rnameset(M.Post_Results, all_names_sp_m)
+    rnameset(M.Post_Results, M.all_names_sp_m)
+
     # Forecasts
     if M.h_predict > 0
         printf("jestem!!!\n\n")
@@ -65,14 +131,21 @@ function void BACE_summary (bundle *M)
         cnameset(M.prediction, M.Y_name ~ " Mean Std.Dev.")
         rnameset(M.prediction, M.predict_obs_names)
     endif
+
     # Jointess analysis
-    if M.do_joint != 0
+    if M.do_joint
         # We must clean up principal diagonal
         M.jointness_m[diag] = 0
-        M.jointness_m = M.jointness_m ./ (M.Nrep - M.Nburn)
-        cnameset(M.jointness_m, M.all_names_sp_m)
-        rnameset(M.jointness_m, M.all_names_sp_m)
+        M.jointness_m = M.jointness_m / NORM
+        if M.with_const == 1
+            cnameset(M.jointness_m, M.all_names_sp_m[2:end])
+            rnameset(M.jointness_m, M.all_names_sp_m[2:end])
+        else
+            cnameset(M.jointness_m, M.all_names_sp_m)
+            rnameset(M.jointness_m, M.all_names_sp_m)
+        endif
     endif
+
     # Cleaning up the bundle
     delete M.show_progress
     delete M.var_numbers2

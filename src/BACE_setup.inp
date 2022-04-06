@@ -42,6 +42,8 @@ function bundle BACE_setup (series Y,
     printf "To do:"
     printf "\n * Switch from M.mod_struct to M.mod_struct_old for consistency."
     printf "\n * Fix const type selection in GUI."
+    printf "\n * Fix names in jointness measure: take from BMA." 
+    printf "\n * Fix BACE_forecast()."
     printf "\n * Work on speed."
     printf "\n * Modify in BACE_setup(): M.mod_rank."
     printf "\n * Clean up the code."
