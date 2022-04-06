@@ -151,9 +151,7 @@ function void BACE_main (bundle *M)
     matrices M_new.mod_rank = array(M.l_rank) # estimates of models in ranking
     strings const_name = defarray("const")
     if M_new.with_const == 1
-        M_new.all_names_sp_m = const_name + M_new.all_names_sp_m
-    elif M_new.with_const == 20
-        M_new.all_names_sp_m = const_name + M_new.all_names_sp_m[1:end-1]
+        M_new.all_names_sp_m = const_name + M_new.all_names_sp_m    
     endif
     ### End ########
 
@@ -214,8 +212,6 @@ function void BACE_main (bundle *M)
     if M_new.with_const == 1
         M_new.var_prob = {1} | M_new.var_prob
     endif
-    #printf "Mean: \n%f\n", M_new.bhat_avg
-    #printf "Std.Dev.: \n%f\n", sqrt(M_new.bvar_avg - M_new.bhat_avg .^ 2)
     tmp = M_new.var_prob ~ M_new.bhat_avg ~ sqrt(M_new.bvar_avg - M_new.bhat_avg .^ 2)
     cnameset(tmp, "PIP Mean Std.Dev")
     rnameset(tmp, M_new.all_names_sp_m)

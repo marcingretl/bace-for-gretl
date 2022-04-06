@@ -75,17 +75,12 @@ function void BACE_collect_results2 (bundle *M, bundle *known_models,
         mod_struct = models_structure_rank[i]
         M.mod_rank[i] = mod_struct
         if M.with_const == 1
-            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
-        elif M.with_const == 20
-            eval mod_struct
-            eval M.var_numbers2[2,2:] ~ {0}
-            var_idx = selifc(M.var_numbers2[2,2:] ~ {0}, mod_struct)
+            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)        
         else
             if sum(mod_struct) != 0
                 var_idx = selifc(M.var_numbers2[2,], mod_struct) - 1
             endif
         endif
-        #M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(0 ~ (selifc(M.var_numbers2_const[2,2:], models_structure_rank[i])-2))
         M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
     endloop
 

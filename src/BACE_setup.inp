@@ -90,7 +90,12 @@ function bundle BACE_setup (series Y,
     scalar M.k = nelem(X_list) # total number of indenpendent variables
     scalar M.Nburn = round(burn/100*Nrep) # number of burn-in draws
     matrix M.var_numbers = big_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
-    matrix M.var_numbers2 = transp(msortby(transp(M.var_numbers[2:1+M.k] | seq(2,1+M.k)), 1)) # vector containing the dataset numbers of all variables and their order in the 'big_list'
+    if M.with_const == 2
+        matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
+    else
+        matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
+        #matrix M.var_numbers2 = transp(msortby(transp(M.var_numbers[2:1+M.k] | seq(2,1+M.k)), 1)) # vector containing the dataset numbers of all variables and their order in the 'big_list'
+    endif
     matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
     matrix M.big_mat_dem = M.big_mat
     # In case of "out-of-sample" prediction
