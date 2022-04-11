@@ -38,7 +38,7 @@ function bundle BACE_GUI (series Y "Dependent variable",
     string Y_name = argname(Y)
     series @Y_name = Y
     scalar Options["Y_AR_p"] = 0
-    scalar Options["with_const"] = 1
+    scalar Options["with_const"] = with_const
     scalar Options["acc_type"] = acc_type
     scalar Options["av_model_size"] = av_model_size
     scalar Options["alpha"] = alpha

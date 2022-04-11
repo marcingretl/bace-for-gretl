@@ -33,6 +33,9 @@ include src/BACE_forecast_generic.inp
 include src/BACE_jointness_measure.inp
 include src/BACE_main.inp
 include src/BACE_bcheck.inp
+include src/BACE_forecast2.inp
+include src/BACE_heatmap.inp
+include src/BACE_Plot.inp
 include src/BACE_Print.inp
 include src/BACE_GUI.inp
 include src/BACE.inp

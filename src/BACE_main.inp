@@ -66,8 +66,8 @@ function void BACE_main (bundle *M)
     models_k_new[model_nr] = M.k_new # ??? Probably to delete
     models_X_new_num[model_nr] = M.X_new_num # !!!
     if M.h_predict > 0 && M.k_new > 0
-        BACE_forecast(&M)
-        models_forecasts[model_nr] = M.Yhat ~ M.Yhat_var
+        BACE_forecast2(&M)
+        models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
     endif
     ### End ########
     ##################
@@ -122,8 +122,9 @@ function void BACE_main (bundle *M)
                 models_X_new_num[model_nr] = M.X_new_num # !!!
                 # Out-of-sample forecasts
                 if M.h_predict > 0 && M.k_new > 0
-                    BACE_forecast(&M)
-                    models_forecasts[model_nr] = M.Yhat ~ M.Yhat_var
+                    eval M.Yhat_predict_var
+                    BACE_forecast2(&M)
+                    models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
                 endif
             endif
             ### End ########
@@ -205,6 +206,7 @@ function void BACE_main (bundle *M)
     */
     BACE_summary(&M_new)
     BACE_Print(&M_new)
+    BACE_Plot(&M_new)
     printf "\n#### bosko ####\n\n\n"
     ### End ########
 

@@ -123,9 +123,8 @@ function void BACE_summary (bundle *M)
 
     # Forecasts
     if M.h_predict > 0
-        printf("jestem!!!\n\n")
-        M.Yhat_predict_avg = M.Yhat_predict_avg ./ (M.Nrep - M.Nburn)
-        M.Yhat_predict_var_avg = M.Yhat_predict_var_avg ./ (M.Nrep - M.Nburn)
+        M.Yhat_predict_avg = M.Yhat_avg / NORM
+        M.Yhat_predict_var_avg = M.Yhat_var_avg / NORM
         M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
         M.prediction = M.Y_mat_predict ~ M.Yhat_predict_avg ~ M.Yhat_predict_var_avg
         cnameset(M.prediction, M.Y_name ~ " Mean Std.Dev.")

@@ -1,0 +1,46 @@
+/*
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+function void BACE_forecast2 (bundle *M)
+    matrix Y_AR_cols, X_new_predict, Y_AR_struct
+    
+    Yhat_predict = zeros(M.h_predict)
+    Yhat_predict_var = zeros(M.h_predict)
+    n_AR = 0
+
+    X_new_predict = selifc(M.big_mat_dem_predict[,2:], M.mod_struct_new)
+
+    if M.with_const == 1
+        sigma2 = M.ess_new / (M.N - M.k_new - 1)
+    else
+        sigma2 = M.ess_new / (M.N - M.k_new)
+    endif
+
+    if M.Y_AR_p
+        Y_AR_struct = transp(M.mod_struct_new[1:M.Y_AR_p])
+        Y_AR_cols = selifr(transp(seq(1, M.Y_AR_p)), Y_AR_struct)
+        n_AR = sum(Y_AR_struct)
+    endif
+    
+    BACE_forecast_generic(&Yhat_predict, &Yhat_predict_var, M.h_predict, M.bhat_tmp, M.XtXinv, &sigma2, M.Y_AR_p, &Y_AR_cols, &n_AR, X_new_predict, 0, M.with_const)
+    Yhat_predict_var = (Yhat_predict_var + Yhat_predict .^ 2)
+
+    M.Yhat_predict = Yhat_predict    
+    M.Yhat_predict_var = Yhat_predict_var
+end function
+
+

@@ -113,7 +113,8 @@ function bundle BACE_setup (series Y,
         #matrix M.big_mat_dem_predict = M.big_mat_dem[M.last_obs+1:rows(M.big_mat),] # "out-of-sample" matrix M.of all demeaned variables (including Y)
         ####
         matrix M.Y_mat_predict = M.big_mat_predict[,1] # "out-of-sample" matrix of the dependent variable
-        matrix M.Yhat_predict = zeros(h_predict,1) # vector of Y predictions in current draw
+        matrix M.Yhat_predict = zeros(h_predict) # vector of Y predictions in current draw
+        matrix M.Yhat_predict_var = zeros(h_predict) # vector of Y predictions in current draw (variances!!!)
         matrix M.precision = zeros(h_predict,1) # prediction precision
         matrix M.Yhat_predict_avg = zeros(h_predict,1) # vector of Y predictions - average
         matrix M.Yhat_predict_var_avg = zeros(h_predict,1) # predicion variance

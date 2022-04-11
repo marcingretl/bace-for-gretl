@@ -35,6 +35,8 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     strings Integers = defarray("Y_AR_p", "with_const", "acc_type", "l_rank", "do_joint", "h_predict", "Nrep", "burn", "verbosity")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("av_model_size", "alpha")
+    
+    printf("with_const: %d", with_const)
 
     # We set the default Nrep conditional on k
     if k <= 10
