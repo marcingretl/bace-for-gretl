@@ -44,7 +44,7 @@ function void BACE_heatmap (const bundle M, string MODE)
         ylabel = xlabel
         height = xmin(xmax(int(M.k/41*1024), 640), 900)
         width = xmin(xmax(int(M.k/41*1024), 900), 1024)
-        m = mreverse(BMA_jointness_measure(&M))
+        m = mreverse(BACE_jointness_measure(&M))
         minval = minc(minr(m))
         maxval = maxc(maxr(m))
         if minval == 0
@@ -60,7 +60,7 @@ function void BACE_heatmap (const bundle M, string MODE)
     # We set tics
     ytics = "("
     loop i=1..M.k --quiet
-        ytics += sprintf("\"%s\" %d", M.all_names_sp_new[i], M.k-i)
+        ytics += sprintf("\"%s\" %d", M.all_names_sp_m[i], M.k-i)
         if i == M.k
             ytics += sprintf(")")
         else
@@ -81,7 +81,7 @@ function void BACE_heatmap (const bundle M, string MODE)
         endloop
     else
         loop i=1..M.k --quiet
-            xtics += sprintf("\"%s\" %d", M.all_names_sp_new[i], i-1)
+            xtics += sprintf("\"%s\" %d", M.all_names_sp_m[i], i-1)
             if i == M.k
                 xtics += sprintf(")")
             else

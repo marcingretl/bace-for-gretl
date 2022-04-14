@@ -21,7 +21,7 @@ function void BACE_Plot (bundle *M)
     */
 
     # Heatmap for variable inclusion
-    #BACE_heatmap(M, "inclusions")
+    BACE_heatmap(M, "inclusions")
 
     # Heatmap for jointness
     if M.do_joint

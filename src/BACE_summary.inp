@@ -187,13 +187,11 @@ function void BACE_summary (bundle *M)
     delete M.bvar_tmp
     delete M.consthat_avg
     delete M.constvar_avg
-    delete M.mod_prob
     delete M.big_mat_dem
     delete M.model_index_new
     delete M.model_index_old
     delete M.model_hex_index_new
     delete M.model_hex_index_old
-    delete M.max_dim_array_of_models
     ###
     if M.h_predict > 0
         delete M.big_mat_predict

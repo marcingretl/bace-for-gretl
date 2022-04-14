@@ -15,82 +15,110 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function void BACE_collect_results (bundle *M,
-                                    bundles *known_models_array,
-                                    bundle *known_models_bundle,
-                                    matrix *known_models_indexes,
-                                    strings *known_models_hex_indexes)
+function void BACE_collect_results (bundle *M, bundle *known_models,
+                                     matrix *models_counter, matrix *models_lprob,
+                                     matrices *models_estimates, matrices *models_structure,
+                                     matrices *models_forecasts[null])
     /*
-       Function collects posterior results from an array of bundles
-       and stores it in main (MODEL) bundle
-       *M							- pointer to the main bundle
-       *known_models_array			- pointer to the array of (already estimated) models (for small k)
-       *known_models_bundle		- pointer to the bundle of (already estimated) models (for big k)
-       *known_models_indexes		- pointer to the matrix with models indexes (for small k)
-       *known_models_hex_indexes	- pointer to the array of strings with models indexes in hex format (for big k)
+       Function collects results from MC3 experiment.
     */
-    scalar mod_size = 0
-    matrix mod_prob # for ranking
-    matrix var_prob = zeros(1, M.k)
+    matrix idx, var_idx, bhat, mod_struct, models_probs, X_new_num #, models_probs_cum, percents1, percents2
+    matrices models_structure_rank, models_estimates_rank
+    scalar nr
+    scalar weight = 0
     if M.with_const == 1
-        matrix bhat_avg = zeros(M.k+1, 1)
-        matrix bvar_avg = zeros(M.k+1, 1)
+        matrix bhat_avg = zeros(M.k+1)
+        matrix bvar_avg = zeros(M.k+1)
     else
-        matrix bhat_avg = zeros(M.k, 1)
-        matrix bvar_avg = zeros(M.k, 1)
+        matrix bhat_avg = zeros(M.k)
+        matrix bvar_avg = zeros(M.k)
     endif
-    matrix indexes
-    scalar index
-    string key
-    bundle model
-    matrix var_numbers2 = transp(msortby(transp(M.var_numbers2[2,]),1))
-    if M.max_dim_array_of_models == 0
-        M.post_n_models = nelem(known_models_hex_indexes)
-    else
-        M.post_n_models = cols(known_models_indexes)
+    matrix mod_sizes = zeros(M.k)
+    matrix var_prob = zeros(1,M.k)
+    if M.do_joint
+        matrix jointness_m = zeros(M.k,M.k)
     endif
-    if M.do_joint != 0
-        matrix jointness_m = zeros(M.k, M.k)
+    if M.h_predict
+        Yhat_avg = zeros(M.h_predict)
+        Yhat_var_avg = zeros(M.h_predict)
     endif
-    loop i=1..M.post_n_models --quiet
-        if M.max_dim_array_of_models == 0
-            key = known_models_hex_indexes[i]
-            model = known_models_bundle[key]
+
+    # We set the number of visited models
+    M.post_n_models = nelem(known_models)
+    known_models = null
+
+    # We select objects only for accepted models
+    idx = selifr(seq(1, M.Nrep+1)', models_counter .> 0)
+    M.post_n_models_accepted = nelem(idx)
+    models_counter = models_counter[idx]
+    models_estimates = models_estimates[idx]
+    models_structure = models_structure[idx]
+    if M.h_predict
+        models_forecasts = models_forecasts[idx]
+    endif
+
+    # Models size cumulative distribution
+    models_probs = mreverse(msortby(models_counter ~ idx ~ seq(1, M.post_n_models_accepted)', 1))
+    M.models_probs_cum = cum(dsort(models_probs[,1]))
+
+    # We build analytical and numerical rankings
+    M.l_rank = xmin(M.l_rank, M.post_n_models_accepted)
+    models_probs = models_probs[1:M.l_rank,]
+    M.mod_nume_prob = models_probs[,1]
+    M.mod_rank_prob = models_lprob[models_probs[,2]]
+    models_structure_rank = models_structure[models_probs[,3]]
+    models_estimates_rank = models_estimates[models_probs[,3]]
+
+    # We restore estimates for models in ranking
+    loop i=1..M.l_rank --quiet
+        var_idx = {}
+        mod_struct = models_structure_rank[i]
+        M.mod_rank[i] = mod_struct
+        if M.with_const == 1
+            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)        
         else
-            index = known_models_indexes[i]
-            model = known_models_array[index]
+            if sum(mod_struct) != 0
+                var_idx = selifc(M.var_numbers2[2,], mod_struct) - 1
+            endif
         endif
-        if model.count != 0
-            M.post_n_models_accepted += 1
-            mod_prob = mod_prob | { model.lprob , model.count , i }
-            mod_size += model.k_new * model.count
-            var_prob += model.mod_struct_new * model.count
-            if M.with_const == 1
-                indexes = { 1 } ~ selifc(var_numbers2, model.mod_struct_new)
+        M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
+    endloop
+
+    # We average over all accepted models
+    loop i=1..nelem(models_counter) --quiet
+        weight = models_counter[i]
+        mod_struct = models_structure[i]
+        ## Original BACE
+        if M.with_const == 1
+            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
+        else
+            if sum(mod_struct) != 0
+                var_idx = selifc(M.var_numbers2[2,], mod_struct) - 1
             else
-                if sumr(model.mod_struct_new) != 0
-                    indexes = selifc(var_numbers2, model.mod_struct_new) - 1
-                else
-                    indexes = {}
-                endif
+                var_idx = {}
             endif
-            # We don't average when we have trully empty model (no const and no variables)
-            if nelem(indexes) > 0
-                bhat_avg[indexes] += model.bhat * model.count
-                bvar_avg[indexes] += (model.bvar + model.bhat .^ 2) * model.count
-            endif
-            # Jointness analysis
-            if M.do_joint != 0
-                # This piece of code was written by Jack (instead of our version which was much much slower)
-                jointness_m = upper(jointness_m .+ model.count * ((model.mod_struct_new .* model.mod_struct_new') .> 0))
-            endif
-            # Out-of-sample forecasts
-            if M.h_predict > 0
-                BACE_forecast(&M, &model)
-            endif
+        endif
+        bhat = models_estimates[i][,1]
+        bhat_avg[var_idx] += weight * bhat
+        bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
+        #mod_size += weight * sum(mod_struct)
+        ###
+        mod_sizes[sum(mod_struct)] += weight
+        ###
+        var_prob += weight * mod_struct
+
+        if M.do_joint
+            jointness_m = upper(jointness_m .+ weight * ((mod_struct .* mod_struct') .> 0))
+        endif
+
+        if M.h_predict
+            Yhat_avg += weight * models_forecasts[i][,1]
+            Yhat_var_avg += weight * models_forecasts[i][,2]
         endif
     endloop
-    # For coefficients
+
+    # We save collected results in bundle M
+    # Coefficients and variances
     if M.with_const == 1
         M.bhat_avg = bhat_avg[2:,]
         M.bvar_avg = bvar_avg[2:,]
@@ -100,19 +128,24 @@ function void BACE_collect_results (bundle *M,
         M.bhat_avg = bhat_avg
         M.bvar_avg = bvar_avg
     endif
-    # For posteriori model size and PIPs
-    M.mod_size = mod_size
+
+    # Probability of variables
     M.var_prob = var_prob
-    # Model rankings
-    mod_prob = mreverse(msortby((mod_prob), 2))
-    if (M.l_rank > rows(mod_prob))
-        mod_prob = mod_prob | zeros(M.l_rank-rows(mod_prob), 3)
-    else
-        mod_prob = mod_prob[1:M.l_rank,]
-    endif
-    M.mod_prob = mod_prob
-    # Jointness
-    if M.do_joint != 0
+
+    # Average model size
+    #M.mod_size = mod_size
+
+    # Jointness analysis
+    if M.do_joint
         M.jointness_m = jointness_m
     endif
+
+    # Forecasts
+    if M.h_predict
+        M.Yhat_avg = Yhat_avg
+        M.Yhat_var_avg = Yhat_var_avg
+    endif
+
+    # Models size distribution
+    M.mod_sizes = seq(1, M.k)' ~ mod_sizes
 end function
