@@ -35,7 +35,12 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     strings Integers = defarray("Y_AR_p", "with_const", "acc_type", "l_rank", "do_joint", "h_predict", "Nrep", "burn", "verbosity")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("av_model_size", "alpha")
-
+    if $version >= 20221 && $sysinfo.gui_mode == 1
+        do_plot_tmp = 1
+    else
+        do_plot_tmp = 0
+    endif    
+    
     # We set the default Nrep conditional on k
     if k <= 10
         Nrep = 1000
@@ -60,7 +65,7 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     scalar Options["burn"] = 10
     scalar Options["verbosity"] = 2
     scalar Options["show_progress"] = 1
-    scalar Options["do_plot"] = 0
+    scalar Options["do_plot"] = do_plot_tmp
 
     # General checking, but still needs some manual work
     err2 = bcheck(&Options, UserOpts)
