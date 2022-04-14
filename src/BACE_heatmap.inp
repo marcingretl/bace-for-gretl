@@ -1,0 +1,140 @@
+/*
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+function void BACE_heatmap (const bundle M, string MODE)
+/*
+   M - BACE result bundle,
+   MODE - string indicating image mode {"inclusions", "jointness"}
+    */
+    scalar nrows, ncols, tmp, height, width, minval, maxval
+    string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate
+    matrix m
+
+    # We set general image options
+    if MODE == "inclusions"
+        title = sprintf("Variables Inclusions Based on Best %d Models", M.l_rank)
+        xlabel = "Cumulative Model Probabilities"
+        ylabel = "Variable"
+        colorbox = "unset colorbox"
+        height = xmax(int(M.k/41*768), 480)
+        width = xmin(xmax(int(M.l_rank/20*1024), 640), 1024)
+        m = zeros(M.l_rank, M.k)
+        loop i=1..M.l_rank --quiet
+            m[i,] = M.mod_rank[i]
+        endloop
+        m = mreverse(m')
+        palette = "0 'white', 1 'red'"
+    else
+        title = sprintf("Jointness Based on %s", M.jointess_measure_names[M.do_joint])
+        xlabel = "Variable"
+        ylabel = xlabel
+        height = xmin(xmax(int(M.k/41*1024), 640), 900)
+        width = xmin(xmax(int(M.k/41*1024), 900), 1024)
+        m = mreverse(BACE_jointness_measure(&M))
+        minval = minc(minr(m))
+        maxval = maxc(maxr(m))
+        if minval == 0
+            palette = sprintf("0 'white', %s 'red'", strsub(sprintf("%f", maxval), ",", "."))
+        else
+            palette = sprintf("%s 'blue', 0 'white', %s 'red'", strsub(sprintf("%f", minval), ",", "."), strsub(sprintf("%f", maxval), ",", "."))
+        endif
+        rotate = "set xtics rotate by 45 right"
+    endif
+    nrows = rows(m)
+    ncols = cols(m)
+
+    # We set tics
+    ytics = "("
+    loop i=1..M.k --quiet
+        ytics += sprintf("\"%s\" %d", M.all_names_sp_m[i], M.k-i)
+        if i == M.k
+            ytics += sprintf(")")
+        else
+            ytics += sprintf(", ")
+        endif
+    endloop
+    xtics = "("
+    if MODE == "inclusions"
+        tmp = 0
+        loop i=1..M.l_rank --quiet
+            tmp += M.Numerical_Likelihood[i]
+            xtics += sprintf("\"%.2f\" %d", tmp, i-1)
+            if i == M.l_rank
+                xtics += sprintf(")")
+            else
+                xtics += sprintf(", ")
+            endif
+        endloop
+    else
+        loop i=1..M.k --quiet
+            xtics += sprintf("\"%s\" %d", M.all_names_sp_m[i], i-1)
+            if i == M.k
+                xtics += sprintf(")")
+            else
+                xtics += sprintf(", ")
+            endif
+        endloop
+    endif
+
+    # We need to cast given matrix to its string representation
+    loop i=1..nrows --quiet
+        loop j=1..ncols --quiet
+            if MODE == "inclusions"
+                grid += sprintf("%d", m[i,j])
+            else
+                grid += strsub(sprintf("%.4f", m[i,j]), ",", ".")
+            endif
+            if j == ncols
+                if i != nrows
+                    grid += sprintf("\n")
+                endif
+            else
+                grid += sprintf("\t")
+            endif
+        endloop
+    endloop
+
+    # We plot heatmap
+    plot
+        printf "set term pngcairo font \"Vera,9\" size %d,%d noenhanced", width, height
+        literal set encoding utf8
+        literal set decimalsign '.'
+        literal set nokey
+        literal set datafile missing ""
+        #literal set datafile separator "\t"
+        literal set x2tics 1 format '' scale 0,0.001
+        literal set y2tics 1 format '' scale 0,0.001
+        literal set mx2tics 2
+        literal set my2tics 2
+        printf "set palette defined (%s)", palette
+        printf "set title \"%s\"", title
+        printf "set xlabel \"%s\"", xlabel
+        printf "set ylabel \"%s\"", ylabel
+        printf "set xtics %s", xtics
+        printf "set ytics %s", ytics
+        printf "%s", colorbox
+        printf "%s", rotate
+        literal set autoscale fix
+        literal set link x
+        literal set link y
+        literal set grid front mx2tics my2tics lw 2 lt -1 lc rgb 'white'
+        printf "$map << EOD"
+        printf "%s", grid
+        printf "EOD"
+        literal plot $map matrix with image
+    end plot --output=display
+end function

@@ -1,0 +1,49 @@
+/*
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+function void BACE_Plot (bundle *M)
+    /*
+    BACE result bundle plot function.
+    */
+
+    # Heatmap for variable inclusion
+    BACE_heatmap(M, "inclusions")
+
+    # Heatmap for jointness
+    if M.do_joint
+        BACE_heatmap(M, "jointness")
+    endif
+
+    # Models size distribution
+    plotmat = mreverse(M.mod_sizes, 1)
+    plot plotmat
+        options with-lp fit=none
+        printf "set title \"%s\"", "Model Size Distribution"
+        printf "set xlabel \"%s\"", "Model Size"
+        printf "set ylabel \"%s\"", "Fraction"
+    end plot --output=display
+
+    # Models size CDF
+    plotmat = M.models_probs_cdf
+    plot plotmat
+        options with-line fit=none
+        literal set grid
+        printf "set title \"%s\"", "Model Size CDF"
+        printf "set xlabel \"%s\"", "Number of Models"
+        printf "set ylabel \"%s\"", "Posterior Probability Mass"        
+    end plot --output=display
+end function

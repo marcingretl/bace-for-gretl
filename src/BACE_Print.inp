@@ -19,17 +19,23 @@ function void BACE_Print (bundle *M)
 /*
    Function prints BACE results.
     */
+    matrix coeffmat
+    model_space = 2^M.k
+
     # We re-create Y process
     string Y_name = M.Y_name
     series @Y_name = M.Y
+
     # Do we have Y lags?
     if M.Y_AR_p > 0
         lags M.Y_AR_p ; @Y_name
     endif
+
     # We have to set sample
     if M.h_predict > 0
         smpl M.first_obs M.last_obs
     endif
+
     # Additional information in summary
     printf "\n"
     print "----------------------------------"
@@ -40,10 +46,10 @@ function void BACE_Print (bundle *M)
     printf "Significance level for the initial model: %f\n", M.alpha
     printf "Total number of iterations: %d\n", M.Nrep
     printf "Number of burn-in draws: %d\n", M.Nburn
-    if (2^M.k < 2^31)
-        printf "Total number of possible models: %d\n", 2^M.k
+    if model_space < 2^31
+        printf "Total number of possible models: %d\n", model_space
     else
-        printf "Total number of possible models: %g\n", 2^M.k
+        printf "Total number of possible models: %g\n", model_space
     endif
     printf "Number of models visited: %d\n", M.post_n_models
     printf "Number of models accepted: %d\n", M.post_n_models_accepted
@@ -56,28 +62,36 @@ function void BACE_Print (bundle *M)
         if nelem(M.StartModel_b) != 0
             printf "The initial model: OLS, dependent variable: %s\n", M.Y_name
             loop i=1..nelem(M.StartModel_xnames) --quiet
-                if (substr(M.StartModel_xnames[i], 1, 4) == "YyY_")
+                if substr(M.StartModel_xnames[i], 1, 4) == "YyY_"
                     M.StartModel_xnames[i] = strsub(M.StartModel_xnames[i], "YyY", M.Y_name)
                 endif
             endloop
-            matrix coeffmat = M.StartModel_b.coeff ~ M.StartModel_b.stderr
+            coeffmat = M.StartModel_b.coeff ~ M.StartModel_b.stderr
             strings coeffmat_xnames = M.StartModel_xnames
             modprint coeffmat coeffmat_xnames
         else
             printf("The initial model was empty.\n")
         endif
     endif
+
     # Standard information (PIPs, Means and so on)
     print "----------------------------------"
     printf "\n"
-    printf "Posterior average model size: %f\n", M.mod_size/(M.Nrep - M.Nburn)
+    printf "Prior:\n"
+    printf "\taverage model size: %f\n", M.av_model_size
+    printf "\tstandard deviation: %f\n", M.mod_size_sd_prior
+    printf "Posterior:\n"
+    printf "\taverage model size: %f\n", M.mod_size_av
+    printf "\tstandard deviation: %f\n", M.mod_size_sd
+    printf "\n"
+    print "----------------------------------"
     printf "\n"
     print "Posterior moments (unconditional and conditional on inclusion):"
     if $version < 20170
         printf "%15f", M.Post_Results
     else
         matrix Post_Results = M.Post_Results
-        if (M.with_const == 1)
+        if M.with_const == 1
             Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
             Post_Results = mreverse(msortby(Post_Results, 1))
             Post_Results[1,1] -= 1
@@ -90,6 +104,17 @@ function void BACE_Print (bundle *M)
     print "----------------------------------"
     printf "\n"
     print "Posterior probability of models:"
+    loop i=1..rows(M.models_probs_percents) --quiet
+        if i <= 4
+            printf "Best %d\t models account for %.4f of mass\n", M.models_probs_percents[i,1], M.models_probs_percents[i,2]
+        elif i == rows(M.models_probs_percents)
+            printf "Best %d models account for %.4f of mass\n", M.models_probs_percents[i,1], M.models_probs_percents[i,2]
+        else
+            printf "Best %d models account for %.4f of mass\n", M.models_probs_percents[i,1], M.models_probs_percents[i,2]
+        endif
+    endloop
+    printf "\nBest models ranking:\n"
+    ############ OLD #########################
     loop i=1..M.l_rank --quiet
         printf "Model %d:\t%f\n", i, M.Numerical_Likelihood[i]
     endloop
@@ -97,6 +122,7 @@ function void BACE_Print (bundle *M)
     printf "\n"
     printf "Correlation coefficient between the analytical\n"
     printf "and numerical probabilities of the above models: %f\n", BACE_correlation_coeff(&M)
+
     # Forecasts
     if M.h_predict > 0
         printf "\n"
@@ -106,9 +132,11 @@ function void BACE_Print (bundle *M)
         printf "%15f", M.prediction
         printf "\n"
     endif
+
     # Jointess analysis
     if M.do_joint != 0
         matrix jointess_measure = BACE_jointness_measure(&M)
+        string jointess_measure_name = M.jointess_measure_names[M.do_joint]
         if M.do_joint == 1
             string jointess_measure_name = "Ley-Steel Measure (LS2)"
         elif M.do_joint == 2
@@ -177,20 +205,25 @@ function void BACE_Print (bundle *M)
             endif
         endif
     endif
+
     # Printing models in ranking
     if M.verbosity == 2
-        bundle model
-        model = M.model
+        strings Xnames # names of X-es
+        printf "\n\nBest models estimates:"
         loop i=1..M.l_rank --quiet
-            if M.mod_nume_prob[i] == 0
-                break
+            if M.mod_nume_prob[i]
+                printf "\n"
+                print "----------------------------------"
+                printf "\nModel: %d, posterior probability: %f", i, M.Numerical_Likelihood[i]
+                if sumr(M.mod_rank[i]) == 0
+                    printf "\n\n  %s\n", "None of the variables were significant."
+                    printf "  %s\n", "Model includes only the intercept term which is simply the average of the dependent variable."
+                else
+                    coeffmat = M.mod_rank_estimates[i][,1:2]
+                    Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
+                    modprint coeffmat Xnames
+                endif
             endif
-            printf "\n"
-            print "----------------------------------"
-            printf "\nModel: %d, posterior probability: %f", i, M.Numerical_Likelihood[i]
-            coeffmat = model["$i"].bhat ~ sqrt(model["$i"].bvar)
-            Xnames = model["$i"].names
-            modprint coeffmat Xnames
         endloop
     endif
     print "----------------------------------"

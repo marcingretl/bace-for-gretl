@@ -16,18 +16,13 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_main (bundle *M)
-/*
-   This is main BACE function with complete MC3 simulation procedure.
+    /*
+    This is main BACE function with complete MC3 simulation procedure.
     */
+
     # Local variables
     scalar progress = floor(M.Nrep/10) # progress of MC3
     scalar percentage = progress # percentage of progress of MC3
-    scalar kwnown_model = 0 # do we know current (1) or do we have to estimate it (0)
-    bundles known_models_array = array(M.max_dim_array_of_models) # we have to manage empty model: we shift the numeration by 1 to the right!!!
-    bundle known_models_bundle
-    matrix known_models_indexes
-    strings known_models_hex_indexes
-    ### New code ###
     string model_id # string containing model id (0-1 'image')
     scalar model_nr	# iteration number under which model's data are stored in matrices/arrays
     scalar model_nr_old
@@ -38,23 +33,20 @@ function void BACE_main (bundle *M)
     matrix models_k_new = zeros(M.Nrep+1) # To delete
     matrices models_estimates = array(M.Nrep+1)
     matrices models_structure = array(M.Nrep+1)
-    matrices models_X_new_num = array(M.Nrep+1)
     matrix mod_struct_draw
     if M.h_predict > 0
         matrices models_forecasts = array(M.Nrep+1)
     else
         matrices models_forecasts = null
     endif
-    ### End ########
     # Sample setting for prediction
     if M.h_predict > 0
         smpl M.first_obs M.last_obs
     endif
     ##################
     # Part 1: Starting model
-    # We estimate starting model
-    BACE_initial_model(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
-    ### New code ###
+    # We estimate starting model and construct starting mod_rank_struct and mod_rank
+    BACE_initial_model(&M)
     model_id = sprintf("%d", M.mod_struct)[1:end-1] # we trim the "\n" at the end !!!
     model_nr = M.Nrep+1
     model_nr_old = model_nr
@@ -64,18 +56,17 @@ function void BACE_main (bundle *M)
     models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
     models_ess[model_nr] = M.ess_new
     models_k_new[model_nr] = M.k_new # ??? Probably to delete
-    models_X_new_num[model_nr] = M.X_new_num # !!!
-    if M.h_predict > 0 && M.k_new > 0
-        BMA_forecast(&M)
-        models_forecasts[model_nr] = M.Yhat ~ M.Yhat_var
-    endif
-    ### End ########
+    if M.h_predict && M.k_new
+        BACE_forecast2(&M)
+        models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
+    endif    
     ##################
     # Part 2: MC3
     if M.show_progress == 1
         printf "\nOverall progress: "
     endif
     flush
+
     loop rep=1..M.Nrep --quiet
         # Saving data for the old model
         BACE_model_switch("SAVE", &M)
@@ -85,33 +76,21 @@ function void BACE_main (bundle *M)
 
         # Now we modify the list of variables (remove an existing variable or add a new variable)
         if potential_var > 0
-            ### New code ###
             mod_struct_draw = M.mod_struct
             mod_struct_draw[potential_var] = !mod_struct_draw[potential_var]
-            M.k_new = sum(mod_struct_draw) # To uncomment
+            M.k_new = sum(mod_struct_draw)
             M.mod_struct_new = mod_struct_draw
             model_id = sprintf("%d", mod_struct_draw)[1:end-1]
-            ### End ########
-
-            kwnown_model = BACE_find_model(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
-            if kwnown_model == 0
-                # We see model for the first time
-                # We create the new matrix of indenpendent variables and run some precomputes based on it
-                M.k_new = sumr(M.mod_struct_new)
+            
+            if inbundle(known_models, model_id)
+                model_nr = known_models[model_id]
+                M.lprob_new = models_lprob[model_nr]
+            else
+                # We estimate newly drawn model
                 BACE_new_X_matrix("NORMAL", &M)
                 BACE_matrix_precompute(&M)
                 BACE_estimate(&M)
                 BACE_lprob(&M)
-                BACE_known_results(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
-            endif
-
-            ### New code ###
-            if inbundle(known_models, model_id)
-                model_nr = known_models[model_id]
-                #M.lprob_new = models_lprob[model_nr] # To uncomment
-            else
-                # We estimate newly drawn model
-                #BMA_estimate(&M)
                 model_nr = rep
                 known_models[model_id] = model_nr
                 models_structure[model_nr] = M.mod_struct_new
@@ -119,25 +98,20 @@ function void BACE_main (bundle *M)
                 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
                 models_ess[model_nr] = M.ess_new
                 models_k_new[model_nr] = M.k_new # ??? Probably to delete
-                models_X_new_num[model_nr] = M.X_new_num # !!!
                 # Out-of-sample forecasts
-                if M.h_predict > 0 && M.k_new > 0
-                    BMA_forecast(&M)
-                    models_forecasts[model_nr] = M.Yhat ~ M.Yhat_var
+                if M.h_predict && M.k_new
+                    BACE_forecast2(&M)
+                    models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
                 endif
             endif
-            ### End ########
-
-            BACE_accep_model(&M, &known_models_array, &known_models_bundle, &model_nr_old, &model_nr) # Last two added
+            
+            # Now we decide if to accept the new model
+            BACE_accep_model(&M, &model_nr_old, &model_nr)
         endif
 
-        # Essentials of MC3: building of rankings, averaging the results and jointness stuff
+        # Now we count models
         if rep > M.Nburn
-            # We count how many times given model has appeared
-            BACE_model_count(&M, &known_models_array, &known_models_bundle)
-            ### New code ###
             models_counter[model_nr_old] += 1
-            ### End ########
         endif
 
         # Flushing output - showing progress
@@ -145,96 +119,8 @@ function void BACE_main (bundle *M)
             BACE_show_progress(&rep, &percentage, &progress, M.Nrep)
         endif
     endloop
-    ### New code ###
-    bundle M_new = M
-    delete M_new.mod_rank # (!!!) => change in BACE_setup()
-    matrices M_new.mod_rank = array(M.l_rank) # estimates of models in ranking
-    strings const_name = defarray("const")
-    if M_new.with_const == 1
-        M_new.all_names_sp_m = const_name + M_new.all_names_sp_m
-    elif M_new.with_const == 20
-        M_new.all_names_sp_m = const_name + M_new.all_names_sp_m[1:end-1]
-    endif
-    ### End ########
 
-    # Results collection
-    BACE_collect_results(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
-
-    # We build rangings
-    BACE_build_rank(&M, &known_models_array, &known_models_bundle, &known_models_indexes, &known_models_hex_indexes)
-
-    ### New code ###
-    printf("\n")
-    /*
-       models_counter = models_counter ~ seq(1, M.Nrep+1)'
-       models_counter = selifr(models_counter, models_counter[,1] .> 0)
-       loop i=1..nelem(known_models_array) --quiet
-       F = known_models_array[i]
-       if nelem(F) && F.count > 0
-       loop j=1..rows(models_counter) --quiet
-       if F.count == models_counter[j,1]
-       indeks = models_counter[j,2]
-       eval F
-       eval F.bhat - models_estimates[indeks][,1]
-       eval F.bvar - models_estimates[indeks][,2]
-       eval F.ess - models_ess[indeks]
-       eval F.k_new - models_k_new[indeks]
-       eval F.lprob - models_lprob[indeks]
-       eval F.mod_struct_new - models_structure[indeks]
-       eval models_X_new_num[indeks]
-       printf("\n###\n")
-       endif
-       endloop
-       endif
-       endloop
-    */
-    BACE_collect_results2(&M_new, &known_models, &models_counter,
+    # Now we collect results (averaging and rankings)
+    BACE_collect_results(&M, &known_models, &models_counter,
       &models_lprob, &models_estimates, &models_structure, &models_forecasts)
-
-    ### OK ###
-    loop i=1..nelem(M_new.mod_rank_estimates) --quiet
-        tmp = M_new.mod_rank_estimates[i]
-        if nelem(tmp)
-            tmp2 = tmp[,1] ~ tmp[,2]
-            S = M_new.all_names_sp_m[tmp[,3]]
-            modprint tmp2 S
-        endif
-    endloop
-    printf "mod_nume_prob: \n%f\n", M_new.mod_nume_prob / (M.Nrep - M.Nburn)
-    printf "mod_rank_prob: \n%f\n", M_new.mod_rank_prob / (M.Nrep - M.Nburn)
-    printf "post_n_models: %d\n", M_new.post_n_models
-    printf "post_n_models_accepted: %d\n", M_new.post_n_models_accepted
-    if M_new.with_const == 1
-        M_new.bhat_avg = M_new.consthat_avg | M_new.bhat_avg
-        M_new.bvar_avg = M_new.constvar_avg | M_new.bvar_avg
-    endif
-    M_new.bhat_avg = M_new.bhat_avg / (M.Nrep - M.Nburn)
-    M_new.bvar_avg = M_new.bvar_avg / (M.Nrep - M.Nburn)
-    M_new.var_prob = M_new.var_prob' / (M.Nrep - M.Nburn)
-    if M_new.with_const == 1
-        M_new.var_prob = {1} | M_new.var_prob
-    endif
-    #printf "Mean: \n%f\n", M_new.bhat_avg
-    #printf "Std.Dev.: \n%f\n", sqrt(M_new.bvar_avg - M_new.bhat_avg .^ 2)
-    tmp = M_new.var_prob ~ M_new.bhat_avg ~ sqrt(M_new.bvar_avg - M_new.bhat_avg .^ 2)
-    cnameset(tmp, "PIP Mean Std.Dev")
-    rnameset(tmp, M_new.all_names_sp_m)
-    eval tmp
-    M_new.jointness_m = M_new.jointness_m ./ (M.Nrep - M.Nburn)
-    if M_new.with_const == 1
-        cnameset(M_new.jointness_m, M_new.all_names_sp_m[2:end])
-        rnameset(M_new.jointness_m, M_new.all_names_sp_m[2:end])
-    else
-        cnameset(M_new.jointness_m, M_new.all_names_sp_m)
-        rnameset(M_new.jointness_m, M_new.all_names_sp_m)
-    endif    
-    eval M_new.jointness_m
-    ### End ########
-
-    # We must delete known_models array (memory free)
-    delete known_models_array
-    delete known_models_bundle
-    delete known_models_indexes
-    delete known_models_hex_indexes
 end function
-

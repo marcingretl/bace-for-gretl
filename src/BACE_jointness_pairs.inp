@@ -30,7 +30,7 @@ function void BACE_jointness_pairs (string MODE,
        *shift			- pointer to the scalar holding total number of previous pairs (shift in the "pairs" vector)
        *pairs			- pointer to the vector holding (ordered) pairs of hightly related variables
        jointness_m		- matrix with counts for every pair
-    */
+    */    
     matrix pairs_related = pairs[shift + 1 : shift + n_pairs, ]
     shift += n_pairs
     string pair_names = ""
@@ -38,11 +38,12 @@ function void BACE_jointness_pairs (string MODE,
         pair_names += " " ~ cnameget(jointness_m, pairs_related[i,2]) ~ "," ~ cnameget(jointness_m, pairs_related[i,3])
     endloop
     matrix pairs_related = pairs_related[,1]
+    loop i=1..nelem(pairs_related) --quiet
+        if ok(pairs_related[i]) && abs(pairs_related[i]) == 999
+            pairs_related[i] = sgn(pairs_related[1]) * 1/0
+        endif
+    endloop
     printf "\n%s\n", MODE
-    if rows(pairs_related) == 1
-        printf "%s\t%f\n", pair_names, pairs_related
-    else
-        rnameset(pairs_related, pair_names)
-        printf "%15f", pairs_related
-    endif
+    rnameset(pairs_related, pair_names)
+    eval pairs_related
 end function
