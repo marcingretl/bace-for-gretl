@@ -5,7 +5,6 @@ include src/BACE_parse.inp
 include src/BACE_initial_model.inp
 include src/BACE_model_structure.inp
 include src/BACE_correlation_coeff.inp
-include src/BACE_build_rank.inp
 include src/BACE_accept_prob.inp
 include src/BACE_matrix_precompute.inp
 include src/BACE_jointness_pairs.inp
@@ -18,13 +17,8 @@ include src/BACE_setup.inp
 include src/BACE_show_progress.inp
 include src/BACE_ols.inp
 include src/BACE_estimate.inp
-include src/BACE_bintodecconvert.inp
-include src/BACE_bintohexconvert.inp
 include src/BACE_find_model.inp
-include src/BACE_model_count.inp
-include src/BACE_known_results.inp
 include src/BACE_collect_results.inp
-include src/BACE_collect_results2.inp
 include src/BACE_new_X_matrix_predict.inp
 include src/BACE_forecast_BACE.inp
 include src/BACE_forecast_dynamic_matrix.inp
@@ -33,6 +27,9 @@ include src/BACE_forecast_generic.inp
 include src/BACE_jointness_measure.inp
 include src/BACE_main.inp
 include src/BACE_bcheck.inp
+include src/BACE_forecast2.inp
+include src/BACE_heatmap.inp
+include src/BACE_Plot.inp
 include src/BACE_Print.inp
 include src/BACE_GUI.inp
 include src/BACE.inp
