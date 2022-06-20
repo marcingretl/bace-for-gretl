@@ -57,7 +57,7 @@ function void BACE_main (bundle *M)
     models_ess[model_nr] = M.ess_new
     models_k_new[model_nr] = M.k_new # ??? Probably to delete
     if M.h_predict && M.k_new
-        BACE_forecast2(&M)
+        #BACE_forecast2(&M)
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
     endif    
     ##################
@@ -100,7 +100,7 @@ function void BACE_main (bundle *M)
                 models_k_new[model_nr] = M.k_new # ??? Probably to delete
                 # Out-of-sample forecasts
                 if M.h_predict && M.k_new
-                    BACE_forecast2(&M)
+                    #BACE_forecast2(&M)
                     models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
                 endif
             endif

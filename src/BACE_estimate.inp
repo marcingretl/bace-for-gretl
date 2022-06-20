@@ -16,8 +16,43 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_estimate (bundle *M)
-    /*
-    This is wrapper for different estimators used in different methods (for future)
+/*
+   This is wrapper for different estimators used in different methods (for future).
     */
-    BACE_ols(&M)
+    # We re-create Y series
+    series Y = M.Y
+
+    # We create a X list on-the-fly
+    list X = selifc(M.var_numbers2[1,], M.mod_struct_new)
+    if M.with_const == 1
+        X += const
+    endif
+
+    # We estimate current model
+    if M.k_new > 0
+        if M.model_type == "Linear"
+            ols Y X --quiet
+        endif        
+        
+        if M.with_const == 2 && $ncoeff > 1 && $model.parnames[1] == "const"
+            M.bhat_tmp = $coeff[2:] | $coeff[1]
+            M.bvar_tmp = ($stderr[2:] | $stderr[1]).^2
+        else
+            M.bhat_tmp = $coeff
+            M.bvar_tmp = $stderr.^2
+        endif
+        M.ess_new = $ess
+        if M.h_predict > 0
+            fcast --out-of-sample --quiet
+            M.Yhat_predict = $fcast
+            M.Yhat_predict_var = $fcse.^2 + $fcast.^2
+            #M.XtXinv = $vcv / ($ess / $df)
+        endif
+    else
+        M.bhat_tmp = {}
+        M.bvar_tmp = {}
+        M.ess_new = M.y_dem_sq
+    endif
+
+    #BACE_ols(&M)
 end function
