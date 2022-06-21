@@ -16,9 +16,9 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_collect_results (bundle *M, bundle *known_models,
-                                     matrix *models_counter, matrix *models_lprob,
-                                     matrices *models_estimates, matrices *models_structure,
-                                     matrices *models_forecasts[null])
+                                    matrix *models_counter, matrix *models_lprob,
+                                    matrices *models_estimates, matrices *models_structure,
+                                    matrices *models_forecasts[null])
     /*
        Function collects results from MC3 experiment.
     */
@@ -75,13 +75,15 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         mod_struct = models_structure_rank[i]
         M.mod_rank[i] = mod_struct
         if M.with_const == 1
-            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)        
+            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
         else
             if sum(mod_struct) != 0
                 var_idx = selifc(M.var_numbers2[2,], mod_struct) - 1
             endif
         endif
-        M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
+        if nelem(models_estimates_rank[i])
+            M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
+        endif
     endloop
 
     # We average over all accepted models
@@ -98,22 +100,23 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                 var_idx = {}
             endif
         endif
-        bhat = models_estimates[i][,1]
-        bhat_avg[var_idx] += weight * bhat
-        bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
-        #mod_size += weight * sum(mod_struct)
-        ###
-        mod_sizes[sum(mod_struct)] += weight
-        ###
-        var_prob += weight * mod_struct
+        if nelem(models_estimates[i])
+            bhat = models_estimates[i][,1]
+            bhat_avg[var_idx] += weight * bhat
+            bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
+            mod_sizes[sum(mod_struct)] += weight
+            var_prob += weight * mod_struct
+        endif
 
         if M.do_joint
             jointness_m = upper(jointness_m .+ weight * ((mod_struct .* mod_struct') .> 0))
         endif
 
         if M.h_predict
-            Yhat_avg += weight * models_forecasts[i][,1]
-            Yhat_var_avg += weight * models_forecasts[i][,2]
+            if nelem(models_forecasts[i]) > 0
+                Yhat_avg += weight * models_forecasts[i][,1]
+                Yhat_var_avg += weight * models_forecasts[i][,2]
+            endif
         endif
     endloop
 

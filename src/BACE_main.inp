@@ -59,7 +59,7 @@ function void BACE_main (bundle *M)
     if M.h_predict && M.k_new
         #BACE_forecast2(&M)
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
-    endif    
+    endif
     ##################
     # Part 2: MC3
     if M.show_progress == 1

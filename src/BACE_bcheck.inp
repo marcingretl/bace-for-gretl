@@ -18,7 +18,7 @@
 function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *with_const,
                              scalar *acc_type, scalar *av_model_size, scalar *alpha, scalar *l_rank,
                              scalar *do_joint, scalar *h_predict, scalar *Nrep, scalar *burn,
-                             scalar *verbosity, scalar *show_progress, scalar *do_plot)
+                             scalar *verbosity, scalar *show_progress, scalar *do_plot, string *model_type)
     /*
        This function checks options bundle and returns error message in
        any problem found.
@@ -35,6 +35,8 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     strings Integers = defarray("Y_AR_p", "with_const", "acc_type", "l_rank", "do_joint", "h_predict", "Nrep", "burn", "verbosity")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("av_model_size", "alpha")
+    strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
+    
     if $version >= 20221 && $sysinfo.gui_mode == 1
         do_plot_tmp = 1
     else
@@ -66,6 +68,7 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     scalar Options["verbosity"] = 2
     scalar Options["show_progress"] = 1
     scalar Options["do_plot"] = do_plot_tmp
+    string Options["model_type"] = "linear"
 
     # General checking, but still needs some manual work
     err2 = bcheck(&Options, UserOpts)
@@ -90,7 +93,12 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
             err += sprintf("Argument %s must be a bool", arg_name)
         endif
     endloop
-
+    
+    # We check model type    
+    if inbundle(UserOpts, "model_type") && strlen(UserOpts["model_type"]) && !nelem(instrings(ModelTypes, UserOpts["model_type"]))
+        err += sprintf("Unknown model type: '%s'", UserOpts["model_type"])
+    endif    
+    
     # We set arguments
     Y_AR_p = Options["Y_AR_p"]
     with_const = Options["with_const"]
@@ -104,7 +112,8 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     burn = Options["burn"]
     verbosity = Options["verbosity"]
     show_progress = Options["show_progress"]
-    do_plot = Options["do_plot"]
+    do_plot = Options["do_plot"]    
+    model_type = Options["model_type"]
 
     # We check arguments for valid values
     if Y_AR_p < 0

@@ -221,6 +221,11 @@ function void BACE_Print (bundle *M)
                 else
                     coeffmat = M.mod_rank_estimates[i][,1:2]
                     Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
+                    # Very crude workaround for examples when Xnames has unprintable elements
+                    if nelem(Xnames) != rows(coeffmat)
+                        Xnames = null
+                        Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
+                    endif  
                     modprint coeffmat Xnames
                 endif
             endif

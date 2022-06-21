@@ -26,7 +26,7 @@ function bundle BACE (series Y "Dependent variable",
     string Y_name = argname(Y)
     series @Y_name = Y
     scalar Y_AR_p,with_const,acc_type,av_model_size,alpha,l_rank,do_joint,h_predict,Nrep,burn,verbosity,show_progress,do_plot
-    string err
+    string model_type,err
 
     if !exists(Options)
         bundle Options
@@ -35,7 +35,7 @@ function bundle BACE (series Y "Dependent variable",
     # Basic parsing and checking
     err = BACE_bcheck(Options, nelem(X_list), &Y_AR_p, &with_const, &acc_type,
       &av_model_size, &alpha, &l_rank, &do_joint, &h_predict, &Nrep, &burn,
-      &verbosity, &show_progress, &do_plot)
+      &verbosity, &show_progress, &do_plot, &model_type)
     if strlen(err) != 0
         funcerr "@err !!!"
         return MODEL
@@ -49,13 +49,13 @@ function bundle BACE (series Y "Dependent variable",
         Norig = NA
     endif
 
-    err = BACE_parse(&MODEL, Y, argname(Y), Y_AR_p, X_list, &av_model_size, &l_rank, &alpha, &with_const)
+    err = BACE_parse(&MODEL, Y, argname(Y), Y_AR_p, X_list, av_model_size, l_rank, alpha, with_const, model_type)
     if strlen(err) != 0
         funcerr "@err !!!"
     else
         MODEL = BACE_setup(Y, Y_AR_p, MODEL.X_list, acc_type, av_model_size, alpha,
           l_rank, do_joint, h_predict, Nrep, burn, verbosity,
-          argname(Y), show_progress, with_const, Norig, do_plot)
+          argname(Y), show_progress, with_const, Norig, do_plot, model_type)
         # Setting sample for forecasting
         if MODEL.h_predict > 0
             smpl 1 MODEL.last_obs

@@ -31,7 +31,8 @@ function bundle BACE_setup (series Y,
                             bool show_progress[1],
                             int with_const,
                             int Norig,
-                            bool do_plot)
+                            bool do_plot,
+                            string model_type)
     /*
        This function creates BUNDLE holding all BACE information
        #
@@ -43,7 +44,9 @@ function bundle BACE_setup (series Y,
     printf "\n * Switch from M.mod_struct to M.mod_struct_old for consistency."
     printf "\n * Get rid off BACE_model_switch() function."
     printf "\n * Fix const type selection in GUI."
+    printf "\n * Simplify restoring estimates in BACE_collect_results()."
     printf "\n * Fix prediction for time-series and/or where missing values."
+    printf "\n * What to do with predicted values where we have empty model\n\t(if nelem(models_forecasts[i]) > 0 in BACE_collect_results())?"
     printf "\n * Work on speed."
     printf "\n * Clean up the code (including getting rid of stale functions)."
     printf "\n#############################################################################\n"
@@ -97,10 +100,9 @@ function bundle BACE_setup (series Y,
         matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
         #matrix M.var_numbers2 = transp(msortby(transp(M.var_numbers[2:1+M.k] | seq(2,1+M.k)), 1)) # vector containing the dataset numbers of all variables and their order in the 'big_list'
     endif
-    list D = M.var_numbers
-    print M.var_numbers2
     matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
     matrix M.big_mat_dem = M.big_mat
+    strings M.DiscreteModelTypes = defarray("logit", "probit")
 
     # In case of "out-of-sample" prediction
     if h_predict > 0
@@ -204,7 +206,7 @@ function bundle BACE_setup (series Y,
     matrix M.models_probs_percents = {} # CDF-like matrix for accepted models
     matrix M.models_probs_cdf = {} # accepted models CDF
     matrix M.models_probs_cum = {} # accepted models cumulation
-    string M.model_type = "BACE"
+    string M.model_type = model_type
     scalar M.N = rows(M.big_mat)
     scalar M.Y_AR_p = Y_AR_p # max Y lag order
     matrix M.bhat_tmp = {} # temporary column vector containing the estimated coefficients for the current model (candidates)

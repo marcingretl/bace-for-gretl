@@ -30,10 +30,16 @@ function void BACE_estimate (bundle *M)
 
     # We estimate current model
     if M.k_new > 0
-        if M.model_type == "Linear"
+        if M.model_type == "linear"
             ols Y X --quiet
-        endif        
-        
+        elif M.model_type == "logit"
+            logit Y X --quiet
+        elif M.model_type == "probit"
+            probit Y X --quiet
+        elif M.model_type == "poisson"
+            poisson Y X --quiet
+        endif
+
         if M.with_const == 2 && $ncoeff > 1 && $model.parnames[1] == "const"
             M.bhat_tmp = $coeff[2:] | $coeff[1]
             M.bvar_tmp = ($stderr[2:] | $stderr[1]).^2
@@ -45,7 +51,11 @@ function void BACE_estimate (bundle *M)
         if M.h_predict > 0
             fcast --out-of-sample --quiet
             M.Yhat_predict = $fcast
-            M.Yhat_predict_var = $fcse.^2 + $fcast.^2
+            if nelem(instrings(M.DiscreteModelTypes, M.model_type)) == 0
+                M.Yhat_predict_var = $fcse.^2 + $fcast.^2
+            else
+                M.Yhat_predict_var = ones(M.h_predict)*NA
+            endif
             #M.XtXinv = $vcv / ($ess / $df)
         endif
     else
