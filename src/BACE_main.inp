@@ -69,7 +69,7 @@ function void BACE_main (bundle *M)
 
     loop rep=1..M.Nrep --quiet
         # Saving data for the old model
-        BACE_model_switch("SAVE", &M)
+        #BACE_model_switch("SAVE", &M)
 
         # Now we draw the number of candidate variable
         potential_var = randint(0, M.k)
@@ -87,10 +87,10 @@ function void BACE_main (bundle *M)
                 M.lprob_new = models_lprob[model_nr]
             else
                 # We estimate newly drawn model
-                BACE_new_X_matrix("NORMAL", &M)
-                BACE_matrix_precompute(&M)
+                #BACE_new_X_matrix("NORMAL", &M)
+                #BACE_matrix_precompute(&M)
                 BACE_estimate(&M)
-                BACE_lprob(&M)
+                #BACE_lprob(&M)
                 model_nr = rep
                 known_models[model_id] = model_nr
                 models_structure[model_nr] = M.mod_struct_new

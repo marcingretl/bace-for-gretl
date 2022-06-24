@@ -42,7 +42,7 @@ function bundle BACE_setup (series Y,
     printf "\n#############################################################################\n"
     printf "To do:"
     printf "\n * Switch from M.mod_struct to M.mod_struct_old for consistency."
-    printf "\n * Get rid off BACE_model_switch() function."
+    printf "\n * Get rid off obsolete functions: BACE_model_switch, BACE_ols, BACE_lprob\n\tBACE_matrix_precompute, BACE_new_X_matrix."
     printf "\n * Fix const type selection in GUI."
     printf "\n * Simplify restoring estimates in BACE_collect_results()."
     printf "\n * Fix prediction for time-series and/or where missing values."
@@ -103,6 +103,8 @@ function bundle BACE_setup (series Y,
     matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
     matrix M.big_mat_dem = M.big_mat
     strings M.DiscreteModelTypes = defarray("logit", "probit")
+    list D = M.var_numbers2[1,]
+    eval D
 
     # In case of "out-of-sample" prediction
     if h_predict > 0

@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2018a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>2.0-svn</version>
-<date>2022-06-21</date>
+<date>2022-06-23</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -604,7 +604,7 @@ matrix M.StartModel = last
 BACE_new_X_matrix(&quot;START&quot;, &amp;M)
 BACE_matrix_precompute(&amp;M)
 BACE_estimate(&amp;M)
-BACE_lprob(&amp;M)
+#BACE_lprob(&amp;M)
 M.lprob_old = M.lprob_new
 M.mod_struct = M.mod_struct_new
 M.ess_old = M.ess_new
@@ -1030,7 +1030,7 @@ tmp_str - general purpose string
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
 printf &quot;\n * Switch from M.mod_struct to M.mod_struct_old for consistency.&quot;
-printf &quot;\n * Get rid off BACE_model_switch() function.&quot;
+printf &quot;\n * Get rid off obsolete functions: BACE_model_switch, BACE_ols, BACE_lprob\n\tBACE_matrix_precompute, BACE_new_X_matrix.&quot;
 printf &quot;\n * Fix const type selection in GUI.&quot;
 printf &quot;\n * Simplify restoring estimates in BACE_collect_results().&quot;
 printf &quot;\n * Fix prediction for time-series and/or where missing values.&quot;
@@ -1089,6 +1089,8 @@ endif
 matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
 matrix M.big_mat_dem = M.big_mat
 strings M.DiscreteModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;)
+list D = M.var_numbers2[1,]
+eval D
 # In case of &quot;out-of-sample&quot; prediction
 if h_predict &gt; 0
   scalar M.first_obs = Y_AR_p+1 # the first observation for smpl command
@@ -1254,8 +1256,11 @@ endif
 <code>/*
 This is wrapper for different estimators used in different methods (for future).
 */
-# We re-create Y series
+# We re-create series
 series Y = M.Y
+if M.Y_AR_p &gt; 0
+  lags M.Y_AR_p ; Y
+endif
 # We create a X list on-the-fly
 list X = selifc(M.var_numbers2[1,], M.mod_struct_new)
 if M.with_const == 1
@@ -1289,6 +1294,15 @@ if M.k_new &gt; 0
       M.Yhat_predict_var = ones(M.h_predict)*NA
     endif
     #M.XtXinv = $vcv / ($ess / $df)
+  endif
+  #printf &quot;\n##############\n&quot;
+  #eval -.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.N*log(M.ess_new)
+  #eval $lnl +.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.k_new*log(M.N)
+  #M.lprob_new = -.5*($bic - M.N*((1+log(2*$pi)-log(M.N))))
+  if M.model_type == &quot;linear&quot;
+    M.lprob_new = -.5*$bic
+  else
+    M.lprob_new = $lnl -.5*M.k_new*log(M.N)
   endif
 else
   M.bhat_tmp = {}
@@ -1760,7 +1774,7 @@ endif
 flush
 loop rep=1..M.Nrep --quiet
   # Saving data for the old model
-  BACE_model_switch(&quot;SAVE&quot;, &amp;M)
+  #BACE_model_switch(&quot;SAVE&quot;, &amp;M)
   # Now we draw the number of candidate variable
   potential_var = randint(0, M.k)
   # Now we modify the list of variables (remove an existing variable or add a new variable)
@@ -1775,10 +1789,10 @@ loop rep=1..M.Nrep --quiet
       M.lprob_new = models_lprob[model_nr]
     else
       # We estimate newly drawn model
-      BACE_new_X_matrix(&quot;NORMAL&quot;, &amp;M)
-      BACE_matrix_precompute(&amp;M)
+      #BACE_new_X_matrix(&quot;NORMAL&quot;, &amp;M)
+      #BACE_matrix_precompute(&amp;M)
       BACE_estimate(&amp;M)
-      BACE_lprob(&amp;M)
+      #BACE_lprob(&amp;M)
       model_nr = rep
       known_models[model_id] = model_nr
       models_structure[model_nr] = M.mod_struct_new

@@ -19,8 +19,11 @@ function void BACE_estimate (bundle *M)
 /*
    This is wrapper for different estimators used in different methods (for future).
     */
-    # We re-create Y series
+    # We re-create series
     series Y = M.Y
+    if M.Y_AR_p > 0
+        lags M.Y_AR_p ; Y
+    endif
 
     # We create a X list on-the-fly
     list X = selifc(M.var_numbers2[1,], M.mod_struct_new)
@@ -57,6 +60,15 @@ function void BACE_estimate (bundle *M)
                 M.Yhat_predict_var = ones(M.h_predict)*NA
             endif
             #M.XtXinv = $vcv / ($ess / $df)
+        endif
+        #printf "\n##############\n"
+        #eval -.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.N*log(M.ess_new)
+        #eval $lnl +.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.k_new*log(M.N)
+        #M.lprob_new = -.5*($bic - M.N*((1+log(2*$pi)-log(M.N))))
+        if M.model_type == "linear"
+            M.lprob_new = -.5*$bic
+        else
+            M.lprob_new = $lnl -.5*M.k_new*log(M.N)
         endif
     else
         M.bhat_tmp = {}

@@ -126,7 +126,7 @@ function void BACE_initial_model (bundle *M)
     BACE_new_X_matrix("START", &M)
     BACE_matrix_precompute(&M)
     BACE_estimate(&M)
-    BACE_lprob(&M)
+    #BACE_lprob(&M)
     M.lprob_old = M.lprob_new
     M.mod_struct = M.mod_struct_new
     M.ess_old = M.ess_new
