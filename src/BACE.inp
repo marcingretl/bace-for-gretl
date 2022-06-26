@@ -42,7 +42,11 @@ function bundle BACE (series Y "Dependent variable",
     endif
     Norig = $nobs
     
-    smpl Y X_list --no-missing --quiet
+    if $datatype == 2
+        smpl Y X_list --no-all-missing
+    else
+        smpl Y X_list --no-missing
+    endif    
     if Norig != $nobs
         printf "\nThere are missing values in dataset!\n"
     else

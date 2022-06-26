@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2018a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>2.0-svn</version>
-<date>2022-06-23</date>
+<date>2022-06-26</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -40,7 +40,11 @@ if strlen(err) != 0
   return MODEL
 endif
 Norig = $nobs
-smpl Y X_list --no-missing --quiet
+if $datatype == 2
+  smpl Y X_list --no-all-missing
+else
+  smpl Y X_list --no-missing
+endif
 if Norig != $nobs
   printf &quot;\nThere are missing values in dataset!\n&quot;
 else
@@ -489,6 +493,18 @@ endif
 if nelem(instrings(DiscreteModelTypes, model_type)) &amp;&amp; !isdiscrete(Y)
   err = sprintf(&quot;The variable '%s' is not discrete&quot;, Y_name)
 endif
+# We check if we have Y_AR_p only in case of linear model for time-series
+if Y_AR_p &gt; 0 &amp;&amp; (model_type != &quot;linear&quot; || $datatype != 2)
+  string datatype
+  if $datatype == 1
+    datatype = &quot;cross-sectional (undated) data&quot;
+  elif $datatype == 2
+    datatype = &quot;time-series data&quot;
+  elif $datatype == 3
+    datatype = &quot;panel data&quot;
+  endif
+  err = sprintf(&quot;You try to estimate %s model for %s =&gt; you cannot have lagged %s&quot;, model_type, datatype, Y_name)
+endif
 matrix M.X_list = X_list
 return err
 </code>
@@ -512,13 +528,14 @@ if M.h_predict &gt; 0
     smpl 1 M.N
   else
     if M.CPU_num == 1
-      smpl M.first_obs+($nobs-M.N) M.last_obs #+($t1-1)
+      #smpl M.first_obs+($nobs-M.N) M.last_obs #+($t1-1)
+      smpl $t1 M.last_obs
     else
       smpl M.last_obs-M.N+1 M.last_obs
     endif
   endif
 endif
-series YyY = M.Y_mat
+series YyY = M.Y #M.Y_mat
 if M.Y_AR_p &gt; 0
   lags M.Y_AR_p ; YyY
 endif
@@ -1030,10 +1047,11 @@ tmp_str - general purpose string
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
 printf &quot;\n * Switch from M.mod_struct to M.mod_struct_old for consistency.&quot;
+printf &quot;\n * Find and correct (if needed) M.k value where we have 'with_const=1'.&quot;
+printf &quot;\n * Check if we have correct prior distribution plot (empty model).&quot;
 printf &quot;\n * Get rid off obsolete functions: BACE_model_switch, BACE_ols, BACE_lprob\n\tBACE_matrix_precompute, BACE_new_X_matrix.&quot;
 printf &quot;\n * Fix const type selection in GUI.&quot;
 printf &quot;\n * Simplify restoring estimates in BACE_collect_results().&quot;
-printf &quot;\n * Fix prediction for time-series and/or where missing values.&quot;
 printf &quot;\n * What to do with predicted values where we have empty model\n\t(if nelem(models_forecasts[i]) &gt; 0 in BACE_collect_results())?&quot;
 printf &quot;\n * Work on speed.&quot;
 printf &quot;\n * Clean up the code (including getting rid of stale functions).&quot;
@@ -1072,6 +1090,7 @@ if ok(Norig)
   scalar M.Norig = Norig
 endif
 scalar M.do_plot = do_plot
+scalar M.CPU_num = 1
 # Local variables
 matrix M.StartModel = {} # list with variables selected in starting model UWAGA: do wyrzucenia!!!
 bundle StartModel_b
@@ -1093,8 +1112,8 @@ list D = M.var_numbers2[1,]
 eval D
 # In case of &quot;out-of-sample&quot; prediction
 if h_predict &gt; 0
-  scalar M.first_obs = Y_AR_p+1 # the first observation for smpl command
-  scalar M.last_obs = $nobs-h_predict # the last observation for smpl command
+  scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
+  scalar M.last_obs = $tmax-h_predict # the last observation for smpl command
   matrix M.big_mat_predict = M.big_mat[rows(M.big_mat)-h_predict+1:rows(M.big_mat),] # &quot;out-of-sample&quot; matrix of all variables (including Y)
   matrix M.big_mat_dem_predict = M.big_mat_dem[rows(M.big_mat_dem)-h_predict+1:rows(M.big_mat_dem),] # &quot;out-of-sample&quot; matrix M.of all demeaned variables (including Y)
   matrix M.Y_mat_predict = M.big_mat_predict[,1] # &quot;out-of-sample&quot; matrix of the dependent variable
@@ -1163,13 +1182,22 @@ else
 endif
 if acc_type == 1 # options for the prior
   string M.prior_name = &quot;Binomial&quot;
-  scalar M.a = ln(av_model_size/M.k)
-  scalar M.b = ln(1 - av_model_size/M.k)
+  if M.with_const == 1
+    scalar M.a = log(av_model_size/(M.k+1))
+    scalar M.b = log(1 - av_model_size/(M.k+1))
+  else
+    scalar M.a = log(av_model_size/M.k)
+    scalar M.b = log(1 - av_model_size/M.k)
+  endif
   scalar M.c = 0
 else
   string M.prior_name = &quot;Binomial-Beta&quot;
   scalar M.a = 1
-  scalar M.b = (M.k - av_model_size)/av_model_size
+  if M.with_const == 1
+    scalar M.b = (M.k+1 - av_model_size)/av_model_size
+  else
+    scalar M.b = (M.k - av_model_size)/av_model_size
+  endif
   scalar M.c = lngamma(M.a + M.b) - lngamma(M.a) - lngamma(M.b)
 endif
 # Posterior results
@@ -1254,15 +1282,31 @@ endif
   <param name="M" type="bundleref"/>
  </params>
 <code>/*
-This is wrapper for different estimators used in different methods (for future).
+This function estimates and forecasts drawn models.
 */
-# We re-create series
+matrix mod_struct_new, mod_struct_new_Y_lags
+list Y_lags
+# We re-create Y series
 series Y = M.Y
+# We create list with lagged Y if needed
 if M.Y_AR_p &gt; 0
-  lags M.Y_AR_p ; Y
+  #lags M.Y_AR_p ; Y # to wystarczało niby, ale nie było dynamicznej prognozy
+  mod_struct_new_Y_lags = M.mod_struct_new[1:M.Y_AR_p]
+  if sum(mod_struct_new_Y_lags) &gt; 0
+    Y_lags = lags(selifc(seq(1,M.Y_AR_p), mod_struct_new_Y_lags), Y)
+    mod_struct_new = zeros(M.Y_AR_p)' ~ M.mod_struct_new[M.Y_AR_p+1:]
+  else
+    mod_struct_new = M.mod_struct_new
+  endif
+else
+  mod_struct_new = M.mod_struct_new
 endif
 # We create a X list on-the-fly
-list X = selifc(M.var_numbers2[1,], M.mod_struct_new)
+list X = selifc(M.var_numbers2[1,], mod_struct_new)
+if nelem(mod_struct_new_Y_lags) &gt; 0
+  X = Y_lags X
+endif
+# Do we need const?
 if M.with_const == 1
   X += const
 endif
@@ -1286,7 +1330,7 @@ if M.k_new &gt; 0
   endif
   M.ess_new = $ess
   if M.h_predict &gt; 0
-    fcast --out-of-sample --quiet
+    fcast --out-of-sample --quiet #--dynamic
     M.Yhat_predict = $fcast
     if nelem(instrings(M.DiscreteModelTypes, M.model_type)) == 0
       M.Yhat_predict_var = $fcse.^2 + $fcast.^2

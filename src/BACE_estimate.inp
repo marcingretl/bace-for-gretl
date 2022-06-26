@@ -17,16 +17,35 @@
 */
 function void BACE_estimate (bundle *M)
 /*
-   This is wrapper for different estimators used in different methods (for future).
+   This function estimates and forecasts drawn models.
     */
-    # We re-create series
+    matrix mod_struct_new, mod_struct_new_Y_lags
+    list Y_lags
+    
+    # We re-create Y series
     series Y = M.Y
+    
+    # We create list with lagged Y if needed
     if M.Y_AR_p > 0
-        lags M.Y_AR_p ; Y
+        #lags M.Y_AR_p ; Y # to wystarczało niby, ale nie było dynamicznej prognozy
+        mod_struct_new_Y_lags = M.mod_struct_new[1:M.Y_AR_p]
+        if sum(mod_struct_new_Y_lags) > 0
+            Y_lags = lags(selifc(seq(1,M.Y_AR_p), mod_struct_new_Y_lags), Y)
+            mod_struct_new = zeros(M.Y_AR_p)' ~ M.mod_struct_new[M.Y_AR_p+1:]
+        else
+            mod_struct_new = M.mod_struct_new
+        endif
+    else
+        mod_struct_new = M.mod_struct_new
     endif
 
     # We create a X list on-the-fly
-    list X = selifc(M.var_numbers2[1,], M.mod_struct_new)
+    list X = selifc(M.var_numbers2[1,], mod_struct_new)
+    if nelem(mod_struct_new_Y_lags) > 0
+        X = Y_lags X
+    endif
+
+    # Do we need const?
     if M.with_const == 1
         X += const
     endif
@@ -52,7 +71,7 @@ function void BACE_estimate (bundle *M)
         endif
         M.ess_new = $ess
         if M.h_predict > 0
-            fcast --out-of-sample --quiet
+            fcast --out-of-sample --quiet #--dynamic
             M.Yhat_predict = $fcast
             if nelem(instrings(M.DiscreteModelTypes, M.model_type)) == 0
                 M.Yhat_predict_var = $fcse.^2 + $fcast.^2

@@ -44,14 +44,14 @@ function string BACE_parse (bundle *M,
     strings DiscreteModelTypes = defarray("logit", "probit")
     string err = ""
     string tmp_str
-    
+
     # We check if given X_list does not include Y
     if (inlist(X_list, Y_name) != 0)
         X_list -= X_list[inlist(X_list, Y_name)]
         k -= 1
         print "Dependent viariable was removed from the X list."
     endif
-    
+
     # We check if given X_list does not include lagged Y
     if (Y_AR_p > 0)
         loop i=1..Y_AR_p --quiet
@@ -63,14 +63,14 @@ function string BACE_parse (bundle *M,
             endif
         endloop
     endif
-    
+
     # We check if given X_list does not include const
     if (inlist(X_list, const) != 0)
         X_list -= const
         k -= 1
         print "Const was removed from the X list."
     endif
-    
+
     # We check if given variables are not co-linear
     # dropcoll() seems not to work good here
     if (nelem(X_list) > 0)
@@ -89,20 +89,20 @@ function string BACE_parse (bundle *M,
             print "Some of the independent variables were colinear and were dropped."
         endif
     endif
-    
+
     # We check if average model size is within 0 and K
     scalar max_model_size = k # We chould check it!!!
     if ((av_model_size <= 0) || (av_model_size >= max_model_size))
         err = "Average model size should be greater then 0 and lower than K"
         return err
     endif
-    
+
     # We check if aplha then 0 in we don't have const (we can't have empty model)
     if ((alpha == 0) && (with_const == 0))
         err = "We cannot have empty initial model (alpha = 0) when we don't have constant"
         return err
     endif
-    
+
     # We check if number of models in ranking is not greater than 2^K (model space)
     if (l_rank > 2^(k+Y_AR_p))
         err = "Number of the top ranked models cannot be greater than 2^K (space of parameters)"
@@ -112,9 +112,22 @@ function string BACE_parse (bundle *M,
     # We check if we have discrete Y variable in case of logit/probit/etc models
     if nelem(instrings(DiscreteModelTypes, model_type)) && !isdiscrete(Y)
         err = sprintf("The variable '%s' is not discrete", Y_name)
-    endif    
+    endif
+
+    # We check if we have Y_AR_p only in case of linear model for time-series
+    if Y_AR_p > 0 && (model_type != "linear" || $datatype != 2)
+        string datatype
+        if $datatype == 1
+            datatype = "cross-sectional (undated) data"
+        elif $datatype == 2
+            datatype = "time-series data"
+        elif $datatype == 3
+            datatype = "panel data"
+        endif        
+        err = sprintf("You try to estimate %s model for %s => you cannot have lagged %s", model_type, datatype, Y_name)
+    endif
 
     matrix M.X_list = X_list
-    
+
     return err
 end function
