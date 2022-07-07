@@ -124,11 +124,15 @@ function void BACE_initial_model (bundle *M)
 
     M.k_old = nelem(last)
     matrix M.StartModel = last
-    BACE_new_X_matrix("START", &M)
-    BACE_matrix_precompute(&M)
-    BACE_estimate(&M)
-    #BACE_lprob(&M)
-    M.lprob_old = M.lprob_new
-    M.mod_struct = M.mod_struct_new
-    M.ess_old = M.ess_new
+    matrix M.mod_struct_new = zeros(1,M.k)
+    
+    # Setting 1 for variables in current draw
+    loop i=1..cols(M.StartModel) --quiet
+        loop j=1..M.k --quiet
+            if M.var_numbers2[1,j] == M.StartModel[i]
+                M.mod_struct_new[M.var_numbers2[2,j]-1] = 1
+                break
+            endif
+        endloop
+    endloop
 end function

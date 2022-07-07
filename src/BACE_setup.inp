@@ -32,7 +32,9 @@ function bundle BACE_setup (series Y,
                             int with_const,
                             int Norig,
                             bool do_plot,
-                            string model_type)
+                            string model_type,
+                            scalar center_vars,
+                            scalar bic_type)
     /*
        This function creates BUNDLE holding all BACE information
        #
@@ -41,18 +43,17 @@ function bundle BACE_setup (series Y,
     */
     printf "\n#############################################################################\n"
     printf "To do:"
-    printf "\n * Switch from M.mod_struct to M.mod_struct_old for consistency."
-    printf "\n * Find and correct (if needed) M.k value where we have 'with_const=1'."
+    printf "\n * Check if we have correct model prior (including Options[\"av_model_size\"])."
     printf "\n * Check if we have correct prior distribution plot (empty model)."
-    printf "\n * Get rid off obsolete functions: BACE_model_switch, BACE_ols, BACE_lprob\n\tBACE_matrix_precompute, BACE_new_X_matrix."
     printf "\n * Fix const type selection in GUI."
     printf "\n * Simplify restoring estimates in BACE_collect_results()."
     printf "\n * What to do with predicted values where we have empty model\n\t(if nelem(models_forecasts[i]) > 0 in BACE_collect_results())?"
+    printf "\n * Add PDF and GUI entries for both: center_vars and bic_type."
     printf "\n * Work on speed."
     printf "\n * Clean up the code (including getting rid of stale functions)."
     printf "\n#############################################################################\n"
+    BACE_print_status("BACE setup")
     bundle M
-
     list X_list = X_list_m
     scalar M.with_const = with_const
     if M.with_const == 1
@@ -69,8 +70,9 @@ function bundle BACE_setup (series Y,
     list big_list = Y X_list
     string tmp_str = ""
 
-    # Basic parsing and checking
-    # Global variables
+    ###############################################
+    # Global variables (given by user of default) #
+    ###############################################
     series M.Y = Y
     matrix M.X_list = X_list # Look down - repeated!!!
     scalar M.acc_type = acc_type
@@ -88,13 +90,20 @@ function bundle BACE_setup (series Y,
     endif
     scalar M.do_plot = do_plot
     scalar M.CPU_num = 1
-    
+    scalar M.bic_type = bic_type
+    scalar M.center_vars = center_vars
+
     # Local variables
     matrix M.StartModel = {} # list with variables selected in starting model UWAGA: do wyrzucenia!!!
     bundle StartModel_b
     bundle M.StartModel_b = StartModel_b
     matrix M.X_list = X_list # List of all explanatory variables UWAGA: powtórzone (patrz góra)
     scalar M.k = nelem(X_list) # total number of indenpendent variables
+    if M.with_const == 2
+        scalar M.k2 = M.k+1 # maximum number of estimated slope coefficients
+    else
+        scalar M.k2 = M.k
+    endif
     scalar M.Nburn = round(burn/100*Nrep) # number of burn-in draws
     matrix M.var_numbers = big_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
     if M.with_const == 2
@@ -102,12 +111,15 @@ function bundle BACE_setup (series Y,
     else
         matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
         #matrix M.var_numbers2 = transp(msortby(transp(M.var_numbers[2:1+M.k] | seq(2,1+M.k)), 1)) # vector containing the dataset numbers of all variables and their order in the 'big_list'
-    endif
+    endif    
+    scalar M.model_space = 2^M.k
+    if M.with_const != 1
+        M.model_space -= 1
+    endif    
     matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
     matrix M.big_mat_dem = M.big_mat
     strings M.DiscreteModelTypes = defarray("logit", "probit")
     list D = M.var_numbers2[1,]
-    eval D
 
     # In case of "out-of-sample" prediction
     if h_predict > 0
@@ -157,8 +169,8 @@ function bundle BACE_setup (series Y,
     scalar M.y_mean = meanc(M.Y_mat) # mean of the Y
     scalar M.mod_size = 0 # size of models in MC3 (sum)
     scalar M.yMy = 0 # scalar M.for P_y computation
-    matrix M.scaling_f = zeros(7,1) # vector containing the scaling factors
-    matrix M.mod_struct = zeros(1,M.k) # 0-1 vector containing the structure of the current model
+    matrix M.scaling_f = zeros(1) # vector containing the scaling factors
+    matrix M.mod_struct_old = zeros(1,M.k) # 0-1 vector containing the structure of the current model
     matrix M.mod_struct_new = zeros(1,M.k) # 0-1 vector containing the structure of the current model
     matrices M.mod_rank = array(M.l_rank) #-1 * ones(l_rank,M.k) # 0-1 matrix M.containing structure of models in ranking
     matrix M.mod_rank_prob = zeros(l_rank,1) # probability of the models in ranking (analytical)
@@ -177,7 +189,7 @@ function bundle BACE_setup (series Y,
     string M.Y_name = Y_name # string with name of denpendent variable
 
     if do_joint
-        matrix M.jointness_m = zeros(M.k, M.k) # square matrix M.containing counts of coexistence (jointness) of every pair of indenpendent variables
+        matrix M.jointness_m = zeros(M.k, M.k) # square matrix containing counts of coexistence (jointness) of every pair of indenpendent variables
         strings M.jointess_measure_names = defarray("Doppelhofer-Weeks Measure (DW1)", \
           "Doppelhofer-Weeks Measure (DW2)", "Ley-Steel Measure (LS1)", \
           "Ley-Steel Measure (LS2)", "Strachan Measure", "Yule's Q Measure (YQ)", \
@@ -188,22 +200,13 @@ function bundle BACE_setup (series Y,
 
     if acc_type == 1 # options for the prior
         string M.prior_name = "Binomial"
-        if M.with_const == 1
-            scalar M.a = log(av_model_size/(M.k+1))
-            scalar M.b = log(1 - av_model_size/(M.k+1))
-        else
-            scalar M.a = log(av_model_size/M.k)
-            scalar M.b = log(1 - av_model_size/M.k)
-        endif        
+        scalar M.a = log(av_model_size/M.k)
+        scalar M.b = log(1 - av_model_size/M.k)
         scalar M.c = 0
     else
         string M.prior_name = "Binomial-Beta"
         scalar M.a = 1
-        if M.with_const == 1
-            scalar M.b = (M.k+1 - av_model_size)/av_model_size
-        else
-            scalar M.b = (M.k - av_model_size)/av_model_size
-        endif        
+        scalar M.b = (M.k - av_model_size)/av_model_size
         scalar M.c = lngamma(M.a + M.b) - lngamma(M.a) - lngamma(M.b)
     endif
 
@@ -236,11 +239,33 @@ function bundle BACE_setup (series Y,
     scalar M.model_index_old = 0 # decimal index of old model
     string M.model_hex_index_new = "" # hex index of model
     string M.model_hex_index_old = "" # hex index of model
+    scalar M.empty_model_count = 0 # counter for empty model
 
-    ########################
+    # BIC version
+    if bic_type == 1
+        string M.bic_type_name = "BIC"
+    elif bic_type == 2
+        string M.bic_type_name = "HBIC"
+        M.scaling_f[1] = log(.5*M.N/$pi)
+    endif
+
+    # Data standarization
+    if M.center_vars == 1
+        string M.center_vars_name = "centering"
+    elif M.center_vars == 2
+        string M.center_vars_name = "standarization"
+    else
+        string M.center_vars_name = "none"
+    endif
+
     if verbosity == 1
         set warnings off
     endif
+    
+    # MC3 progress step
+    scalar M.progress = floor(M.Nrep/100)
+
+    BACE_print_status(null, 1, 11)
 
     return M
 end function

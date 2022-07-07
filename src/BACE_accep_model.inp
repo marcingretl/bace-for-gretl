@@ -16,15 +16,15 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_accep_model (bundle *M, scalar *model_nr_old, scalar *model_nr)
-    /*
-       Function computes "probability" of the new model and checks if it is bigger than some random value drawn form U(0,1).
+/*
+   Function computes "probability" of the new model and checks if it is bigger than some random value drawn form U(0,1).
     */
     if BACE_accept_prob(&M) > log(randgen1(u,0,1))
         # We accept new model
-        BACE_model_switch("ACCEPT", &M)
+        M.lprob_old = M.lprob_new
+        M.k_old = M.k_new
+        M.ess_old = M.ess_new
+        M.mod_struct_old = M.mod_struct_new
         model_nr_old = model_nr
-    else
-        # We restore old model
-        BACE_model_switch("RESTORE", &M)
     endif
 end function

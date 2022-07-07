@@ -24,13 +24,14 @@ function matrix BACE_jointness_measure (bundle *M)
    #
    Returns: matrix with computed jointness measure
     */
-    scalar a
-    scalar b
-    scalar c
-    scalar d
-    scalar N
-    scalar loghuge = 999 # proxy for infty
-    matrix var_prob = M.Post_Results[,1]
+    scalar a,b,c,d,N
+    matrix var_prob
+    scalar loghuge = 999 # proxy for infty    
+    if M.with_const == 1
+        var_prob = M.Post_Results[2:,1]
+    else
+        var_prob = M.Post_Results[,1]
+    endif    
     matrix jointness_measure = zeros(rows(M.jointness_m), cols(M.jointness_m))
 
     loop i=1..M.k --quiet
@@ -84,6 +85,8 @@ function matrix BACE_jointness_measure (bundle *M)
             endif
         endloop
     endloop
+    jointness_measure = jointness_measure + upper(jointness_measure)'
+    jointness_measure[diag] = NA
 
     cnameset(jointness_measure, cnameget(M.jointness_m))
     rnameset(jointness_measure, rnameget(M.jointness_m))

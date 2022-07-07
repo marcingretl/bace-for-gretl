@@ -51,7 +51,7 @@ function void BACE_estimate (bundle *M)
     endif
 
     # We estimate current model
-    if M.k_new > 0
+    if nelem(X) > 0 #M.k_new > 0
         if M.model_type == "linear"
             ols Y X --quiet
         elif M.model_type == "logit"
@@ -78,22 +78,20 @@ function void BACE_estimate (bundle *M)
             else
                 M.Yhat_predict_var = ones(M.h_predict)*NA
             endif
-            #M.XtXinv = $vcv / ($ess / $df)
         endif
         #printf "\n##############\n"
         #eval -.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.N*log(M.ess_new)
         #eval $lnl +.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.k_new*log(M.N)
         #M.lprob_new = -.5*($bic - M.N*((1+log(2*$pi)-log(M.N))))
-        if M.model_type == "linear"
+        if M.bic_type == 1
             M.lprob_new = -.5*$bic
-        else
-            M.lprob_new = $lnl -.5*M.k_new*log(M.N)
+        elif M.bic_type == 2
+            M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1]
         endif
     else
         M.bhat_tmp = {}
         M.bvar_tmp = {}
-        M.ess_new = M.y_dem_sq
+        #M.ess_new = M.y_dem_sq
+        M.lprob_new = -10^20
     endif
-
-    #BACE_ols(&M)
 end function

@@ -2,8 +2,8 @@
 <gretl-functions>
 <gretl-function-package name="BACE" minver="2018a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
-<version>2.0-svn</version>
-<date>2022-06-26</date>
+<version>1.3-svn</version>
+<date>2022-07-07</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -28,16 +28,21 @@ Function returns bundle MODEL with (formatted) results.
 bundle MODEL
 string Y_name = argname(Y)
 series @Y_name = Y
-scalar Y_AR_p,with_const,acc_type,av_model_size,alpha,l_rank,do_joint,h_predict,Nrep,burn,verbosity,show_progress,do_plot
-string model_type,err
+scalar Y_AR_p,with_const,acc_type,av_model_size,alpha,l_rank,do_joint,h_predict, Nrep,burn,verbosity,show_progress,do_plot,center_vars,bic_type
+string model_type,err,tmp_varname
 if !exists(Options)
   bundle Options
 endif
 # Basic parsing and checking
-err = BACE_bcheck(Options, nelem(X_list), &amp;Y_AR_p, &amp;with_const, &amp;acc_type, &amp;av_model_size, &amp;alpha, &amp;l_rank, &amp;do_joint, &amp;h_predict, &amp;Nrep, &amp;burn, &amp;verbosity, &amp;show_progress, &amp;do_plot, &amp;model_type)
+err = BACE_bcheck(Options, nelem(X_list), &amp;Y_AR_p, &amp;with_const, &amp;acc_type, &amp;av_model_size, &amp;alpha, &amp;l_rank, &amp;do_joint, &amp;h_predict, &amp;Nrep, &amp;burn, &amp;verbosity, &amp;show_progress, &amp;do_plot, &amp;model_type, &amp;center_vars, &amp;bic_type)
 if strlen(err) != 0
   funcerr &quot;@err !!!&quot;
   return MODEL
+endif
+if center_vars == 1
+  X_list = stdize(X_list, -1)
+elif center_vars == 2
+  X_list = stdize(X_list, 0)
 endif
 Norig = $nobs
 if $datatype == 2
@@ -54,7 +59,7 @@ err = BACE_parse(&amp;MODEL, Y, argname(Y), Y_AR_p, X_list, av_model_size, l_ran
 if strlen(err) != 0
   funcerr &quot;@err !!!&quot;
 else
-  MODEL = BACE_setup(Y, Y_AR_p, MODEL.X_list, acc_type, av_model_size, alpha, l_rank, do_joint, h_predict, Nrep, burn, verbosity, argname(Y), show_progress, with_const, Norig, do_plot, model_type)
+  MODEL = BACE_setup(Y, Y_AR_p, MODEL.X_list, acc_type, av_model_size, alpha, l_rank, do_joint, h_predict, Nrep, burn, verbosity, argname(Y), show_progress, with_const, Norig, do_plot, model_type, center_vars, bic_type)
   # Setting sample for forecasting
   if MODEL.h_predict &gt; 0
     smpl 1 MODEL.last_obs
@@ -72,13 +77,12 @@ return MODEL
 </gretl-function>
 <gretl-function name="BACE_Print" type="void" pkg-role="bundle-print">
  <params count="1">
-  <param name="M" type="bundleref"/>
+  <param name="M" type="bundleref" const="true"/>
  </params>
 <code>/*
 Function prints BACE results.
 */
 matrix coeffmat
-model_space = 2^M.k
 # We re-create Y process
 string Y_name = M.Y_name
 series @Y_name = M.Y
@@ -98,12 +102,14 @@ printf &quot;Constant type: %s\n&quot;, M.const_type
 printf &quot;Prior: %s\n&quot;, M.prior_name
 printf &quot;Prior average model size: %f\n&quot;, M.av_model_size
 printf &quot;Significance level for the initial model: %f\n&quot;, M.alpha
+printf &quot;Bayesian information criterion used: %s\n&quot;, M.bic_type_name
+printf &quot;Data transformation: %s\n&quot;, M.center_vars_name
 printf &quot;Total number of iterations: %d\n&quot;, M.Nrep
 printf &quot;Number of burn-in draws: %d\n&quot;, M.Nburn
-if model_space &lt; 2^31
-  printf &quot;Total number of possible models: %d\n&quot;, model_space
+if M.model_space &lt; 2^31
+  printf &quot;Total number of possible models: %d\n&quot;, M.model_space
 else
-  printf &quot;Total number of possible models: %g\n&quot;, model_space
+  printf &quot;Total number of possible models: %g\n&quot;, M.model_space
 endif
 printf &quot;Number of models visited: %d\n&quot;, M.post_n_models
 printf &quot;Number of models accepted: %d\n&quot;, M.post_n_models_accepted
@@ -131,7 +137,7 @@ endif
 print &quot;----------------------------------&quot;
 printf &quot;\n&quot;
 printf &quot;Prior:\n&quot;
-printf &quot;\taverage model size: %f\n&quot;, M.av_model_size
+printf &quot;\taverage model size: %f\n&quot;, sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
 printf &quot;\tstandard deviation: %f\n&quot;, M.mod_size_sd_prior
 printf &quot;Posterior:\n&quot;
 printf &quot;\taverage model size: %f\n&quot;, M.mod_size_av
@@ -265,17 +271,12 @@ if M.verbosity == 2
       printf &quot;\n&quot;
       print &quot;----------------------------------&quot;
       printf &quot;\nModel: %d, posterior probability: %f&quot;, i, M.Numerical_Likelihood[i]
-      if sumr(M.mod_rank[i]) == 0
+      if sumr(M.mod_rank[i]) == 0 &amp;&amp; M.with_const != 1
         printf &quot;\n\n  %s\n&quot;, &quot;None of the variables were significant.&quot;
         printf &quot;  %s\n&quot;, &quot;Model includes only the intercept term which is simply the average of the dependent variable.&quot;
       else
         coeffmat = M.mod_rank_estimates[i][,1:2]
         Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
-        # Very crude workaround for examples when Xnames has unprintable elements
-        if nelem(Xnames) != rows(coeffmat)
-          Xnames = null
-          Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
-        endif
         modprint coeffmat Xnames
       endif
     endif
@@ -285,8 +286,99 @@ print &quot;----------------------------------&quot;
 printf &quot;\n\n&quot;
 </code>
 </gretl-function>
+<gretl-function name="BACE_Plot" type="void" pkg-role="bundle-plot">
+ <params count="1">
+  <param name="MODEL" type="bundleref" const="true"/>
+ </params>
+<code>/*
+BACE result bundle plot function.
+*/
+string legend, output, basename, xtics
+if $sysinfo.gui_mode
+  basename = &quot;display&quot;
+else
+  basename = strftime($now[1], &quot;%Y%m%d%H%M%S&quot;)
+endif
+# Heatmap for variable inclusion
+BACE_heatmap(MODEL, &quot;inclusions&quot;, basename)
+# Heatmap for jointness
+if MODEL.do_joint
+  BACE_heatmap(MODEL, &quot;jointness&quot;, basename)
+endif
+# Models size distribution
+plotmat = mreverse(MODEL.mod_sizes, 1)
+output = basename
+if !$sysinfo.gui_mode
+  output = output ~ &quot;-MSD.plt&quot;
+endif
+if rows(plotmat) &lt; 20
+  xtics = &quot;set xtics 1&quot;
+else
+  xtics = &quot;&quot;
+endif
+if MODEL.mod_size_av &gt; MODEL.av_model_size
+  legend = &quot;left&quot;
+else
+  legend = &quot;right&quot;
+endif
+plot plotmat
+  options with-lp fit=none
+  printf &quot;%s&quot;, xtics
+  printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Model Size Distribution&quot;
+  printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
+  printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Density&quot;
+  printf &quot;set key %s top&quot;, legend
+end plot --output=@output
+# Models size CDF
+plotmat = MODEL.models_probs_cdf
+output = basename
+if !$sysinfo.gui_mode
+  output = output ~ &quot;-CDF.plt&quot;
+endif
+if rows(plotmat) &lt; 20
+  xtics = &quot;set xtics 1&quot;
+else
+  xtics = &quot;&quot;
+endif
+plot plotmat
+  options with-line fit=none
+  literal set grid
+  printf &quot;%s&quot;, xtics
+  printf &quot;set title \&quot;%s\&quot;&quot;, &quot;CDF of Model Size&quot;
+  printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Number of Models&quot;
+  printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Posterior Probability Mass&quot;
+end plot --output=@output
+# Predictive results
+if MODEL.h_predict
+  plotmat = MODEL.prediction[,1:2]
+  bars = MODEL.prediction[,2:3]
+  cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
+  output = basename
+  if !$sysinfo.gui_mode
+    output = output ~ &quot;-predict.plt&quot;
+  endif
+  xtics = &quot;(&quot;
+  loop i=1..MODEL.h_predict --quiet
+    xtics += sprintf(&quot;\&quot;%s\&quot; %d&quot;, rnameget(MODEL.prediction)[i], i)
+    if i == MODEL.h_predict
+      xtics += sprintf(&quot;)&quot;)
+    else
+      xtics += sprintf(&quot;, &quot;)
+    endif
+  endloop
+  plot plotmat
+    options time-series with-lines
+    options with-line fit=none
+    options band=bars,1 band-style=bars
+    printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Predictive results (with +/- one standard deviations as bars)&quot;
+    printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Observation&quot;
+    printf &quot;set xtics %s&quot;, xtics
+  end plot --output=@output
+endif
+</code>
+</gretl-function>
 <gretl-function name="BACE_GUI" type="bundle" pkg-role="gui-main">
- <params count="14">
+ <params count="17">
   <param name="Y" type="series">
 <description>Dependent variable</description>
   </param>
@@ -301,10 +393,20 @@ printf &quot;\n\n&quot;
 <labels count="3">
 "Never" "Always" "Can be dropped" </labels>
   </param>
+  <param name="center_vars" type="int" min="0" max="2" default="0">
+<description>Data transformation</description>
+<labels count="3">
+"None" "Center" "Standarize" </labels>
+  </param>
   <param name="acc_type" type="int" min="1" max="2" default="1">
 <description>Model prior</description>
 <labels count="2">
 "Binomial" "Binomial-Beta" </labels>
+  </param>
+  <param name="bic_type" type="int" min="1" max="2" default="1">
+<description>Bayesian information</description>
+<labels count="2">
+"BIC" "HBIC" </labels>
   </param>
   <param name="av_model_size" type="scalar" min="0" default="1">
 <description>Prior average model size</description>
@@ -318,7 +420,7 @@ printf &quot;\n\n&quot;
   <param name="do_joint" type="int" min="0" max="7" default="0">
 <description>Jointness analysis</description>
 <labels count="8">
-"None" "Ley-Steel Measure (LS2)" "Doppelhofer-Weeks Measure (DW2)" "Ley-Steel Measure (LS1)" "Doppelhofer-Weeks Measure (DW1)" "Strachan Measure" "Yule's Q Measure (YQ)" "Modified Yule's Q Measure (YQM)" </labels>
+"None" "Doppelhofer-Weeks Measure (DW1)" "Doppelhofer-Weeks Measure (DW2)" "Ley-Steel Measure (LS1)" "Ley-Steel Measure (LS2)" "Strachan Measure" "Yule's Q Measure (YQ)" "Modified Yule's Q Measure (YQM)" </labels>
   </param>
   <param name="h_predict" type="int" min="0" default="0">
 <description>Number of out-of-sample forecasts</description>
@@ -334,6 +436,9 @@ printf &quot;\n\n&quot;
   </param>
   <param name="show_progress" type="bool" default="1">
 <description>Show overall progress</description>
+  </param>
+  <param name="do_plot" type="bool" default="1">
+<description>Plot graphs?</description>
   </param>
  </params>
 <code>/*
@@ -356,48 +461,10 @@ scalar Options[&quot;Nrep&quot;] = Nrep
 scalar Options[&quot;burn&quot;] = burn
 scalar Options[&quot;verbosity&quot;] = verbosity
 scalar Options[&quot;show_progress&quot;] = show_progress
-#scalar Options[&quot;do_plot&quot;] = do_plot
+scalar Options[&quot;do_plot&quot;] = do_plot
+scalar Options[&quot;center_vars&quot;] = center_vars
+scalar Options[&quot;bic_type&quot;] = bic_type
 return BACE(@Y_name, X_list, Options)
-</code>
-</gretl-function>
-<gretl-function name="BACE_model_switch" type="void" private="1">
- <params count="2">
-  <param name="MODE" type="string"/>
-  <param name="M" type="bundleref"/>
- </params>
-<code>/*
-This is general purpose model switching function which
-save and restore old model or save the new model
-*/
-if (MODE == &quot;SAVE&quot;)
-  M.X_old_num = M.X_new_num
-  M.model_index_old = M.model_index_new
-  M.model_hex_index_old = M.model_hex_index_new
-  if (M.h_predict &gt; 0)
-    M.X_old_predict = M.X_new_predict
-    M.ZtZinv_old = M.ZtZinv_new
-    M.dj_old = M.dj_new
-    M.ess_old = M.ess_new
-  endif
-elif (MODE == &quot;RESTORE&quot;)
-  M.X_new_num = M.X_old_num
-  M.k_new = M.k_old
-  M.model_index_new = M.model_index_old
-  M.model_hex_index_new = M.model_hex_index_old
-  if (M.h_predict &gt; 0)
-    M.X_new_predict = M.X_old_predict
-    M.ZtZinv_new = M.ZtZinv_old
-    M.dj_new = M.dj_old
-    M.ess_new = M.ess_old
-  endif
-elif (MODE == &quot;ACCEPT&quot;)
-  M.lprob_old = M.lprob_new
-  M.k_old = M.k_new
-  M.ess_old = M.ess_new
-  M.mod_struct = M.mod_struct_new
-  M.model_index_old = M.model_index_new
-  M.model_hex_index_old = M.model_hex_index_new
-endif
 </code>
 </gretl-function>
 <gretl-function name="BACE_parse" type="string" private="1">
@@ -490,9 +557,11 @@ if (l_rank &gt; 2^(k+Y_AR_p))
   return err
 endif
 # We check if we have discrete Y variable in case of logit/probit/etc models
+/*
 if nelem(instrings(DiscreteModelTypes, model_type)) &amp;&amp; !isdiscrete(Y)
   err = sprintf(&quot;The variable '%s' is not discrete&quot;, Y_name)
 endif
+*/
 # We check if we have Y_AR_p only in case of linear model for time-series
 if Y_AR_p &gt; 0 &amp;&amp; (model_type != &quot;linear&quot; || $datatype != 2)
   string datatype
@@ -618,23 +687,6 @@ else
 endif
 M.k_old = nelem(last)
 matrix M.StartModel = last
-BACE_new_X_matrix(&quot;START&quot;, &amp;M)
-BACE_matrix_precompute(&amp;M)
-BACE_estimate(&amp;M)
-#BACE_lprob(&amp;M)
-M.lprob_old = M.lprob_new
-M.mod_struct = M.mod_struct_new
-M.ess_old = M.ess_new
-</code>
-</gretl-function>
-<gretl-function name="BACE_model_structure" type="void" private="1">
- <params count="1">
-  <param name="M" type="bundleref"/>
- </params>
-<code>/*
-Function constructs structure vector of starting model.
-*/
-# Starting values
 matrix M.mod_struct_new = zeros(1,M.k)
 # Setting 1 for variables in current draw
 loop i=1..cols(M.StartModel) --quiet
@@ -644,10 +696,6 @@ loop i=1..cols(M.StartModel) --quiet
       break
     endif
   endloop
-endloop
-# Filling in the mod_rank with starting structure
-loop i=1..M.l_rank --quiet
-  M.mod_rank[i] = M.mod_struct_new
 endloop
 </code>
 </gretl-function>
@@ -707,22 +755,6 @@ elif (M.acc_type == 2) # Binomial-beta
 endif
 </code>
 </gretl-function>
-<gretl-function name="BACE_matrix_precompute" type="void" private="1">
- <params count="1">
-  <param name="M" type="bundleref"/>
- </params>
-<code>/*
-Function computes some linear algebra stuff for further computation.
-*/
-if (M.k_new &gt; 0)
-  if (M.with_const == 1)
-    matrix M.X_new = ones(M.N, 1) ~ M.X_new
-  else
-    matrix M.X_new = M.X_new
-  endif
-endif
-</code>
-</gretl-function>
 <gretl-function name="BACE_jointness_pairs" type="void" private="1">
  <params count="6">
   <param name="MODE" type="string"/>
@@ -759,49 +791,6 @@ rnameset(pairs_related, pair_names)
 eval pairs_related
 </code>
 </gretl-function>
-<gretl-function name="BACE_new_X_matrix" type="void" private="1">
- <params count="2">
-  <param name="MODE" type="string"/>
-  <param name="M" type="bundleref"/>
- </params>
-<code>/*
-Function creates matrix of explanatory variables (demeaned for Classic_BMA) for current draw.
-MODE - mode in which function operates: START (for starting model) or NORMAL
-*/
-# If we have at least one variable we create new X matrix, otherwise it includes &quot;Ones&quot; only.
-if (M.k_new &gt; 0)
-  if (MODE == &quot;START&quot;) # Note: this happens only ones: for the starting model!!!
-    BACE_model_structure(&amp;M)
-  endif
-  M.X_new_num = selifc(M.var_numbers2[2,], M.mod_struct_new)
-  M.X_new = selifc(M.big_mat_dem[,2:], M.mod_struct_new)
-else
-  M.X_new_num = {}
-  if (M.with_const == 1)
-    M.X_new = ones(M.N,1)
-  else
-    M.X_new = {}
-  endif
-endif
-</code>
-</gretl-function>
-<gretl-function name="BACE_forecast" type="void" private="1">
- <params count="2">
-  <param name="M" type="bundleref"/>
-  <param name="model" type="bundleref"/>
- </params>
-<code>/*
-This is a wrapper for functions which compute forecasts
-*/
-# Local variables
-matrix Yhat_predict = zeros(M.h_predict,1)
-matrix Yhat_predict_var = zeros(M.h_predict,1)
-BACE_forecast_BACE(&amp;M, &amp;model, &amp;Yhat_predict, &amp;Yhat_predict_var)
-# Averaging
-M.Yhat_predict_avg += Yhat_predict * model.count
-M.Yhat_predict_var_avg += Yhat_predict_var * model.count
-</code>
-</gretl-function>
 <gretl-function name="BACE_accep_model" type="void" private="1">
  <params count="3">
   <param name="M" type="bundleref"/>
@@ -813,25 +802,11 @@ Function computes &quot;probability&quot; of the new model and checks if it is b
 */
 if BACE_accept_prob(&amp;M) &gt; log(randgen1(u,0,1))
   # We accept new model
-  BACE_model_switch(&quot;ACCEPT&quot;, &amp;M)
+  M.lprob_old = M.lprob_new
+  M.k_old = M.k_new
+  M.ess_old = M.ess_new
+  M.mod_struct_old = M.mod_struct_new
   model_nr_old = model_nr
-else
-  # We restore old model
-  BACE_model_switch(&quot;RESTORE&quot;, &amp;M)
-endif
-</code>
-</gretl-function>
-<gretl-function name="BACE_lprob" type="void" private="1">
- <params count="1">
-  <param name="M" type="bundleref"/>
- </params>
-<code>/*
-Function computes lprob for current draw, i.e. marginal data density
-*/
-if M.with_const == 1
-  M.lprob_new = -.5*((M.k_new + 1)*log(M.N) + M.N*log(M.ess_new))
-else
-  M.lprob_new = -.5*((M.k_new)*log(M.N) + M.N*log(M.ess_new))
 endif
 </code>
 </gretl-function>
@@ -842,7 +817,8 @@ endif
 <code>/*
 We summarise some BACE results and deleting redundand items from the returned bundle.
 */
-scalar tmps, factor
+BACE_print_status(&quot;Summarizing&quot;)
+scalar tmps, factor, k
 strings title
 matrix percents1, percents2
 scalar NORM = M.Nrep - M.Nburn
@@ -862,18 +838,20 @@ if M.with_const == 1
 endif
 # Average model size (including matrix for plot)
 M.mod_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
-M.mod_sizes[,2] = M.mod_sizes[,2] ./ NORM
+M.mod_sizes[,2] = M.mod_sizes[,2] / NORM
 M.mod_size_av = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
 M.mod_size_sd = sqrt(sum((M.mod_sizes[,1] - M.mod_size_av) .^2 .* M.mod_sizes[,2]))
 M.mod_sizes = M.mod_sizes ~ zeros(rows(M.mod_sizes),1)
 tmps = M.av_model_size/M.k
 loop i=1..rows(M.mod_sizes) --quiet
-  if i == M.k
-    factor = 1
-  else
-    factor = prodr(seq(1,M.k)) / (prodr(seq(1,i)) * prodr(seq(1,M.k-i)))
+  k = M.mod_sizes[i,1]
+  factor = bincoeff(M.k,k)
+  M.mod_sizes[i,3] = (tmps^k * (1-tmps)^(M.k-k)) * factor
+  /*
+  if M.with_const != 1
+    M.mod_sizes[i,3] += (1-tmps)^M.k2 * factor * M.model_space^-1
   endif
-  M.mod_sizes[i,3] = (tmps^i * (1-tmps)^(M.k-i)) * factor
+  */
 endloop
 M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.av_model_size) .^2 .* M.mod_sizes[,3]))
 # Models size distribution
@@ -932,7 +910,6 @@ M.Post_Results = M.Post_Results ~ tmp
 tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
 M.Post_Results = M.Post_Results ~ tmp
 title = defarray(&quot;PIP&quot;, &quot;Mean&quot;, &quot;Std.Dev.&quot;, &quot;Cond.Mean&quot;, &quot;Cond.Std.Dev&quot;)
-printf &quot;\n&quot;
 cnameset(M.Post_Results, title)
 rnameset(M.Post_Results, M.all_names_sp_m)
 # Forecasts
@@ -949,6 +926,7 @@ if M.do_joint
   # We must clean up principal diagonal
   M.jointness_m[diag] = 0
   M.jointness_m = M.jointness_m / NORM
+  M.jointness_m = M.jointness_m + upper(M.jointness_m)'
   if M.with_const == 1
     cnameset(M.jointness_m, M.all_names_sp_m[2:end])
     rnameset(M.jointness_m, M.all_names_sp_m[2:end])
@@ -977,7 +955,7 @@ delete M.X_old_predict
 delete M.y_dem_sq
 delete M.y_mean
 delete M.yMy
-delete M.mod_struct
+delete M.mod_struct_old
 delete M.mod_struct_new
 delete M.var_prob
 delete M.a
@@ -989,7 +967,6 @@ delete M.XtY
 delete M.XtXinv
 delete M.bhat_avg
 delete M.bvar_avg
-###
 delete M.X_list
 delete M.N
 delete M.scaling_f
@@ -1004,7 +981,6 @@ delete M.model_index_new
 delete M.model_index_old
 delete M.model_hex_index_new
 delete M.model_hex_index_old
-###
 if M.h_predict &gt; 0
   delete M.big_mat_predict
   delete M.big_mat_dem_predict
@@ -1015,10 +991,11 @@ if M.h_predict &gt; 0
   delete M.predict_obs_names
   catch delete M.ess
 endif
+BACE_print_status(null, 1, 10)
 </code>
 </gretl-function>
 <gretl-function name="BACE_setup" type="bundle" private="1">
- <params count="18">
+ <params count="20">
   <param name="Y" type="series"/>
   <param name="Y_AR_p" type="int"/>
   <param name="X_list_m" type="matrix"/>
@@ -1037,6 +1014,8 @@ endif
   <param name="Norig" type="int"/>
   <param name="do_plot" type="bool"/>
   <param name="model_type" type="string"/>
+  <param name="center_vars" type="scalar"/>
+  <param name="bic_type" type="scalar"/>
  </params>
 <code>/*
 This function creates BUNDLE holding all BACE information
@@ -1046,16 +1025,16 @@ tmp_str - general purpose string
 */
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
-printf &quot;\n * Switch from M.mod_struct to M.mod_struct_old for consistency.&quot;
-printf &quot;\n * Find and correct (if needed) M.k value where we have 'with_const=1'.&quot;
+printf &quot;\n * Check if we have correct model prior (including Options[\&quot;av_model_size\&quot;]).&quot;
 printf &quot;\n * Check if we have correct prior distribution plot (empty model).&quot;
-printf &quot;\n * Get rid off obsolete functions: BACE_model_switch, BACE_ols, BACE_lprob\n\tBACE_matrix_precompute, BACE_new_X_matrix.&quot;
 printf &quot;\n * Fix const type selection in GUI.&quot;
 printf &quot;\n * Simplify restoring estimates in BACE_collect_results().&quot;
 printf &quot;\n * What to do with predicted values where we have empty model\n\t(if nelem(models_forecasts[i]) &gt; 0 in BACE_collect_results())?&quot;
+printf &quot;\n * Add PDF and GUI entries for both: center_vars and bic_type.&quot;
 printf &quot;\n * Work on speed.&quot;
 printf &quot;\n * Clean up the code (including getting rid of stale functions).&quot;
 printf &quot;\n#############################################################################\n&quot;
+BACE_print_status(&quot;BACE setup&quot;)
 bundle M
 list X_list = X_list_m
 scalar M.with_const = with_const
@@ -1072,8 +1051,9 @@ if Y_AR_p &gt; 0
 endif
 list big_list = Y X_list
 string tmp_str = &quot;&quot;
-# Basic parsing and checking
-# Global variables
+###############################################
+# Global variables (given by user of default) #
+###############################################
 series M.Y = Y
 matrix M.X_list = X_list # Look down - repeated!!!
 scalar M.acc_type = acc_type
@@ -1091,12 +1071,19 @@ if ok(Norig)
 endif
 scalar M.do_plot = do_plot
 scalar M.CPU_num = 1
+scalar M.bic_type = bic_type
+scalar M.center_vars = center_vars
 # Local variables
 matrix M.StartModel = {} # list with variables selected in starting model UWAGA: do wyrzucenia!!!
 bundle StartModel_b
 bundle M.StartModel_b = StartModel_b
 matrix M.X_list = X_list # List of all explanatory variables UWAGA: powtórzone (patrz góra)
 scalar M.k = nelem(X_list) # total number of indenpendent variables
+if M.with_const == 2
+  scalar M.k2 = M.k+1 # maximum number of estimated slope coefficients
+else
+  scalar M.k2 = M.k
+endif
 scalar M.Nburn = round(burn/100*Nrep) # number of burn-in draws
 matrix M.var_numbers = big_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
 if M.with_const == 2
@@ -1105,11 +1092,14 @@ else
   matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
   #matrix M.var_numbers2 = transp(msortby(transp(M.var_numbers[2:1+M.k] | seq(2,1+M.k)), 1)) # vector containing the dataset numbers of all variables and their order in the 'big_list'
 endif
+scalar M.model_space = 2^M.k
+if M.with_const != 1
+  M.model_space -= 1
+endif
 matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
 matrix M.big_mat_dem = M.big_mat
 strings M.DiscreteModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;)
 list D = M.var_numbers2[1,]
-eval D
 # In case of &quot;out-of-sample&quot; prediction
 if h_predict &gt; 0
   scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
@@ -1157,8 +1147,8 @@ scalar M.y_dem_sq = M.big_mat_dem[,1]'M.big_mat_dem[,1] # sum of squares of the 
 scalar M.y_mean = meanc(M.Y_mat) # mean of the Y
 scalar M.mod_size = 0 # size of models in MC3 (sum)
 scalar M.yMy = 0 # scalar M.for P_y computation
-matrix M.scaling_f = zeros(7,1) # vector containing the scaling factors
-matrix M.mod_struct = zeros(1,M.k) # 0-1 vector containing the structure of the current model
+matrix M.scaling_f = zeros(1) # vector containing the scaling factors
+matrix M.mod_struct_old = zeros(1,M.k) # 0-1 vector containing the structure of the current model
 matrix M.mod_struct_new = zeros(1,M.k) # 0-1 vector containing the structure of the current model
 matrices M.mod_rank = array(M.l_rank) #-1 * ones(l_rank,M.k) # 0-1 matrix M.containing structure of models in ranking
 matrix M.mod_rank_prob = zeros(l_rank,1) # probability of the models in ranking (analytical)
@@ -1175,29 +1165,20 @@ if M.with_const == 1
 endif
 string M.Y_name = Y_name # string with name of denpendent variable
 if do_joint
-  matrix M.jointness_m = zeros(M.k, M.k) # square matrix M.containing counts of coexistence (jointness) of every pair of indenpendent variables
+  matrix M.jointness_m = zeros(M.k, M.k) # square matrix containing counts of coexistence (jointness) of every pair of indenpendent variables
   strings M.jointess_measure_names = defarray(&quot;Doppelhofer-Weeks Measure (DW1)&quot;, &quot;Doppelhofer-Weeks Measure (DW2)&quot;, &quot;Ley-Steel Measure (LS1)&quot;, &quot;Ley-Steel Measure (LS2)&quot;, &quot;Strachan Measure&quot;, &quot;Yule's Q Measure (YQ)&quot;, &quot;Modified Yule's Q Measure (YQM)&quot;)
 else
   matrix M.jointness_m = {}
 endif
 if acc_type == 1 # options for the prior
   string M.prior_name = &quot;Binomial&quot;
-  if M.with_const == 1
-    scalar M.a = log(av_model_size/(M.k+1))
-    scalar M.b = log(1 - av_model_size/(M.k+1))
-  else
-    scalar M.a = log(av_model_size/M.k)
-    scalar M.b = log(1 - av_model_size/M.k)
-  endif
+  scalar M.a = log(av_model_size/M.k)
+  scalar M.b = log(1 - av_model_size/M.k)
   scalar M.c = 0
 else
   string M.prior_name = &quot;Binomial-Beta&quot;
   scalar M.a = 1
-  if M.with_const == 1
-    scalar M.b = (M.k+1 - av_model_size)/av_model_size
-  else
-    scalar M.b = (M.k - av_model_size)/av_model_size
-  endif
+  scalar M.b = (M.k - av_model_size)/av_model_size
   scalar M.c = lngamma(M.a + M.b) - lngamma(M.a) - lngamma(M.b)
 endif
 # Posterior results
@@ -1229,52 +1210,44 @@ scalar M.model_index_new = 0 # decimal index of new model
 scalar M.model_index_old = 0 # decimal index of old model
 string M.model_hex_index_new = &quot;&quot; # hex index of model
 string M.model_hex_index_old = &quot;&quot; # hex index of model
-########################
+scalar M.empty_model_count = 0 # counter for empty model
+# BIC version
+if bic_type == 1
+  string M.bic_type_name = &quot;BIC&quot;
+elif bic_type == 2
+  string M.bic_type_name = &quot;HBIC&quot;
+  M.scaling_f[1] = log(.5*M.N/$pi)
+endif
+# Data standarization
+if M.center_vars == 1
+  string M.center_vars_name = &quot;centering&quot;
+elif M.center_vars == 2
+  string M.center_vars_name = &quot;standarization&quot;
+else
+  string M.center_vars_name = &quot;none&quot;
+endif
 if verbosity == 1
   set warnings off
 endif
+# MC3 progress step
+scalar M.progress = floor(M.Nrep/100)
+BACE_print_status(null, 1, 11)
 return M
 </code>
 </gretl-function>
 <gretl-function name="BACE_show_progress" type="void" private="1">
  <params count="4">
-  <param name="rep" type="scalarref"/>
+  <param name="iter" type="scalar" const="true"/>
   <param name="percentage" type="scalarref"/>
-  <param name="progress" type="scalarref"/>
-  <param name="Nrep" type="scalar"/>
+  <param name="progress" type="scalar" const="true"/>
+  <param name="N" type="scalar" const="true"/>
  </params>
 <code>/*
 Function prints overall progress
 */
-if (rep == percentage)
-  printf &quot;%d%s..&quot;, floor(100 * rep/Nrep), &quot;%&quot;
-  percentage += progress
-  mwrite({floor(100 * rep/Nrep)}, &quot;BACE_progress&quot;)
-endif
-#flush
-</code>
-</gretl-function>
-<gretl-function name="BACE_ols" type="void" private="1">
- <params count="1">
-  <param name="M" type="bundleref"/>
- </params>
-<code>/*
-Function computes OLS for BACE
-*/
-matrix uhat = {}
-matrix vcv = {}
-if M.k_new &gt; 0
-  M.bhat_tmp = mols(M.Y_mat, M.X_new, &amp;uhat, &amp;vcv)
-  M.bvar_tmp = diag(vcv)
-  M.ess_new = uhat'uhat
-  if M.h_predict &gt; 0
-    M.XtXinv = invpd(M.X_new'M.X_new)
-  endif
-else
-  M.bhat_tmp = {}
-  M.bvar_tmp = {}
-  M.ess_new = M.y_dem_sq
-endif
+printf &quot;%d%%\r&quot;, ceil(100 * iter/N)
+percentage += progress
+flush
 </code>
 </gretl-function>
 <gretl-function name="BACE_estimate" type="void" private="1">
@@ -1311,7 +1284,7 @@ if M.with_const == 1
   X += const
 endif
 # We estimate current model
-if M.k_new &gt; 0
+if nelem(X) &gt; 0 #M.k_new &gt; 0
   if M.model_type == &quot;linear&quot;
     ols Y X --quiet
   elif M.model_type == &quot;logit&quot;
@@ -1337,61 +1310,21 @@ if M.k_new &gt; 0
     else
       M.Yhat_predict_var = ones(M.h_predict)*NA
     endif
-    #M.XtXinv = $vcv / ($ess / $df)
   endif
   #printf &quot;\n##############\n&quot;
   #eval -.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.N*log(M.ess_new)
   #eval $lnl +.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.k_new*log(M.N)
   #M.lprob_new = -.5*($bic - M.N*((1+log(2*$pi)-log(M.N))))
-  if M.model_type == &quot;linear&quot;
+  if M.bic_type == 1
     M.lprob_new = -.5*$bic
-  else
-    M.lprob_new = $lnl -.5*M.k_new*log(M.N)
+  elif M.bic_type == 2
+    M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1]
   endif
 else
   M.bhat_tmp = {}
   M.bvar_tmp = {}
-  M.ess_new = M.y_dem_sq
-endif
-#BACE_ols(&amp;M)
-</code>
-</gretl-function>
-<gretl-function name="BACE_find_model" type="scalar" private="1">
- <params count="5">
-  <param name="M" type="bundleref"/>
-  <param name="known_models_array" type="bundlesref"/>
-  <param name="known_models_bundle" type="bundleref"/>
-  <param name="known_models_indexes" type="matrixref"/>
-  <param name="known_models_hex_indexes" type="stringsref"/>
- </params>
-<code>/*
-This function looking for model in known_models_array/bundle
-*M							- pointer to the main bundle
-*known_models_array			- pointer to the array of (already estimated) models (for small k)
-*known_models_bundle		- pointer to the bundle of (already estimated) models (for big k)
-*known_models_indexes		- pointer to the matrix with models indexes (for small k)
-*known_models_hex_indexes	- pointer to the array of strings with models indexes in hex format (for big k)
-#
-Returns: 1 if model exists, 0 elswhere.
-*/
-bundle model
-# We restore already estimated model
-if M.max_dim_array_of_models == 0
-  key = BACE_bintohexconvert(&amp;M)
-  #catch model = known_models_bundle[key]
-  if inbundle(known_models_bundle, key)
-    model = known_models_bundle[key]
-  endif
-else
-  BACE_bintodecconvert(&amp;M)
-  model = known_models_array[M.model_index_new]
-endif
-M.model = model
-if (inbundle(model, &quot;count&quot;))
-  M.lprob_new = model.lprob
-  return 1
-else
-  return 0
+  #M.ess_new = M.y_dem_sq
+  M.lprob_new = -10^20
 endif
 </code>
 </gretl-function>
@@ -1408,9 +1341,10 @@ endif
 <code>/*
 Function collects results from MC3 experiment.
 */
-matrix idx, var_idx, bhat, mod_struct, models_probs, X_new_num #, models_probs_cum, percents1, percents2
+BACE_print_status(&quot;Collecting results&quot;, 0)
+matrix idx, var_idx, bhat, mod_struct, models_probs, X_new_num
 matrices models_structure_rank, models_estimates_rank
-scalar nr
+scalar nr, mod_struct_sum
 scalar weight = 0
 if M.with_const == 1
   matrix bhat_avg = zeros(M.k+1)
@@ -1430,6 +1364,9 @@ if M.h_predict
 endif
 # We set the number of visited models
 M.post_n_models = nelem(known_models)
+if M.with_const == 0
+  M.post_n_models = xmin(M.post_n_models, 2^M.k -1)
+endif
 known_models = null
 # We select objects only for accepted models
 idx = selifr(seq(1, M.Nrep+1)', models_counter .&gt; 0)
@@ -1467,14 +1404,21 @@ loop i=1..M.l_rank --quiet
   endif
 endloop
 # We average over all accepted models
+if M.show_progress
+  BACE_print_status(&quot;averaging&quot;, 0, 11, 1)
+  scalar M.progress = ceil(nelem(models_counter)/100)
+  percentage = M.progress
+  flush
+endif
 loop i=1..nelem(models_counter) --quiet
   weight = models_counter[i]
   mod_struct = models_structure[i]
+  mod_struct_sum = sum(mod_struct)
   ## Original BACE
   if M.with_const == 1
     var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
   else
-    if sum(mod_struct) != 0
+    if mod_struct_sum
       var_idx = selifc(M.var_numbers2[2,], mod_struct) - 1
     else
       var_idx = {}
@@ -1484,7 +1428,11 @@ loop i=1..nelem(models_counter) --quiet
     bhat = models_estimates[i][,1]
     bhat_avg[var_idx] += weight * bhat
     bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
-    mod_sizes[sum(mod_struct)] += weight
+    if mod_struct_sum
+      mod_sizes[mod_struct_sum] += weight
+    else
+      M.empty_model_count = weight
+    endif
     var_prob += weight * mod_struct
   endif
   if M.do_joint
@@ -1496,8 +1444,14 @@ loop i=1..nelem(models_counter) --quiet
       Yhat_var_avg += weight * models_forecasts[i][,2]
     endif
   endif
+  # Flushing output - showing progress
+  if M.show_progress &amp;&amp; i == percentage
+    BACE_show_progress(i, &amp;percentage, M.progress, nelem(models_counter))
+  endif
 endloop
-# We save collected results in bundle M
+#############################################
+# We save collected results in the bundle M #
+#############################################
 # Coefficients and variances
 if M.with_const == 1
   M.bhat_avg = bhat_avg[2:,]
@@ -1510,8 +1464,6 @@ else
 endif
 # Probability of variables
 M.var_prob = var_prob
-# Average model size
-#M.mod_size = mod_size
 # Jointness analysis
 if M.do_joint
   M.jointness_m = jointness_m
@@ -1523,167 +1475,14 @@ if M.h_predict
 endif
 # Models size distribution
 M.mod_sizes = seq(1, M.k)' ~ mod_sizes
-</code>
-</gretl-function>
-<gretl-function name="BACE_new_X_matrix_predict" type="matrix" private="1">
- <params count="2">
-  <param name="M" type="bundleref"/>
-  <param name="model" type="bundleref" optional="true"/>
- </params>
-<code>/*
-Function constructs X_matrix for out-of-sample forecasts
-for given model (if model is 'null' we take mod_struct_new from
-the M bundle)
-*model	- pointer to the bundle with certain model
-*M		- pointer to the main bundle
-*/
-if !exists(model)
-  return selifc(M.big_mat_dem_predict[,2:], M.mod_struct_new)
+if M.with_const == 1
+  M.mod_sizes = {0} ~ M.empty_model_count | M.mod_sizes
+endif
+if M.show_progress
+  printf &quot;\n&quot;
+  BACE_print_status(null, 1, 22)
 else
-  return selifc(M.big_mat_dem_predict[,2:], model.mod_struct_new)
-endif
-</code>
-</gretl-function>
-<gretl-function name="BACE_forecast_BACE" type="void" private="1">
- <params count="4">
-  <param name="M" type="bundleref"/>
-  <param name="model" type="bundleref"/>
-  <param name="Yhat_predict" type="matrixref"/>
-  <param name="Yhat_predict_var" type="matrixref"/>
- </params>
-<code>/*
-This function computes forecast of Y (average mean and average standard deviation) if we use some direct methods (like BACE).
-*model				- pointer to the bundle with certain model
-*M					- pointer to the main bundle
-*Yhat_predict		- pointer to the vector with forecasts
-*Yhat_predict_var	- pointer to the vector with forecasts variances
-*/
-# Local variables
-scalar n_AR = 0
-if (M.with_const == 1)
-  scalar sigma2 = model.ess / (M.N - model.k_new - 1)
-else
-  scalar sigma2 = model.ess / (M.N - model.k_new)
-endif
-matrix X_new_predict = BACE_new_X_matrix_predict(&amp;M, &amp;model)
-matrix Y_AR_cols
-if (M.Y_AR_p != 0)
-  matrix Y_AR_struct = transp(model.mod_struct_new[1:M.Y_AR_p])
-  Y_AR_cols = selifr(transp(seq(1, M.Y_AR_p)), Y_AR_struct)
-  n_AR = sumc(Y_AR_struct)
-endif
-BACE_forecast_generic(&amp;Yhat_predict, &amp;Yhat_predict_var, M.h_predict, model.bhat, model.XtXinv, &amp;sigma2, M.Y_AR_p, &amp;Y_AR_cols, &amp;n_AR, X_new_predict, 0, M.with_const)
-Yhat_predict_var = (Yhat_predict_var + Yhat_predict .^ 2)
-</code>
-</gretl-function>
-<gretl-function name="BACE_forecast_dynamic_matrix" type="void" private="1">
- <params count="4">
-  <param name="period" type="scalarref"/>
-  <param name="Y_AR_cols" type="matrixref"/>
-  <param name="Yhat_predict" type="matrixref"/>
-  <param name="X_new_predict_row" type="matrixref"/>
- </params>
-<code>/*
-This function substitutes lagged Y values in the X_new_predict_row vector
-by its forecast calculated for previous periods.
-*period				- poriod for which we construct X_new_predict_row vector
-*Y_AR_cols			- pointer to the vector indicating cols with AR(p) coefficients
-*Yhat_predict		- pointer to the vector with forecasts
-*X_new_predict_row	- pointer to the vector with values of X-es (out-of-sample)
-#
-*/
-# Local variables
-matrix Y_lags = selifr(period - Y_AR_cols, Y_AR_cols .&lt; period)
-scalar Y_lags_rows = rows(Y_lags)
-if (Y_lags_rows != 0)
-  matrix columns = seq(1, Y_lags_rows)
-  X_new_predict_row[columns] = Yhat_predict[Y_lags]'
-endif
-</code>
-</gretl-function>
-<gretl-function name="BACE_forecast_generic_variance" type="scalar" private="1">
- <params count="4">
-  <param name="XT" type="matrixref"/>
-  <param name="XtXinv" type="matrixref"/>
-  <param name="sigma2" type="scalarref"/>
-  <param name="Yhat_predict_var" type="matrixref" optional="true"/>
- </params>
-<code>/*
-Function computes forecast variance as:
-- scalar, if XT is a row vector
-- vector, if XT is matrix
-*XT					- pointer to the vector with values of X-es (out-of-sample)
-*XtXinv				- pointer to the inverse of covariance matrix
-*sigma2				- pointer to the scalar with sigma-square value
-*Yhat_predict_var	- pointer to the matrix with forecast variances (null if we return scalar)
-Returns: forecast variance (if XT is a vector), NA elsewhere
-*/
-if rows(XT) &gt; 1
-  Yhat_predict_var = diag(sigma2 * (1 + qform(XT, XtXinv)))
-  return NA
-else
-  return sigma2 * (1 + qform(XT, XtXinv))
-endif
-</code>
-</gretl-function>
-<gretl-function name="BACE_forecast_generic" type="void" private="1">
- <params count="12">
-  <param name="Yhat_predict" type="matrixref"/>
-  <param name="Yhat_predict_var" type="matrixref"/>
-  <param name="h_predict" type="scalar"/>
-  <param name="bhat" type="matrix"/>
-  <param name="XtXinv" type="matrix"/>
-  <param name="sigma2" type="scalarref"/>
-  <param name="Y_AR_p" type="scalar"/>
-  <param name="Y_AR_cols" type="matrixref"/>
-  <param name="n_AR" type="scalarref"/>
-  <param name="X_new_predict" type="matrix"/>
-  <param name="random" type="bool" default="0"/>
-  <param name="with_const" type="scalar"/>
- </params>
-<code>/*
-This is a generic function which computes forecasts (static or dynamic)
-*Yhat_predict		- pointer to the vector with forecasts
-*Yhat_predict_var	- pointer to the vector with forecasts variances
-h_predict			- forecasts horizon
-bhat				- vector with coefficients
-XtXinv				- inverse of covariance matrix
-*sigma2				- pointer to the scalar with sigma-square value
-Y_AR_p				- order of autoregression (AR(p))
-*Y_AR_cols			- pointer to the vector indicating cols with AR(p) coefficients
-*n_AR				- number of Y laggs
-X_new_predict		- matrix with values of X-es (out-of-sample)
-*/
-scalar Yhat_predict_current
-matrix X_new_predict_row
-matrix XT
-# Mean and Variance
-# Static forecasts
-if (n_AR == 0)
-  if (with_const == 1)
-    XT = ones(h_predict, 1) ~ X_new_predict
-  else
-    XT = X_new_predict
-  endif
-  Yhat_predict_expected = XT * bhat
-  Yhat_predict = Yhat_predict_expected
-  BACE_forecast_generic_variance(&amp;XT, &amp;XtXinv, &amp;sigma2, &amp;Yhat_predict_var)
-else
-  # Dynamic forecasts if we do have lagged Y (always static for the first period)
-  loop i=1..h_predict --quiet
-    X_new_predict_row = X_new_predict[i,]
-    if (i &gt; 1)
-      BACE_forecast_dynamic_matrix(&amp;i, &amp;Y_AR_cols, &amp;Yhat_predict, &amp;X_new_predict_row)
-    endif
-    if (with_const == 1)
-      XT = {1} ~ X_new_predict_row
-    else
-      XT = X_new_predict_row
-    endif
-    Yhat_predict_expected = XT * bhat
-    Yhat_predict[i] = Yhat_predict_expected
-    Yhat_predict_var[i] = BACE_forecast_generic_variance(&amp;XT, &amp;XtXinv, &amp;sigma2)
-  endloop
+  BACE_print_status(null, 1, 3)
 endif
 </code>
 </gretl-function>
@@ -1699,13 +1498,14 @@ a, b, c, d	 - scalars according to Paul Hofmarcher, Jesus Crespo Cuaresma, Betti
 #
 Returns: matrix with computed jointness measure
 */
-scalar a
-scalar b
-scalar c
-scalar d
-scalar N
+scalar a,b,c,d,N
+matrix var_prob
 scalar loghuge = 999 # proxy for infty
-matrix var_prob = M.Post_Results[,1]
+if M.with_const == 1
+  var_prob = M.Post_Results[2:,1]
+else
+  var_prob = M.Post_Results[,1]
+endif
 matrix jointness_measure = zeros(rows(M.jointness_m), cols(M.jointness_m))
 loop i=1..M.k --quiet
   loop j=i+1..M.k --quiet
@@ -1758,6 +1558,8 @@ loop i=1..M.k --quiet
     endif
   endloop
 endloop
+jointness_measure = jointness_measure + upper(jointness_measure)'
+jointness_measure[diag] = NA
 cnameset(jointness_measure, cnameget(M.jointness_m))
 rnameset(jointness_measure, rnameget(M.jointness_m))
 return jointness_measure
@@ -1771,6 +1573,7 @@ return jointness_measure
 This is main BACE function with complete MC3 simulation procedure.
 */
 # Local variables
+BACE_print_status(&quot;MC3 setup&quot;)
 scalar progress = floor(M.Nrep/10) # progress of MC3
 scalar percentage = progress # percentage of progress of MC3
 string model_id # string containing model id (0-1 'image')
@@ -1793,11 +1596,16 @@ endif
 if M.h_predict &gt; 0
   smpl M.first_obs M.last_obs
 endif
-##################
-# Part 1: Starting model
+##########################
+# Part 1: Starting model #
+##########################
 # We estimate starting model and construct starting mod_rank_struct and mod_rank
 BACE_initial_model(&amp;M)
-model_id = sprintf(&quot;%d&quot;, M.mod_struct)[1:end-1] # we trim the &quot;\n&quot; at the end !!!
+BACE_estimate(&amp;M)
+M.lprob_old = M.lprob_new
+M.mod_struct_old = M.mod_struct_new
+M.ess_old = M.ess_new
+model_id = sprintf(&quot;%d&quot;, M.mod_struct_old)[1:end-1] # we trim the &quot;\n&quot; at the end !!!
 model_nr = M.Nrep+1
 model_nr_old = model_nr
 known_models[model_id] = model_nr
@@ -1807,23 +1615,23 @@ models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
 models_ess[model_nr] = M.ess_new
 models_k_new[model_nr] = M.k_new # ??? Probably to delete
 if M.h_predict &amp;&amp; M.k_new
-  #BACE_forecast2(&amp;M)
   models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
 endif
-##################
-# Part 2: MC3
-if M.show_progress == 1
-  printf &quot;\nOverall progress: &quot;
+BACE_print_status(null, 1, 12)
+############################################################
+# Part 2: Markov Chain Monte Carlo Model Composition - MC3 #
+############################################################
+if M.show_progress
+  BACE_print_status(&quot;MC3 overall progress&quot;, 0, 0, 1)
+else
+  BACE_print_status(&quot;MC3&quot;)
 endif
-flush
 loop rep=1..M.Nrep --quiet
-  # Saving data for the old model
-  #BACE_model_switch(&quot;SAVE&quot;, &amp;M)
   # Now we draw the number of candidate variable
   potential_var = randint(0, M.k)
   # Now we modify the list of variables (remove an existing variable or add a new variable)
   if potential_var &gt; 0
-    mod_struct_draw = M.mod_struct
+    mod_struct_draw = M.mod_struct_old
     mod_struct_draw[potential_var] = !mod_struct_draw[potential_var]
     M.k_new = sum(mod_struct_draw)
     M.mod_struct_new = mod_struct_draw
@@ -1833,10 +1641,7 @@ loop rep=1..M.Nrep --quiet
       M.lprob_new = models_lprob[model_nr]
     else
       # We estimate newly drawn model
-      #BACE_new_X_matrix(&quot;NORMAL&quot;, &amp;M)
-      #BACE_matrix_precompute(&amp;M)
       BACE_estimate(&amp;M)
-      #BACE_lprob(&amp;M)
       model_nr = rep
       known_models[model_id] = model_nr
       models_structure[model_nr] = M.mod_struct_new
@@ -1846,7 +1651,6 @@ loop rep=1..M.Nrep --quiet
       models_k_new[model_nr] = M.k_new # ??? Probably to delete
       # Out-of-sample forecasts
       if M.h_predict &amp;&amp; M.k_new
-        #BACE_forecast2(&amp;M)
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
       endif
     endif
@@ -1858,16 +1662,19 @@ loop rep=1..M.Nrep --quiet
     models_counter[model_nr_old] += 1
   endif
   # Flushing output - showing progress
-  if M.show_progress == 1
-    BACE_show_progress(&amp;rep, &amp;percentage, &amp;progress, M.Nrep)
+  if M.show_progress &amp;&amp; rep == percentage
+    BACE_show_progress(rep, &amp;percentage, M.progress, M.Nrep)
   endif
 endloop
+if !M.show_progress
+  BACE_print_status(null, 1, 18)
+endif
 # Now we collect results (averaging and rankings)
 BACE_collect_results(&amp;M, &amp;known_models, &amp;models_counter, &amp;models_lprob, &amp;models_estimates, &amp;models_structure, &amp;models_forecasts)
 </code>
 </gretl-function>
 <gretl-function name="BACE_bcheck" type="string" private="1">
- <params count="16">
+ <params count="18">
   <param name="UserOpts" type="bundle" const="true"/>
   <param name="k" type="scalar"/>
   <param name="Y_AR_p" type="scalarref"/>
@@ -1884,6 +1691,8 @@ BACE_collect_results(&amp;M, &amp;known_models, &amp;models_counter, &amp;models
   <param name="show_progress" type="scalarref"/>
   <param name="do_plot" type="scalarref"/>
   <param name="model_type" type="stringref"/>
+  <param name="center_vars" type="scalarref"/>
+  <param name="bic_type" type="scalarref"/>
  </params>
 <code>/*
 This function checks options bundle and returns error message in
@@ -1893,11 +1702,11 @@ UserOpts - bundle with user-defined options for BACE
 k - number of independent variables
 */
 string err = &quot;&quot;
-scalar err2
+scalar avg_model_size_tmp = 0
+scalar err2, arg_val
 bundle Options
-scalar arg_val
 string arg_name
-strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;acc_type&quot;, &quot;l_rank&quot;, &quot;do_joint&quot;, &quot;h_predict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;)
+strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;acc_type&quot;, &quot;l_rank&quot;, &quot;do_joint&quot;, &quot;h_predict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;center_vars&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;av_model_size&quot;, &quot;alpha&quot;)
 strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;)
@@ -1916,11 +1725,30 @@ elif k &lt;= 19
 else
   Nrep = 1e+06
 endif
+# We set temporal Y_AR_p value
+if isnan(Y_AR_p)
+  Y_AR_p_tmp = 0
+else
+  Y_AR_p_tmp = Y_AR_p
+endif
+# We set temporal with_const value and calculate prior average model size
+if isnan(UserOpts[&quot;with_const&quot;])
+  with_const_tmp = 1
+  avg_model_size_tmp = (k + Y_AR_p_tmp) / 2
+else
+  with_const_tmp = UserOpts[&quot;with_const&quot;]
+  avg_model_size_tmp = (k + Y_AR_p_tmp + (with_const_tmp == 2)) / 2
+  /*
+  loop i=1..k --quiet
+    avg_model_size_tmp += i * bincoeff(k,i) * (2^(k + Y_AR_p_tmp + (with_const_tmp == 2)) - 1)^-1
+  endloop
+  */
+endif
 # Template bundle with default values
 scalar Options[&quot;Y_AR_p&quot;] = 0
 scalar Options[&quot;with_const&quot;] = 1
 scalar Options[&quot;acc_type&quot;] = 1
-scalar Options[&quot;av_model_size&quot;] = k/2
+scalar Options[&quot;av_model_size&quot;] = avg_model_size_tmp
 scalar Options[&quot;alpha&quot;] = 0.6
 scalar Options[&quot;l_rank&quot;] = xmin(2^(k-1), 40)
 scalar Options[&quot;do_joint&quot;] = 0
@@ -1931,6 +1759,8 @@ scalar Options[&quot;verbosity&quot;] = 2
 scalar Options[&quot;show_progress&quot;] = 1
 scalar Options[&quot;do_plot&quot;] = do_plot_tmp
 string Options[&quot;model_type&quot;] = &quot;linear&quot;
+scalar Options[&quot;center_vars&quot;] = 0
+scalar Options[&quot;bic_type&quot;] = 1
 # General checking, but still needs some manual work
 err2 = bcheck(&amp;Options, UserOpts)
 if err2
@@ -1971,6 +1801,8 @@ verbosity = Options[&quot;verbosity&quot;]
 show_progress = Options[&quot;show_progress&quot;]
 do_plot = Options[&quot;do_plot&quot;]
 model_type = Options[&quot;model_type&quot;]
+center_vars = Options[&quot;center_vars&quot;]
+bic_type = Options[&quot;bic_type&quot;]
 # We check arguments for valid values
 if Y_AR_p &lt; 0
   err += &quot;Y lags (Y_AR_p) takes the integer values&quot;
@@ -1992,50 +1824,31 @@ elif burn &lt; 0 || burn &gt; 99
   err += &quot;Percentage of burn-in draws (do_burn) takes the integer values in the range [0; 99]&quot;
 elif verbosity &lt; 1 || verbosity &gt; 2
   err += &quot;Verbosity takes the integer values in the range [1; 2]&quot;
+elif center_vars &lt; 0 || center_vars &gt; 2
+  err += &quot;Parameter center_vars takes the integer values in the range [0; 2]&quot;
+elif bic_type &lt; 1 || bic_type &gt; 2
+  err += &quot;BIC type takes the integer values in the range [1; 2]&quot;
 endif
 return err
 </code>
 </gretl-function>
-<gretl-function name="BACE_forecast2" type="void" private="1">
- <params count="1">
-  <param name="M" type="bundleref"/>
- </params>
-<code>matrix Y_AR_cols, X_new_predict, Y_AR_struct
-Yhat_predict = zeros(M.h_predict)
-Yhat_predict_var = zeros(M.h_predict)
-n_AR = 0
-X_new_predict = selifc(M.big_mat_dem_predict[,2:], M.mod_struct_new)
-if M.with_const == 1
-  sigma2 = M.ess_new / (M.N - M.k_new - 1)
-else
-  sigma2 = M.ess_new / (M.N - M.k_new)
-endif
-if M.Y_AR_p
-  Y_AR_struct = transp(M.mod_struct_new[1:M.Y_AR_p])
-  Y_AR_cols = selifr(transp(seq(1, M.Y_AR_p)), Y_AR_struct)
-  n_AR = sum(Y_AR_struct)
-endif
-BACE_forecast_generic(&amp;Yhat_predict, &amp;Yhat_predict_var, M.h_predict, M.bhat_tmp, M.XtXinv, &amp;sigma2, M.Y_AR_p, &amp;Y_AR_cols, &amp;n_AR, X_new_predict, 0, M.with_const)
-Yhat_predict_var = (Yhat_predict_var + Yhat_predict .^ 2)
-M.Yhat_predict = Yhat_predict
-M.Yhat_predict_var = Yhat_predict_var
-</code>
-</gretl-function>
 <gretl-function name="BACE_heatmap" type="void" private="1">
- <params count="2">
+ <params count="3">
   <param name="M" type="bundle" const="true"/>
   <param name="MODE" type="string"/>
+  <param name="basename" type="string" optional="true" const="true"/>
  </params>
 <code>/*
 M - BACE result bundle, MODE - string indicating image mode {&quot;inclusions&quot;, &quot;jointness&quot;}
+basename	- basename for gnuplot files
 */
 scalar nrows, ncols, tmp, height, width, minval, maxval
-string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate
+string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output
 matrix m
 # We set general image options
 if MODE == &quot;inclusions&quot;
   title = sprintf(&quot;Variables Inclusions Based on Best %d Models&quot;, M.l_rank)
-  xlabel = &quot;Cumulative Model Probabilities&quot;
+  xlabel = &quot;Model number&quot;
   ylabel = &quot;Variable&quot;
   colorbox = &quot;unset colorbox&quot;
   height = xmax(int(M.k/41*768), 480)
@@ -2046,21 +1859,26 @@ if MODE == &quot;inclusions&quot;
   endloop
   m = mreverse(m')
   palette = &quot;0 'white', 1 'red'&quot;
+  output = &quot;-PIP.plt&quot;
 else
   title = sprintf(&quot;Jointness Based on %s&quot;, M.jointess_measure_names[M.do_joint])
   xlabel = &quot;Variable&quot;
   ylabel = xlabel
   height = xmin(xmax(int(M.k/41*1024), 640), 900)
   width = xmin(xmax(int(M.k/41*1024), 900), 1024)
-  m = mreverse(BACE_jointness_measure(&amp;M))
+  m = BACE_jointness_measure(&amp;M)
+  m[diag] = 0
   minval = minc(minr(m))
   maxval = maxc(maxr(m))
+  m[diag] = NA
+  m = mreverse(m)
   if minval == 0
     palette = sprintf(&quot;0 'white', %s 'red'&quot;, strsub(sprintf(&quot;%f&quot;, maxval), &quot;,&quot;, &quot;.&quot;))
   else
     palette = sprintf(&quot;%s 'blue', 0 'white', %s 'red'&quot;, strsub(sprintf(&quot;%f&quot;, minval), &quot;,&quot;, &quot;.&quot;), strsub(sprintf(&quot;%f&quot;, maxval), &quot;,&quot;, &quot;.&quot;))
   endif
   rotate = &quot;set xtics rotate by 45 right&quot;
+  output = &quot;-Jointness.plt&quot;
 endif
 nrows = rows(m)
 ncols = cols(m)
@@ -2076,10 +1894,8 @@ loop i=1..M.k --quiet
 endloop
 xtics = &quot;(&quot;
 if MODE == &quot;inclusions&quot;
-  tmp = 0
   loop i=1..M.l_rank --quiet
-    tmp += M.Numerical_Likelihood[i]
-    xtics += sprintf(&quot;\&quot;%.2f\&quot; %d&quot;, tmp, i-1)
+    xtics += sprintf(&quot;\&quot;%.d\&quot; %d&quot;, i, i-1)
     if i == M.l_rank
       xtics += sprintf(&quot;)&quot;)
     else
@@ -2113,6 +1929,12 @@ loop i=1..nrows --quiet
     endif
   endloop
 endloop
+# We check if we display or save plot
+if $sysinfo.gui_mode
+  output = &quot;display&quot;
+else
+  output = sprintf(&quot;%s%s&quot;, basename, output)
+endif
 # We plot heatmap
 plot
   printf &quot;set term pngcairo font \&quot;Vera,9\&quot; size %d,%d noenhanced&quot;, width, height
@@ -2141,39 +1963,41 @@ plot
   printf &quot;%s&quot;, grid
   printf &quot;EOD&quot;
   literal plot $map matrix with image
-end plot --output=display
+end plot --output=@output
 </code>
 </gretl-function>
-<gretl-function name="BACE_Plot" type="void" private="1">
- <params count="1">
-  <param name="M" type="bundleref"/>
+<gretl-function name="BACE_print_status" type="void" private="1">
+ <params count="4">
+  <param name="message" type="string" optional="true" const="true"/>
+  <param name="done" type="bool" default="0" const="true"/>
+  <param name="pspaces" type="scalar" default="0" const="true"/>
+  <param name="spacesp" type="scalar" default="0" const="true"/>
  </params>
 <code>/*
-BACE result bundle plot function.
+Function prints current execution status and flushes screen.
+message - text to be printed
+done	- if this is end of stage
+pspaces	- number of prior paces
+spacesp	- number of post spaces
 */
-# Heatmap for variable inclusion
-BACE_heatmap(M, &quot;inclusions&quot;)
-# Heatmap for jointness
-if M.do_joint
-  BACE_heatmap(M, &quot;jointness&quot;)
+string pSPACE = &quot;&quot;
+string SPACEp = &quot;&quot;
+if pspaces
+  loop i=1..pspaces --quiet
+    pSPACE += sprintf(&quot;%s&quot;, &quot; &quot;)
+  endloop
 endif
-# Models size distribution
-plotmat = mreverse(M.mod_sizes, 1)
-plot plotmat
-  options with-lp fit=none
-  printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Model Size Distribution&quot;
-  printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
-  printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Fraction&quot;
-end plot --output=display
-# Models size CDF
-plotmat = M.models_probs_cdf
-plot plotmat
-  options with-line fit=none
-  literal set grid
-  printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Model Size CDF&quot;
-  printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Number of Models&quot;
-  printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Posterior Probability Mass&quot;
-end plot --output=display
+if spacesp
+  loop i=1..spacesp --quiet
+    SPACEp += sprintf(&quot;%s&quot;, &quot; &quot;)
+  endloop
+endif
+if done
+  printf &quot;%sdone!&quot;, pSPACE
+else
+  printf &quot;\n%s%s:%s&quot;, pSPACE, message, SPACEp
+endif
+flush
 </code>
 </gretl-function>
 <sample-script filename="examples/BACE_sample.inp">

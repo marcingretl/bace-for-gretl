@@ -15,12 +15,11 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function void BACE_Print (bundle *M)
+function void BACE_Print (const bundle *M)
 /*
    Function prints BACE results.
     */
     matrix coeffmat
-    model_space = 2^M.k
 
     # We re-create Y process
     string Y_name = M.Y_name
@@ -44,12 +43,14 @@ function void BACE_Print (bundle *M)
     printf "Prior: %s\n", M.prior_name
     printf "Prior average model size: %f\n", M.av_model_size
     printf "Significance level for the initial model: %f\n", M.alpha
+    printf "Bayesian information criterion used: %s\n", M.bic_type_name
+    printf "Data transformation: %s\n", M.center_vars_name
     printf "Total number of iterations: %d\n", M.Nrep
     printf "Number of burn-in draws: %d\n", M.Nburn
-    if model_space < 2^31
-        printf "Total number of possible models: %d\n", model_space
+    if M.model_space < 2^31
+        printf "Total number of possible models: %d\n", M.model_space
     else
-        printf "Total number of possible models: %g\n", model_space
+        printf "Total number of possible models: %g\n", M.model_space
     endif
     printf "Number of models visited: %d\n", M.post_n_models
     printf "Number of models accepted: %d\n", M.post_n_models_accepted
@@ -78,7 +79,7 @@ function void BACE_Print (bundle *M)
     print "----------------------------------"
     printf "\n"
     printf "Prior:\n"
-    printf "\taverage model size: %f\n", M.av_model_size
+    printf "\taverage model size: %f\n", sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
     printf "\tstandard deviation: %f\n", M.mod_size_sd_prior
     printf "Posterior:\n"
     printf "\taverage model size: %f\n", M.mod_size_av
@@ -215,17 +216,12 @@ function void BACE_Print (bundle *M)
                 printf "\n"
                 print "----------------------------------"
                 printf "\nModel: %d, posterior probability: %f", i, M.Numerical_Likelihood[i]
-                if sumr(M.mod_rank[i]) == 0
+                if sumr(M.mod_rank[i]) == 0 && M.with_const != 1
                     printf "\n\n  %s\n", "None of the variables were significant."
                     printf "  %s\n", "Model includes only the intercept term which is simply the average of the dependent variable."
                 else
                     coeffmat = M.mod_rank_estimates[i][,1:2]
                     Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
-                    # Very crude workaround for examples when Xnames has unprintable elements
-                    if nelem(Xnames) != rows(coeffmat)
-                        Xnames = null
-                        Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
-                    endif  
                     modprint coeffmat Xnames
                 endif
             endif

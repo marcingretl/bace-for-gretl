@@ -21,6 +21,7 @@ function void BACE_main (bundle *M)
     */
 
     # Local variables
+    BACE_print_status("MC3 setup")
     scalar progress = floor(M.Nrep/10) # progress of MC3
     scalar percentage = progress # percentage of progress of MC3
     string model_id # string containing model id (0-1 'image')
@@ -43,11 +44,18 @@ function void BACE_main (bundle *M)
     if M.h_predict > 0
         smpl M.first_obs M.last_obs
     endif
-    ##################
-    # Part 1: Starting model
+    
+    ##########################
+    # Part 1: Starting model #
+    ##########################
+    
     # We estimate starting model and construct starting mod_rank_struct and mod_rank
     BACE_initial_model(&M)
-    model_id = sprintf("%d", M.mod_struct)[1:end-1] # we trim the "\n" at the end !!!
+    BACE_estimate(&M)
+    M.lprob_old = M.lprob_new
+    M.mod_struct_old = M.mod_struct_new
+    M.ess_old = M.ess_new
+    model_id = sprintf("%d", M.mod_struct_old)[1:end-1] # we trim the "\n" at the end !!!
     model_nr = M.Nrep+1
     model_nr_old = model_nr
     known_models[model_id] = model_nr
@@ -57,40 +65,37 @@ function void BACE_main (bundle *M)
     models_ess[model_nr] = M.ess_new
     models_k_new[model_nr] = M.k_new # ??? Probably to delete
     if M.h_predict && M.k_new
-        #BACE_forecast2(&M)
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
     endif
-    ##################
-    # Part 2: MC3
-    if M.show_progress == 1
-        printf "\nOverall progress: "
+    BACE_print_status(null, 1, 12)
+
+    ############################################################
+    # Part 2: Markov Chain Monte Carlo Model Composition - MC3 #
+    ############################################################
+    
+    if M.show_progress
+        BACE_print_status("MC3 overall progress", 0, 0, 1)
+    else
+        BACE_print_status("MC3")
     endif
-    flush
 
     loop rep=1..M.Nrep --quiet
-        # Saving data for the old model
-        #BACE_model_switch("SAVE", &M)
-
         # Now we draw the number of candidate variable
         potential_var = randint(0, M.k)
 
         # Now we modify the list of variables (remove an existing variable or add a new variable)
         if potential_var > 0
-            mod_struct_draw = M.mod_struct
+            mod_struct_draw = M.mod_struct_old
             mod_struct_draw[potential_var] = !mod_struct_draw[potential_var]
             M.k_new = sum(mod_struct_draw)
             M.mod_struct_new = mod_struct_draw
-            model_id = sprintf("%d", mod_struct_draw)[1:end-1]
-            
+            model_id = sprintf("%d", mod_struct_draw)[1:end-1]            
             if inbundle(known_models, model_id)
                 model_nr = known_models[model_id]
                 M.lprob_new = models_lprob[model_nr]
             else
                 # We estimate newly drawn model
-                #BACE_new_X_matrix("NORMAL", &M)
-                #BACE_matrix_precompute(&M)
                 BACE_estimate(&M)
-                #BACE_lprob(&M)
                 model_nr = rep
                 known_models[model_id] = model_nr
                 models_structure[model_nr] = M.mod_struct_new
@@ -100,7 +105,6 @@ function void BACE_main (bundle *M)
                 models_k_new[model_nr] = M.k_new # ??? Probably to delete
                 # Out-of-sample forecasts
                 if M.h_predict && M.k_new
-                    #BACE_forecast2(&M)
                     models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
                 endif
             endif
@@ -115,10 +119,13 @@ function void BACE_main (bundle *M)
         endif
 
         # Flushing output - showing progress
-        if M.show_progress == 1
-            BACE_show_progress(&rep, &percentage, &progress, M.Nrep)
+        if M.show_progress && rep == percentage
+            BACE_show_progress(rep, &percentage, M.progress, M.Nrep)
         endif
     endloop
+    if !M.show_progress
+        BACE_print_status(null, 1, 18)
+    endif
 
     # Now we collect results (averaging and rankings)
     BACE_collect_results(&M, &known_models, &models_counter,

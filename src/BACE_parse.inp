@@ -110,9 +110,11 @@ function string BACE_parse (bundle *M,
     endif
 
     # We check if we have discrete Y variable in case of logit/probit/etc models
+    /*
     if nelem(instrings(DiscreteModelTypes, model_type)) && !isdiscrete(Y)
         err = sprintf("The variable '%s' is not discrete", Y_name)
     endif
+    */
 
     # We check if we have Y_AR_p only in case of linear model for time-series
     if Y_AR_p > 0 && (model_type != "linear" || $datatype != 2)

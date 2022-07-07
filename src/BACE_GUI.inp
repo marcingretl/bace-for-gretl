@@ -19,16 +19,20 @@ function bundle BACE_GUI (series Y "Dependent variable",
                           int Y_AR_p[0::0] "Y lags",
                           list X_list[null] "List of independent variables (X)",
       int with_const[0:2:1] "Constant in model" {"Never", "Always", "Can be dropped"},
+      int center_vars[0:2:0] "Data transformation" {"None", "Center", "Standarize"},
       int acc_type[1:2:1] "Model prior" {"Binomial", "Binomial-Beta"},
+      int bic_type[1:2:1] "Bayesian information" {"BIC", "HBIC"},
       scalar av_model_size[0::1] "Prior average model size",
       scalar alpha[0:1:0.6] "Significance level for the initial model",
       int l_rank[2::4] "Number of the top ranked models",
-      int do_joint[0:7:0] "Jointness analysis" {"None", "Ley-Steel Measure (LS2)", "Doppelhofer-Weeks Measure (DW2)", "Ley-Steel Measure (LS1)", "Doppelhofer-Weeks Measure (DW1)", "Strachan Measure", "Yule's Q Measure (YQ)", "Modified Yule's Q Measure (YQM)"},
+      int do_joint[0:7:0] "Jointness analysis" {"None", "Doppelhofer-Weeks Measure (DW1)", "Doppelhofer-Weeks Measure (DW2)", \
+      "Ley-Steel Measure (LS1)", "Ley-Steel Measure (LS2)", "Strachan Measure", "Yule's Q Measure (YQ)", "Modified Yule's Q Measure (YQM)"},
       int h_predict[0::0] "Number of out-of-sample forecasts",
       int Nrep[1e+06] "Total number of replications",
       int burn[0:99:10] "Percentage of burn-in draws",
       int verbosity[1:2:1] "Verbosity",
-      bool show_progress[1] "Show overall progress")
+      bool show_progress[1] "Show overall progress",
+      bool do_plot[1] "Plot graphs?")
     /*
        GUI-based function to carry out BACE analysis.
        Function is a wrapper to bundle-based BACE() interface.
@@ -49,7 +53,9 @@ function bundle BACE_GUI (series Y "Dependent variable",
     scalar Options["burn"] = burn
     scalar Options["verbosity"] = verbosity
     scalar Options["show_progress"] = show_progress
-    #scalar Options["do_plot"] = do_plot
-    
+    scalar Options["do_plot"] = do_plot    
+    scalar Options["center_vars"] = center_vars
+    scalar Options["bic_type"] = bic_type
+
     return BACE(@Y_name, X_list, Options)
 end function
