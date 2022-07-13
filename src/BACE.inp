@@ -25,8 +25,9 @@ function bundle BACE (series Y "Dependent variable",
     bundle MODEL
     string Y_name = argname(Y)
     series @Y_name = Y
-    scalar Y_AR_p,with_const,acc_type,av_model_size,alpha,l_rank,do_joint,h_predict,Nrep,burn,verbosity,show_progress,do_plot
-    string err
+    scalar Y_AR_p,with_const,acc_type,av_model_size,alpha,l_rank,do_joint,h_predict,\
+      Nrep,burn,verbosity,show_progress,do_plot,center_vars,bic_type
+    string model_type,err,tmp_varname
 
     if !exists(Options)
         bundle Options
@@ -35,27 +36,37 @@ function bundle BACE (series Y "Dependent variable",
     # Basic parsing and checking
     err = BACE_bcheck(Options, nelem(X_list), &Y_AR_p, &with_const, &acc_type,
       &av_model_size, &alpha, &l_rank, &do_joint, &h_predict, &Nrep, &burn,
-      &verbosity, &show_progress, &do_plot)
+      &verbosity, &show_progress, &do_plot, &model_type, &center_vars, &bic_type)
     if strlen(err) != 0
         funcerr "@err !!!"
         return MODEL
     endif
-    Norig = $nobs
     
-    smpl Y X_list --no-missing --quiet
+    if center_vars == 1
+        X_list = stdize(X_list, -1)
+    elif center_vars == 2
+        X_list = stdize(X_list, 0)
+    endif
+    
+    Norig = $nobs    
+    if $datatype == 2
+        smpl Y X_list --no-all-missing
+    else
+        smpl Y X_list --no-missing
+    endif    
     if Norig != $nobs
-        printf "\nThere are missing values in dataset!"
+        printf "\nThere are missing values in dataset!\n"
     else
         Norig = NA
     endif
 
-    err = BACE_parse(&MODEL, Y, argname(Y), Y_AR_p, X_list, &av_model_size, &l_rank, &alpha, &with_const)
+    err = BACE_parse(&MODEL, Y, argname(Y), Y_AR_p, X_list, av_model_size, l_rank, alpha, with_const, model_type)
     if strlen(err) != 0
         funcerr "@err !!!"
     else
         MODEL = BACE_setup(Y, Y_AR_p, MODEL.X_list, acc_type, av_model_size, alpha,
-          l_rank, do_joint, h_predict, Nrep, burn, verbosity,
-          argname(Y), show_progress, with_const, Norig, do_plot)
+          l_rank, do_joint, h_predict, Nrep, burn, verbosity, argname(Y),
+          show_progress, with_const, Norig, do_plot, model_type, center_vars, bic_type)
         # Setting sample for forecasting
         if MODEL.h_predict > 0
             smpl 1 MODEL.last_obs

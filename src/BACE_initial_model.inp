@@ -25,20 +25,24 @@ function void BACE_initial_model (bundle *M)
     max_k	- number of given indenpendent variables
     X_list2	- M.X_list in a form of list (not matrix)
     */
+    
+    # We set up estimator command
+    string ESTIMATOR = M.estimator
 
     # Starting values of the local variables
-    if M.h_predict > 0
+    if M.h_predict
         if M.Y_AR_p == 0
             smpl 1 M.N
         else
             if M.CPU_num == 1
-                smpl M.first_obs+($nobs-M.N) M.last_obs #+($t1-1)
+                #smpl M.first_obs+($nobs-M.N) M.last_obs #+($t1-1)
+                smpl $t1 M.last_obs
             else
                 smpl M.last_obs-M.N+1 M.last_obs
             endif
         endif
     endif
-    series YyY = M.Y_mat
+    series YyY = M.Y #M.Y_mat
     if M.Y_AR_p > 0
         lags M.Y_AR_p ; YyY
     endif
@@ -56,13 +60,12 @@ function void BACE_initial_model (bundle *M)
     elif M.alpha == 1	# Trully random model
         M.k_new = randint(0, max_k)
         matrix last_tmp
-        if (M.k_new > 0)
+        if M.k_new > 0
             if M.k_new == max_k # All variables in the starting model, nothing to draw
                 last = X_list2
             else
                 loop i=1..M.k_new --quiet
                     scalar accept = 0
-                    #set loop_maxiter 99999 # This should be set if we cannot construct random list
                     loop while (accept == 0) --quiet
                         cand = transp(M.var_numbers2)[randint(1, max_k), 1]
                         if inlist(last, cand) == 0
@@ -85,12 +88,12 @@ function void BACE_initial_model (bundle *M)
                 last_mat = transp(msortby(transp(last_mat),2))
                 last = last_mat[1,]
                 if M.with_const == 1
-                    ols YyY const last --quiet
+                    @ESTIMATOR YyY const last --quiet
                 else
-                    ols YyY last --quiet
+                    @ESTIMATOR YyY last --quiet
                 endif
                 last = $xlist
-                if (M.with_const == 1)
+                if M.with_const == 1
                     last -= const
                     M.k_new = $ncoeff-1
                 else
@@ -101,11 +104,11 @@ function void BACE_initial_model (bundle *M)
             endif
         endif
     else
-        # Model reduced at given M.alpha (classic OLS)
+        # Model reduced at given alpha
         if M.with_const == 1
-            ols YyY const X_list2 --quiet
+            @ESTIMATOR YyY const X_list2 --quiet
         else
-            ols YyY X_list2 --quiet
+            @ESTIMATOR YyY X_list2 --quiet
         endif
         if nelem($xlist) > 1
             omit --auto=M.alpha --silent
@@ -121,13 +124,18 @@ function void BACE_initial_model (bundle *M)
         strings M.StartModel_xnames = varnames($xlist)
     endif
 
+    # Starting values
     M.k_old = nelem(last)
     matrix M.StartModel = last
-    BACE_new_X_matrix("START", &M)
-    BACE_matrix_precompute(&M)
-    BACE_estimate(&M)
-    BACE_lprob(&M)
-    M.lprob_old = M.lprob_new
-    M.mod_struct = M.mod_struct_new
-    M.ess_old = M.ess_new
+    matrix M.mod_struct_new = zeros(1,M.k)
+    
+    # Setting 1 for variables in current draw
+    loop i=1..cols(M.StartModel) --quiet
+        loop j=1..M.k --quiet
+            if M.var_numbers2[1,j] == M.StartModel[i]
+                M.mod_struct_new[M.var_numbers2[2,j]-1] = 1
+                break
+            endif
+        endloop
+    endloop
 end function

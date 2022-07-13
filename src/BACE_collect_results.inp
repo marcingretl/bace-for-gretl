@@ -16,15 +16,16 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_collect_results (bundle *M, bundle *known_models,
-                                     matrix *models_counter, matrix *models_lprob,
-                                     matrices *models_estimates, matrices *models_structure,
-                                     matrices *models_forecasts[null])
+                                    matrix *models_counter, matrix *models_lprob,
+                                    matrices *models_estimates, matrices *models_structure,
+                                    matrices *models_forecasts[null])
     /*
        Function collects results from MC3 experiment.
     */
-    matrix idx, var_idx, bhat, mod_struct, models_probs, X_new_num #, models_probs_cum, percents1, percents2
+    BACE_print_status("Collecting results", 0)
+    matrix idx, var_idx, bhat, mod_struct, models_probs, X_new_num
     matrices models_structure_rank, models_estimates_rank
-    scalar nr
+    scalar nr, mod_struct_sum
     scalar weight = 0
     if M.with_const == 1
         matrix bhat_avg = zeros(M.k+1)
@@ -45,6 +46,9 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
 
     # We set the number of visited models
     M.post_n_models = nelem(known_models)
+    if M.with_const == 0
+        M.post_n_models = xmin(M.post_n_models, 2^M.k -1)
+    endif
     known_models = null
 
     # We select objects only for accepted models
@@ -75,49 +79,73 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         mod_struct = models_structure_rank[i]
         M.mod_rank[i] = mod_struct
         if M.with_const == 1
-            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)        
+            var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
         else
             if sum(mod_struct) != 0
                 var_idx = selifc(M.var_numbers2[2,], mod_struct) - 1
             endif
         endif
-        M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
+        if nelem(models_estimates_rank[i])
+            M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
+        endif
     endloop
 
     # We average over all accepted models
+    if M.show_progress
+        BACE_print_status("averaging", 0, 11, 1)
+        scalar M.progress = ceil(nelem(models_counter)/100)
+        percentage = M.progress
+        flush
+    endif
     loop i=1..nelem(models_counter) --quiet
         weight = models_counter[i]
         mod_struct = models_structure[i]
+        mod_struct_sum = sum(mod_struct)
+
         ## Original BACE
         if M.with_const == 1
             var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
         else
-            if sum(mod_struct) != 0
+            if mod_struct_sum
                 var_idx = selifc(M.var_numbers2[2,], mod_struct) - 1
             else
                 var_idx = {}
             endif
         endif
-        bhat = models_estimates[i][,1]
-        bhat_avg[var_idx] += weight * bhat
-        bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
-        #mod_size += weight * sum(mod_struct)
-        ###
-        mod_sizes[sum(mod_struct)] += weight
-        ###
-        var_prob += weight * mod_struct
+
+        if nelem(models_estimates[i])
+            bhat = models_estimates[i][,1]
+            bhat_avg[var_idx] += weight * bhat
+            bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
+            if mod_struct_sum
+                mod_sizes[mod_struct_sum] += weight
+            else
+                M.empty_model_count = weight
+            endif
+            var_prob += weight * mod_struct
+        endif
 
         if M.do_joint
             jointness_m = upper(jointness_m .+ weight * ((mod_struct .* mod_struct') .> 0))
         endif
 
         if M.h_predict
-            Yhat_avg += weight * models_forecasts[i][,1]
-            Yhat_var_avg += weight * models_forecasts[i][,2]
+            if nelem(models_forecasts[i]) > 0
+                Yhat_avg += weight * models_forecasts[i][,1]
+                Yhat_var_avg += weight * models_forecasts[i][,2]
+            endif
+        endif
+
+        # Flushing output - showing progress
+        if M.show_progress && i == percentage
+            BACE_show_progress(i, &percentage, M.progress, nelem(models_counter))
         endif
     endloop
 
-    # We save collected results in bundle M
+    #############################################
+    # We save collected results in the bundle M #
+    #############################################
+
     # Coefficients and variances
     if M.with_const == 1
         M.bhat_avg = bhat_avg[2:,]
@@ -132,9 +160,6 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     # Probability of variables
     M.var_prob = var_prob
 
-    # Average model size
-    #M.mod_size = mod_size
-
     # Jointness analysis
     if M.do_joint
         M.jointness_m = jointness_m
@@ -148,4 +173,14 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
 
     # Models size distribution
     M.mod_sizes = seq(1, M.k)' ~ mod_sizes
+    if M.with_const == 1
+        M.mod_sizes = {0} ~ M.empty_model_count | M.mod_sizes
+    endif
+
+    if M.show_progress
+        printf "\n"
+        BACE_print_status(null, 1, 22)
+    else
+        BACE_print_status(null, 1, 3)
+    endif
 end function

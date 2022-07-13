@@ -15,35 +15,97 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function void BACE_Plot (bundle *M)
-    /*
-    BACE result bundle plot function.
+function void BACE_Plot (const bundle *MODEL)
+/*
+   BACE result bundle plot function.
     */
+    string legend, output, basename, xtics
+
+    if $sysinfo.gui_mode
+        basename = "display"
+    else
+        basename = strftime($now[1], "%Y%m%d%H%M%S")
+    endif
+
 
     # Heatmap for variable inclusion
-    BACE_heatmap(M, "inclusions")
+    BACE_heatmap(MODEL, "inclusions", basename)
 
     # Heatmap for jointness
-    if M.do_joint
-        BACE_heatmap(M, "jointness")
+    if MODEL.do_joint
+        BACE_heatmap(MODEL, "jointness", basename)
     endif
 
     # Models size distribution
-    plotmat = mreverse(M.mod_sizes, 1)
+    plotmat = mreverse(MODEL.mod_sizes, 1)
+    output = basename
+    if !$sysinfo.gui_mode
+        output = output ~ "-MSD.plt"
+    endif
+    if rows(plotmat) < 20
+        xtics = "set xtics 1"
+    else
+        xtics = ""
+    endif
+    if MODEL.mod_size_av > MODEL.av_model_size
+        legend = "left"
+    else
+        legend = "right"
+    endif
     plot plotmat
         options with-lp fit=none
+        printf "%s", xtics
         printf "set title \"%s\"", "Model Size Distribution"
         printf "set xlabel \"%s\"", "Model Size"
-        printf "set ylabel \"%s\"", "Fraction"
-    end plot --output=display
+        printf "set ylabel \"%s\"", "Density"
+        printf "set key %s top", legend
+    end plot --output=@output
 
     # Models size CDF
-    plotmat = M.models_probs_cdf
+    plotmat = MODEL.models_probs_cdf
+    output = basename
+    if !$sysinfo.gui_mode
+        output = output ~ "-CDF.plt"
+    endif
+    if rows(plotmat) < 20
+        xtics = "set xtics 1"
+    else
+        xtics = ""
+    endif
     plot plotmat
         options with-line fit=none
         literal set grid
-        printf "set title \"%s\"", "Model Size CDF"
+        printf "%s", xtics
+        printf "set title \"%s\"", "CDF of Model Size"
         printf "set xlabel \"%s\"", "Number of Models"
-        printf "set ylabel \"%s\"", "Posterior Probability Mass"        
-    end plot --output=display
+        printf "set ylabel \"%s\"", "Posterior Probability Mass"
+    end plot --output=@output
+
+    # Predictive results
+    if MODEL.h_predict
+        plotmat = MODEL.prediction[,1:2]
+        bars = MODEL.prediction[,2:3]
+        cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
+        output = basename
+        if !$sysinfo.gui_mode
+            output = output ~ "-predict.plt"
+        endif
+        xtics = "("
+        loop i=1..MODEL.h_predict --quiet
+            xtics += sprintf("\"%s\" %d", rnameget(MODEL.prediction)[i], i)
+            if i == MODEL.h_predict
+                xtics += sprintf(")")
+            else
+                xtics += sprintf(", ")
+            endif
+        endloop
+        plot plotmat
+            options time-series with-lines
+            options with-line fit=none
+            options band=bars,1 band-style=bars
+            printf "set title \"%s\"", "Predictive results (with +/- one standard deviations as bars)"
+            printf "set xlabel \"%s\"", "Observation"
+            printf "set xtics %s", xtics
+        end plot --output=@output
+    endif
 end function

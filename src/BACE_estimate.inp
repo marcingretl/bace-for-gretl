@@ -16,8 +16,91 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_estimate (bundle *M)
-    /*
-    This is wrapper for different estimators used in different methods (for future)
+/*
+   This function estimates and forecasts drawn models.
     */
-    BACE_ols(&M)
+    matrix mod_struct_new, mod_struct_new_Y_lags
+    list Y_lags
+
+    # We set up estimator command
+    string ESTIMATOR = M.estimator
+
+    # We re-create Y series
+    series Y = M.Y
+
+    # We create list with lagged Y if needed
+    if M.Y_AR_p > 0
+        #lags M.Y_AR_p ; Y # to wystarczało niby, ale nie było dynamicznej prognozy
+        mod_struct_new_Y_lags = M.mod_struct_new[1:M.Y_AR_p]
+        if sum(mod_struct_new_Y_lags) > 0
+            Y_lags = lags(selifc(seq(1,M.Y_AR_p), mod_struct_new_Y_lags), Y)
+            mod_struct_new = zeros(M.Y_AR_p)' ~ M.mod_struct_new[M.Y_AR_p+1:]
+        else
+            mod_struct_new = M.mod_struct_new
+        endif
+    else
+        mod_struct_new = M.mod_struct_new
+    endif
+
+    # We create the X list on-the-fly
+    list X = selifc(M.var_numbers2[1,], mod_struct_new)
+    if nelem(mod_struct_new_Y_lags) > 0
+        X = Y_lags X
+    endif
+
+    # Do we need const?
+    if M.with_const == 1
+        X += const
+    endif
+
+    # We estimate current model
+    if nelem(X) > 0 #M.k_new > 0
+    /*
+       if M.model_type == "linear"
+       ols Y X --quiet
+       elif M.model_type == "logit"
+       logit Y X --quiet
+       elif M.model_type == "probit"
+       probit Y X --quiet
+       elif M.model_type == "poisson"
+       poisson Y X --quiet
+       endif
+        */
+        # We estimate model
+        @ESTIMATOR Y X --quiet
+
+        if M.with_const == 2 && $ncoeff > 1 && $model.parnames[1] == "const"
+            M.bhat_tmp = $coeff[2:] | $coeff[1]
+            M.bvar_tmp = ($stderr[2:] | $stderr[1]).^2
+        else
+            M.bhat_tmp = $coeff
+            M.bvar_tmp = $stderr.^2
+        endif
+        M.ess_new = $ess
+        if M.h_predict > 0
+            fcast --out-of-sample --quiet #--dynamic
+            M.Yhat_predict = $fcast
+            if nelem(instrings(M.DiscreteModelTypes, M.model_type)) == 0
+                M.Yhat_predict_var = $fcse.^2 + $fcast.^2
+            else
+                M.Yhat_predict_var = ones(M.h_predict)*NA
+            endif
+        endif
+        #printf "\n##############\n"
+        #eval -.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.N*log(M.ess_new)
+        #eval $lnl +.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.k_new*log(M.N)
+        #M.lprob_new = -.5*($bic - M.N*((1+log(2*$pi)-log(M.N))))
+        if M.bic_type == 1
+            M.lprob_new = -.5*$bic
+        elif M.bic_type == 2
+            M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1]
+        elif M.bic_type == 3
+            M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1] - 0.5*log(det(invpd($vcv)))
+        endif
+    else
+        M.bhat_tmp = {}
+        M.bvar_tmp = {}
+        #M.ess_new = M.y_dem_sq
+        M.lprob_new = -10^20
+    endif
 end function

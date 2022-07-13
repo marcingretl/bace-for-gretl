@@ -18,7 +18,8 @@
 function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *with_const,
                              scalar *acc_type, scalar *av_model_size, scalar *alpha, scalar *l_rank,
                              scalar *do_joint, scalar *h_predict, scalar *Nrep, scalar *burn,
-                             scalar *verbosity, scalar *show_progress, scalar *do_plot)
+                             scalar *verbosity, scalar *show_progress, scalar *do_plot,
+                             string *model_type, scalar *center_vars, scalar *bic_type)
     /*
        This function checks options bundle and returns error message in
        any problem found.
@@ -28,19 +29,22 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
        k - number of independent variables
     */
     string err = ""
-    scalar err2
+    scalar avg_model_size_tmp = 0
+    scalar err2, arg_val
     bundle Options
-    scalar arg_val
     string arg_name
-    strings Integers = defarray("Y_AR_p", "with_const", "acc_type", "l_rank", "do_joint", "h_predict", "Nrep", "burn", "verbosity")
+    strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
+      "do_joint", "Npredict", "Nrep", "burn", "verbosity", "center_vars", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
-    strings Scalars = defarray("av_model_size", "alpha")
-    if $version >= 20221 && $sysinfo.gui_mode == 1
+    strings Scalars = defarray("avg_model_size", "alpha")
+    strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
+
+    if $sysinfo.gui_mode
         do_plot_tmp = 1
     else
         do_plot_tmp = 0
-    endif    
-    
+    endif
+
     # We set the default Nrep conditional on k
     if k <= 10
         Nrep = 1000
@@ -52,25 +56,53 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
         Nrep = 1e+06
     endif
 
+    # We set temporal Y_AR_p value
+    if isnan(Y_AR_p)
+        Y_AR_p_tmp = 0
+    else
+        Y_AR_p_tmp = Y_AR_p
+    endif
+
+    # We set temporal with_const value and calculate prior average model size
+    if !inbundle(UserOpts, "with_const")
+        with_const_tmp = 1
+        avg_model_size_tmp = (k + Y_AR_p_tmp) / 2
+    else
+        with_const_tmp = UserOpts["with_const"]
+        avg_model_size_tmp = (k + Y_AR_p_tmp + (with_const_tmp == 2)) / 2
+        /*
+           loop i=1..k --quiet
+           avg_model_size_tmp += i * bincoeff(k,i) * (2^(k + Y_AR_p_tmp + (with_const_tmp == 2)) - 1)^-1
+           endloop
+        */
+    endif
+
     # Template bundle with default values
     scalar Options["Y_AR_p"] = 0
     scalar Options["with_const"] = 1
-    scalar Options["acc_type"] = 1
-    scalar Options["av_model_size"] = k/2
+    scalar Options["model_prior"] = 1
+    scalar Options["avg_model_size"] = avg_model_size_tmp
     scalar Options["alpha"] = 0.6
-    scalar Options["l_rank"] = xmin(2^(k-1), 40)
+    scalar Options["Nrank"] = xmin(2^(k-1), 40)
     scalar Options["do_joint"] = 0
-    scalar Options["h_predict"] = 0
+    scalar Options["Npredict"] = 0
     scalar Options["Nrep"] = Nrep
     scalar Options["burn"] = 10
     scalar Options["verbosity"] = 2
     scalar Options["show_progress"] = 1
     scalar Options["do_plot"] = do_plot_tmp
+    string Options["model_type"] = "linear"
+    scalar Options["center_vars"] = 0
+    scalar Options["bic_type"] = 1
 
     # General checking, but still needs some manual work
     err2 = bcheck(&Options, UserOpts)
     if err2
-        err = "Look at the PDF documentation for expected types of arguments."
+        err = sprintf("Valid options are:\n")
+        loop i=1..nelem(getkeys(Options)) --quiet
+            err += sprintf("\t%s\n", getkeys(Options)[i])
+        endloop
+        err += sprintf(" Look at the PDF documentation for expected types of arguments.")
     endif
 
     # We check integers
@@ -91,20 +123,28 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
         endif
     endloop
 
+    # We check model type
+    if inbundle(UserOpts, "model_type") && strlen(UserOpts["model_type"]) && !nelem(instrings(ModelTypes, UserOpts["model_type"]))
+        err += sprintf("Unknown model type: '%s'", UserOpts["model_type"])
+    endif
+
     # We set arguments
     Y_AR_p = Options["Y_AR_p"]
     with_const = Options["with_const"]
-    acc_type = Options["acc_type"]
-    av_model_size = Options["av_model_size"]
+    acc_type = Options["model_prior"]
+    av_model_size = Options["avg_model_size"]
     alpha = Options["alpha"]
-    l_rank = Options["l_rank"]
+    l_rank = Options["Nrank"]
     do_joint = Options["do_joint"]
-    h_predict = Options["h_predict"]
+    h_predict = Options["Npredict"]
     Nrep = Options["Nrep"]
     burn = Options["burn"]
     verbosity = Options["verbosity"]
     show_progress = Options["show_progress"]
     do_plot = Options["do_plot"]
+    model_type = Options["model_type"]
+    center_vars = Options["center_vars"]
+    bic_type = Options["bic_type"]
 
     # We check arguments for valid values
     if Y_AR_p < 0
@@ -127,6 +167,10 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
         err += "Percentage of burn-in draws (do_burn) takes the integer values in the range [0; 99]"
     elif verbosity < 1 || verbosity > 2
         err += "Verbosity takes the integer values in the range [1; 2]"
+    elif center_vars < 0 || center_vars > 2
+        err += "Parameter center_vars takes the integer values in the range [0; 2]"
+    elif bic_type < 1 || bic_type > 3
+        err += "BIC type takes the integer values in the range [1; 3]"
     endif
 
     return err

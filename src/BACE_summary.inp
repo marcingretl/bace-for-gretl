@@ -19,7 +19,8 @@ function void BACE_summary (bundle *M)
 /*
    We summarise some BACE results and deleting redundand items from the returned bundle.
     */
-    scalar tmps, factor
+    BACE_print_status("Summarizing")
+    scalar tmps, factor, k
     strings title
     matrix percents1, percents2
     scalar NORM = M.Nrep - M.Nburn
@@ -42,18 +43,19 @@ function void BACE_summary (bundle *M)
 
     # Average model size (including matrix for plot)
     M.mod_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
-    M.mod_sizes[,2] = M.mod_sizes[,2] ./ NORM
+    M.mod_sizes[,2] = M.mod_sizes[,2] / NORM
     M.mod_size_av = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
     M.mod_size_sd = sqrt(sum((M.mod_sizes[,1] - M.mod_size_av) .^2 .* M.mod_sizes[,2]))
     M.mod_sizes = M.mod_sizes ~ zeros(rows(M.mod_sizes),1)
     tmps = M.av_model_size/M.k
     loop i=1..rows(M.mod_sizes) --quiet
-        if i == M.k
-            factor = 1
+        k = M.mod_sizes[i,1]
+        #M.mod_sizes[i,3] = (tmps^k * (1-tmps)^(M.k-k)) * bincoeff(M.k,k)
+        if M.with_const != 1
+            M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i+1])
         else
-            factor = prodr(seq(1,M.k)) / (prodr(seq(1,i)) * prodr(seq(1,M.k-i)))
+            M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i])
         endif
-        M.mod_sizes[i,3] = (tmps^i * (1-tmps)^(M.k-i)) * factor
     endloop
     M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.av_model_size) .^2 .* M.mod_sizes[,3]))
 
@@ -117,7 +119,6 @@ function void BACE_summary (bundle *M)
     tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
     M.Post_Results = M.Post_Results ~ tmp
     title = defarray("PIP", "Mean", "Std.Dev.", "Cond.Mean", "Cond.Std.Dev")
-    printf "\n"
     cnameset(M.Post_Results, title)
     rnameset(M.Post_Results, M.all_names_sp_m)
 
@@ -136,6 +137,7 @@ function void BACE_summary (bundle *M)
         # We must clean up principal diagonal
         M.jointness_m[diag] = 0
         M.jointness_m = M.jointness_m / NORM
+        M.jointness_m = M.jointness_m + upper(M.jointness_m)'
         if M.with_const == 1
             cnameset(M.jointness_m, M.all_names_sp_m[2:end])
             rnameset(M.jointness_m, M.all_names_sp_m[2:end])
@@ -165,7 +167,7 @@ function void BACE_summary (bundle *M)
     delete M.y_dem_sq
     delete M.y_mean
     delete M.yMy
-    delete M.mod_struct
+    delete M.mod_struct_old
     delete M.mod_struct_new
     delete M.var_prob
     delete M.a
@@ -177,7 +179,6 @@ function void BACE_summary (bundle *M)
     delete M.XtXinv
     delete M.bhat_avg
     delete M.bvar_avg
-    ###
     delete M.X_list
     delete M.N
     delete M.scaling_f
@@ -192,7 +193,6 @@ function void BACE_summary (bundle *M)
     delete M.model_index_old
     delete M.model_hex_index_new
     delete M.model_hex_index_old
-    ###
     if M.h_predict > 0
         delete M.big_mat_predict
         delete M.big_mat_dem_predict
@@ -203,4 +203,6 @@ function void BACE_summary (bundle *M)
         delete M.predict_obs_names
         catch delete M.ess
     endif
+
+    BACE_print_status(null, 1, 10)
 end function

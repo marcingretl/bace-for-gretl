@@ -1,0 +1,46 @@
+/*
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2012 Marcin Błażejowski and Jacek Kwiatkowski
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+function void BACE_print_status (const string message[null], const bool done[0],
+                                const scalar pspaces[0], const scalar spacesp[0])
+    /*
+       Function prints current execution status and flushes screen.
+       message - text to be printed
+       done	- if this is end of stage
+       pspaces	- number of prior paces
+       spacesp	- number of post spaces
+    */
+    string pSPACE = ""
+    string SPACEp = ""
+    if pspaces
+        loop i=1..pspaces --quiet
+            pSPACE += sprintf("%s", " ")
+        endloop
+    endif
+    if spacesp
+        loop i=1..spacesp --quiet
+            SPACEp += sprintf("%s", " ")
+        endloop
+    endif
+
+    if done
+        printf "%sdone!", pSPACE
+    else               
+        printf "\n%s%s:%s", pSPACE, message, SPACEp
+    endif
+    flush
+end function
