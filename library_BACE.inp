@@ -3,9 +3,7 @@ set verbose off
 include src/BACE_parse.inp
 include src/BACE_initial_model.inp
 include src/BACE_correlation_coeff.inp
-include src/BACE_accept_prob.inp
 include src/BACE_jointness_pairs.inp
-include src/BACE_accep_model.inp
 include src/BACE_summary.inp
 include src/BACE_setup.inp
 include src/BACE_show_progress.inp

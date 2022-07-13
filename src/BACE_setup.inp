@@ -43,14 +43,14 @@ function bundle BACE_setup (series Y,
     */
     printf "\n#############################################################################\n"
     printf "To do:"
-    printf "\n * Check if we have correct model prior (including Options[\"av_model_size\"])."
+    printf "\n * Check if we have correct model prior (including Options[\"avg_model_size\"])."
     printf "\n * Check if we have correct prior distribution plot (empty model)."
     printf "\n * Fix const type selection in GUI."
     printf "\n * Simplify restoring estimates in BACE_collect_results()."
     printf "\n * What to do with predicted values where we have empty model\n\t(if nelem(models_forecasts[i]) > 0 in BACE_collect_results())?"
     printf "\n * Add PDF and GUI entries for both: center_vars and bic_type."
     printf "\n * Work on speed."
-    printf "\n * Clean up the code (including getting rid of stale functions)."
+    printf "\n * Clean up the code."
     printf "\n#############################################################################\n"
     BACE_print_status("BACE setup")
     bundle M

@@ -33,13 +33,13 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     scalar err2, arg_val
     bundle Options
     string arg_name
-    strings Integers = defarray("Y_AR_p", "with_const", "acc_type", "l_rank",\
-      "do_joint", "h_predict", "Nrep", "burn", "verbosity", "center_vars", "bic_type")
+    strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
+      "do_joint", "Npredict", "Nrep", "burn", "verbosity", "center_vars", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
-    strings Scalars = defarray("av_model_size", "alpha")
+    strings Scalars = defarray("avg_model_size", "alpha")
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
 
-    if $version >= 20221 && $sysinfo.gui_mode == 1
+    if $sysinfo.gui_mode
         do_plot_tmp = 1
     else
         do_plot_tmp = 0
@@ -71,21 +71,21 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
         with_const_tmp = UserOpts["with_const"]
         avg_model_size_tmp = (k + Y_AR_p_tmp + (with_const_tmp == 2)) / 2
         /*
-        loop i=1..k --quiet
-            avg_model_size_tmp += i * bincoeff(k,i) * (2^(k + Y_AR_p_tmp + (with_const_tmp == 2)) - 1)^-1
-        endloop
+           loop i=1..k --quiet
+           avg_model_size_tmp += i * bincoeff(k,i) * (2^(k + Y_AR_p_tmp + (with_const_tmp == 2)) - 1)^-1
+           endloop
         */
     endif
 
     # Template bundle with default values
     scalar Options["Y_AR_p"] = 0
     scalar Options["with_const"] = 1
-    scalar Options["acc_type"] = 1
-    scalar Options["av_model_size"] = avg_model_size_tmp
+    scalar Options["model_prior"] = 1
+    scalar Options["avg_model_size"] = avg_model_size_tmp
     scalar Options["alpha"] = 0.6
-    scalar Options["l_rank"] = xmin(2^(k-1), 40)
+    scalar Options["Nrank"] = xmin(2^(k-1), 40)
     scalar Options["do_joint"] = 0
-    scalar Options["h_predict"] = 0
+    scalar Options["Npredict"] = 0
     scalar Options["Nrep"] = Nrep
     scalar Options["burn"] = 10
     scalar Options["verbosity"] = 2
@@ -98,7 +98,11 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     # General checking, but still needs some manual work
     err2 = bcheck(&Options, UserOpts)
     if err2
-        err = "Look at the PDF documentation for expected types of arguments."
+        err = sprintf("Valid options are:\n")
+        loop i=1..nelem(getkeys(Options)) --quiet
+            err += sprintf("\t%s\n", getkeys(Options)[i])
+        endloop
+        err += sprintf(" Look at the PDF documentation for expected types of arguments.")
     endif
 
     # We check integers
@@ -127,12 +131,12 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     # We set arguments
     Y_AR_p = Options["Y_AR_p"]
     with_const = Options["with_const"]
-    acc_type = Options["acc_type"]
-    av_model_size = Options["av_model_size"]
+    acc_type = Options["model_prior"]
+    av_model_size = Options["avg_model_size"]
     alpha = Options["alpha"]
-    l_rank = Options["l_rank"]
+    l_rank = Options["Nrank"]
     do_joint = Options["do_joint"]
-    h_predict = Options["h_predict"]
+    h_predict = Options["Npredict"]
     Nrep = Options["Nrep"]
     burn = Options["burn"]
     verbosity = Options["verbosity"]
