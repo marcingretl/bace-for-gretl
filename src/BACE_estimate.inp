@@ -21,10 +21,13 @@ function void BACE_estimate (bundle *M)
     */
     matrix mod_struct_new, mod_struct_new_Y_lags
     list Y_lags
-    
+
+    # We set up estimator command
+    string ESTIMATOR = M.estimator
+
     # We re-create Y series
     series Y = M.Y
-    
+
     # We create list with lagged Y if needed
     if M.Y_AR_p > 0
         #lags M.Y_AR_p ; Y # to wystarczało niby, ale nie było dynamicznej prognozy
@@ -39,7 +42,7 @@ function void BACE_estimate (bundle *M)
         mod_struct_new = M.mod_struct_new
     endif
 
-    # We create a X list on-the-fly
+    # We create the X list on-the-fly
     list X = selifc(M.var_numbers2[1,], mod_struct_new)
     if nelem(mod_struct_new_Y_lags) > 0
         X = Y_lags X
@@ -52,15 +55,19 @@ function void BACE_estimate (bundle *M)
 
     # We estimate current model
     if nelem(X) > 0 #M.k_new > 0
-        if M.model_type == "linear"
-            ols Y X --quiet
-        elif M.model_type == "logit"
-            logit Y X --quiet
-        elif M.model_type == "probit"
-            probit Y X --quiet
-        elif M.model_type == "poisson"
-            poisson Y X --quiet
-        endif
+    /*
+       if M.model_type == "linear"
+       ols Y X --quiet
+       elif M.model_type == "logit"
+       logit Y X --quiet
+       elif M.model_type == "probit"
+       probit Y X --quiet
+       elif M.model_type == "poisson"
+       poisson Y X --quiet
+       endif
+        */
+        # We estimate model
+        @ESTIMATOR Y X --quiet
 
         if M.with_const == 2 && $ncoeff > 1 && $model.parnames[1] == "const"
             M.bhat_tmp = $coeff[2:] | $coeff[1]
@@ -87,6 +94,8 @@ function void BACE_estimate (bundle *M)
             M.lprob_new = -.5*$bic
         elif M.bic_type == 2
             M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1]
+        elif M.bic_type == 3
+            M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1] - 0.5*log(det(invpd($vcv)))
         endif
     else
         M.bhat_tmp = {}

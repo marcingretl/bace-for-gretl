@@ -19,7 +19,7 @@ function void BACE_summary (bundle *M)
 /*
    We summarise some BACE results and deleting redundand items from the returned bundle.
     */
-    BACE_print_status("Summarizing")    
+    BACE_print_status("Summarizing")
     scalar tmps, factor, k
     strings title
     matrix percents1, percents2
@@ -50,13 +50,12 @@ function void BACE_summary (bundle *M)
     tmps = M.av_model_size/M.k
     loop i=1..rows(M.mod_sizes) --quiet
         k = M.mod_sizes[i,1]
-        factor = bincoeff(M.k,k)
-        M.mod_sizes[i,3] = (tmps^k * (1-tmps)^(M.k-k)) * factor
-        /*
-           if M.with_const != 1
-           M.mod_sizes[i,3] += (1-tmps)^M.k2 * factor * M.model_space^-1
-           endif
-        */
+        #M.mod_sizes[i,3] = (tmps^k * (1-tmps)^(M.k-k)) * bincoeff(M.k,k)
+        if M.with_const != 1
+            M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i+1])
+        else
+            M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i])
+        endif
     endloop
     M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.av_model_size) .^2 .* M.mod_sizes[,3]))
 
@@ -204,6 +203,6 @@ function void BACE_summary (bundle *M)
         delete M.predict_obs_names
         catch delete M.ess
     endif
-    
+
     BACE_print_status(null, 1, 10)
 end function

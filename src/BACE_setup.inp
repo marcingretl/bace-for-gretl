@@ -54,6 +54,7 @@ function bundle BACE_setup (series Y,
     printf "\n#############################################################################\n"
     BACE_print_status("BACE setup")
     bundle M
+    scalar tmp
     list X_list = X_list_m
     scalar M.with_const = with_const
     if M.with_const == 1
@@ -111,11 +112,11 @@ function bundle BACE_setup (series Y,
     else
         matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
         #matrix M.var_numbers2 = transp(msortby(transp(M.var_numbers[2:1+M.k] | seq(2,1+M.k)), 1)) # vector containing the dataset numbers of all variables and their order in the 'big_list'
-    endif    
+    endif
     scalar M.model_space = 2^M.k
     if M.with_const != 1
         M.model_space -= 1
-    endif    
+    endif
     matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
     matrix M.big_mat_dem = M.big_mat
     strings M.DiscreteModelTypes = defarray("logit", "probit")
@@ -198,16 +199,25 @@ function bundle BACE_setup (series Y,
         matrix M.jointness_m = {}
     endif
 
+    # Model prior
+    matrix M.model_prior_log = zeros(M.k+1)
     if acc_type == 1 # options for the prior
         string M.prior_name = "Binomial"
         scalar M.a = log(av_model_size/M.k)
         scalar M.b = log(1 - av_model_size/M.k)
         scalar M.c = 0
+        tmp = M.av_model_size/M.k
+        loop i=0..M.k --quiet
+            M.model_prior_log[i+1] = log(tmp^i * (1-tmp)^(M.k-i))
+        endloop
     else
         string M.prior_name = "Binomial-Beta"
         scalar M.a = 1
         scalar M.b = (M.k - av_model_size)/av_model_size
         scalar M.c = lngamma(M.a + M.b) - lngamma(M.a) - lngamma(M.b)
+        loop i=0..M.k --quiet
+            M.model_prior_log[i+1] = log((gammafun(i+1) * gammafun(M.k-i+M.b) / gammafun(1+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b)))
+        endloop
     endif
 
     # Posterior results
@@ -223,7 +233,12 @@ function bundle BACE_setup (series Y,
     matrix M.models_probs_percents = {} # CDF-like matrix for accepted models
     matrix M.models_probs_cdf = {} # accepted models CDF
     matrix M.models_probs_cum = {} # accepted models cumulation
-    string M.model_type = model_type
+    string M.model_type = model_type # name of model type (linear, logit, etc...)
+    if model_type == "linear"
+        string M.estimator = "ols"
+    else
+        string M.estimator = model_type
+    endif
     scalar M.N = rows(M.big_mat)
     scalar M.Y_AR_p = Y_AR_p # max Y lag order
     matrix M.bhat_tmp = {} # temporary column vector containing the estimated coefficients for the current model (candidates)
@@ -247,6 +262,9 @@ function bundle BACE_setup (series Y,
     elif bic_type == 2
         string M.bic_type_name = "HBIC"
         M.scaling_f[1] = log(.5*M.N/$pi)
+    elif bic_type == 3
+        string M.bic_type_name = "IBIC"
+        M.scaling_f[1] = log(.5*M.N/$pi)
     endif
 
     # Data standarization
@@ -261,7 +279,7 @@ function bundle BACE_setup (series Y,
     if verbosity == 1
         set warnings off
     endif
-    
+
     # MC3 progress step
     scalar M.progress = floor(M.Nrep/100)
 

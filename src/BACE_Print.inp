@@ -34,6 +34,9 @@ function void BACE_Print (const bundle *M)
     if M.h_predict > 0
         smpl M.first_obs M.last_obs
     endif
+    
+    # We set up estimator command
+    string ESTIMATOR = M.estimator
 
     # Additional information in summary
     printf "\n"
@@ -61,7 +64,7 @@ function void BACE_Print (const bundle *M)
         printf "\n"
         print "----------------------------------"
         if nelem(M.StartModel_b) != 0
-            printf "The initial model: OLS, dependent variable: %s\n", M.Y_name
+            printf "The initial model: %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
             loop i=1..nelem(M.StartModel_xnames) --quiet
                 if substr(M.StartModel_xnames[i], 1, 4) == "YyY_"
                     M.StartModel_xnames[i] = strsub(M.StartModel_xnames[i], "YyY", M.Y_name)

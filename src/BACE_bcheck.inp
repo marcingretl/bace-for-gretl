@@ -64,7 +64,7 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     endif
 
     # We set temporal with_const value and calculate prior average model size
-    if isnan(UserOpts["with_const"])
+    if !inbundle(UserOpts, "with_const")
         with_const_tmp = 1
         avg_model_size_tmp = (k + Y_AR_p_tmp) / 2
     else
@@ -165,8 +165,8 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
         err += "Verbosity takes the integer values in the range [1; 2]"
     elif center_vars < 0 || center_vars > 2
         err += "Parameter center_vars takes the integer values in the range [0; 2]"
-    elif bic_type < 1 || bic_type > 2
-        err += "BIC type takes the integer values in the range [1; 2]"
+    elif bic_type < 1 || bic_type > 3
+        err += "BIC type takes the integer values in the range [1; 3]"
     endif
 
     return err
