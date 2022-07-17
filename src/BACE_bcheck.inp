@@ -30,7 +30,7 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     */
     string err = ""
     scalar avg_model_size_tmp = 0
-    scalar err2, arg_val
+    scalar err2, arg_val, do_plot_tmp, do_show_progress
     bundle Options
     string arg_name
     strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
@@ -40,9 +40,10 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
     if $sysinfo.gui_mode
         do_plot_tmp = 1
+        do_show_progress = 1
     else
         do_plot_tmp = 0
-        show_progress = 0
+        do_show_progress = 0
     endif
 
     # We set the default Nrep conditional on k
@@ -89,7 +90,7 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     scalar Options["Nrep"] = Nrep
     scalar Options["burn"] = 10
     scalar Options["verbosity"] = 2
-    scalar Options["show_progress"] = show_progress
+    scalar Options["show_progress"] = do_show_progress
     scalar Options["do_plot"] = do_plot_tmp
     string Options["model_type"] = "linear"
     scalar Options["center_vars"] = 0

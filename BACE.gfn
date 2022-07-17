@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2018a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2022-07-14</date>
+<date>2022-07-17</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -182,7 +182,7 @@ endloop
 printf &quot;Total probability of the models in ranking (numerical): %f\n&quot;, sumc(M.Numerical_Likelihood)
 printf &quot;\n&quot;
 printf &quot;Correlation coefficient between the analytical\n&quot;
-printf &quot;and numerical probabilities of the above models: %f\n&quot;, BACE_correlation_coeff(&amp;M)
+printf &quot;and numerical probabilities of the above models: %f\n&quot;, corr(M.Numerical_Likelihood, M.mod_rank_prob)
 # Forecasts
 if M.h_predict &gt; 0
   printf &quot;\n&quot;
@@ -703,40 +703,6 @@ loop i=1..cols(M.StartModel) --quiet
 endloop
 </code>
 </gretl-function>
-<gretl-function name="BACE_correlation_coeff" type="scalar" private="1">
- <params count="1">
-  <param name="M" type="bundleref"/>
- </params>
-<code>/*
-Function computes Pearson correlation coefficient between 2 ranking vectors:
-Local variables:
-tmp1, tmp2		- matrices with normalized analitycal and numerical probabilites
-j				- scalar with number of the first row in rankings to ommit
-Returns: correlation coefficient between analitical and numerical rankings
-*/
-# Starting values
-matrix tmp1 = M.mod_rank_prob
-matrix tmp2 = M.Numerical_Likelihood
-scalar j = 0
-# We check if there are zeros in numerical probablities...
-# ...and if so we ommit such rows in both rankings.
-loop i=1..M.l_rank --quiet
-  if (tmp2[i] == 0.0)
-    scalar j = i
-    break
-  endif
-endloop
-if (j &gt;= 3)
-  tmp1 = tmp1[1:j-1,]
-  tmp2 = tmp2[1:j-1,]
-endif
-# Now we have to normalize the given rankings
-tmp1 -= maxc(tmp1)
-tmp1 = exp(tmp1) ./ sumc(exp(tmp1))
-tmp2 = tmp2 ./ sumc(tmp2)
-return corr(tmp1, tmp2)
-</code>
-</gretl-function>
 <gretl-function name="BACE_jointness_pairs" type="void" private="1">
  <params count="6">
   <param name="MODE" type="string"/>
@@ -787,7 +753,8 @@ matrix percents1, percents2
 scalar NORM = M.Nrep - M.Nburn
 M.bhat_avg = transp(M.bhat_avg)
 M.bvar_avg = transp(M.bvar_avg)
-# Normalisation of numerical probabilities of models in ranking
+# Normalisations
+M.mod_rank_prob = exp(M.mod_rank_prob) / sum(exp(M.mod_rank_prob))
 M.Numerical_Likelihood = M.mod_nume_prob / NORM
 M.Post_Results = transp(M.var_prob / NORM)
 M.bhat_avg = M.bhat_avg / NORM
@@ -830,7 +797,6 @@ M.models_probs_cdf = seq(1, M.post_n_models_accepted, factor)'
 M.models_probs_cdf = M.models_probs_cum[M.models_probs_cdf] ~ M.models_probs_cdf
 # Best 100 models
 percents1 = { 5; 25; 50; 75; 100 }
-#percents1 = selifr(percents1, percents1 .&gt; M.l_rank)
 percents1 = selifr(percents1, percents1 .&lt; M.post_n_models_accepted)
 percents1 = percents1 ~ zeros(nelem(percents1))
 if rows(percents1) &gt; 0
@@ -842,7 +808,7 @@ endif
 # We look for certain percentiles
 percents2 = { 50; 75; 90; 95; 99 }
 if nelem(percents1) &gt; 0
-  percents2 = selifr(percents2, percents2 .&gt; percents1[rows(percents1),2]) # In future: use [end,end] syntax
+  percents2 = selifr(percents2, percents2 .&gt; percents1[end,end])
   tmps = percents1[rows(percents1),1]
 else
   tmps = 1
@@ -1093,13 +1059,13 @@ endif
 # New model
 matrix M.ZtZinv_new = {} # inverse of Z'Z (X's without constant term)
 scalar M.k_new = 0 # number of variables in the current (new) model
-scalar M.lprob_new = 0 # scalar M.with natural logarithm of marginal density of the new model
+scalar M.lprob_new = 0 # natural logarithm of probability of the new model
 matrix M.X_new_num = {} # vector containing numbers of variables in the new model
 matrix M.X_new = {} # the X matrix M.for the current (new) model (demeaned)
 # Old model
 matrix M.ZtZinv_old = {} # old inverse of Z'Z (X's without constant term)
 scalar M.k_old = 0 # number of variables in the previous (old) model
-scalar M.lprob_old = 0 # scalar M.with natural logarithm of marginal density of the old model
+scalar M.lprob_old = 0 # natural logarithm of probability  of the old model
 matrix M.X_old_num = {} # vector containing numbers of variables in the old model
 scalar M.dj_new = 0 # scalar M.needed for prediction precision computation
 scalar M.dj_old = 0 # scalar M.needed for prediction precision computation
@@ -1266,18 +1232,7 @@ if M.with_const == 1
   X += const
 endif
 # We estimate current model
-if nelem(X) &gt; 0 #M.k_new &gt; 0
-  /*
-  if M.model_type == &quot;linear&quot;
-    ols Y X --quiet
-  elif M.model_type == &quot;logit&quot;
-    logit Y X --quiet
-  elif M.model_type == &quot;probit&quot;
-    probit Y X --quiet
-  elif M.model_type == &quot;poisson&quot;
-    poisson Y X --quiet
-  endif
-  */
+if nelem(X) &gt; 0
   # We estimate model
   @ESTIMATOR Y X --quiet
   if M.with_const == 2 &amp;&amp; $ncoeff &gt; 1 &amp;&amp; $model.parnames[1] == &quot;const&quot;
@@ -1297,10 +1252,7 @@ if nelem(X) &gt; 0 #M.k_new &gt; 0
       M.Yhat_predict_var = ones(M.h_predict)*NA
     endif
   endif
-  #printf &quot;\n##############\n&quot;
-  #eval -.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.N*log(M.ess_new)
-  #eval $lnl +.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.k_new*log(M.N)
-  #M.lprob_new = -.5*($bic - M.N*((1+log(2*$pi)-log(M.N))))
+  # We calculate log of marginal density
   if M.bic_type == 1
     M.lprob_new = -.5*$bic
   elif M.bic_type == 2
@@ -1308,6 +1260,8 @@ if nelem(X) &gt; 0 #M.k_new &gt; 0
   elif M.bic_type == 3
     M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1] - 0.5*log(det(invpd($vcv)))
   endif
+  # We calculate log of model probability
+  M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
 else
   M.bhat_tmp = {}
   M.bvar_tmp = {}
@@ -1642,9 +1596,10 @@ loop rep=1..M.Nrep --quiet
       endif
     endif
     # Now we decide if to accept the new model
-    if M.model_prior_log[M.k_new+1]-M.model_prior_log[M.k_old+1]+M.lprob_new-M.lprob_old &gt; log(randgen1(u,0,1))
+    #M.model_prior_log[M.k_new+1]-M.model_prior_log[M.k_old+1]+M.lprob_new-M.lprob_old
+    if M.lprob_new-M.lprob_old &gt; log(randgen1(u,0,1))
       M.lprob_old = M.lprob_new
-      M.k_old = M.k_new
+      M.k_old = M.k_new # ??? Probably to delete
       M.ess_old = M.ess_new
       M.mod_struct_old = M.mod_struct_new
       model_nr_old = model_nr
@@ -1696,7 +1651,7 @@ k - number of independent variables
 */
 string err = &quot;&quot;
 scalar avg_model_size_tmp = 0
-scalar err2, arg_val
+scalar err2, arg_val, do_plot_tmp, do_show_progress
 bundle Options
 string arg_name
 strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;center_vars&quot;, &quot;bic_type&quot;)
@@ -1705,9 +1660,10 @@ strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;)
 strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;)
 if $sysinfo.gui_mode
   do_plot_tmp = 1
+  do_show_progress = 1
 else
   do_plot_tmp = 0
-  show_progress = 0
+  do_show_progress = 0
 endif
 # We set the default Nrep conditional on k
 if k &lt;= 10
@@ -1750,7 +1706,7 @@ scalar Options[&quot;Npredict&quot;] = 0
 scalar Options[&quot;Nrep&quot;] = Nrep
 scalar Options[&quot;burn&quot;] = 10
 scalar Options[&quot;verbosity&quot;] = 2
-scalar Options[&quot;show_progress&quot;] = show_progress
+scalar Options[&quot;show_progress&quot;] = do_show_progress
 scalar Options[&quot;do_plot&quot;] = do_plot_tmp
 string Options[&quot;model_type&quot;] = &quot;linear&quot;
 scalar Options[&quot;center_vars&quot;] = 0

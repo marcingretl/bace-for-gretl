@@ -125,7 +125,7 @@ function void BACE_Print (const bundle *M)
     printf "Total probability of the models in ranking (numerical): %f\n", sumc(M.Numerical_Likelihood)
     printf "\n"
     printf "Correlation coefficient between the analytical\n"
-    printf "and numerical probabilities of the above models: %f\n", BACE_correlation_coeff(&M)
+    printf "and numerical probabilities of the above models: %f\n", corr(M.Numerical_Likelihood, M.mod_rank_prob)
 
     # Forecasts
     if M.h_predict > 0

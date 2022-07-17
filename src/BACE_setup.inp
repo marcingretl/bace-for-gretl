@@ -153,13 +153,13 @@ function bundle BACE_setup (series Y,
     # New model
     matrix M.ZtZinv_new = {} # inverse of Z'Z (X's without constant term)
     scalar M.k_new = 0 # number of variables in the current (new) model
-    scalar M.lprob_new = 0 # scalar M.with natural logarithm of marginal density of the new model
+    scalar M.lprob_new = 0 # natural logarithm of probability of the new model
     matrix M.X_new_num = {} # vector containing numbers of variables in the new model
     matrix M.X_new = {} # the X matrix M.for the current (new) model (demeaned)
     # Old model
     matrix M.ZtZinv_old = {} # old inverse of Z'Z (X's without constant term)
     scalar M.k_old = 0 # number of variables in the previous (old) model
-    scalar M.lprob_old = 0 # scalar M.with natural logarithm of marginal density of the old model
+    scalar M.lprob_old = 0 # natural logarithm of probability  of the old model
     matrix M.X_old_num = {} # vector containing numbers of variables in the old model
     scalar M.dj_new = 0 # scalar M.needed for prediction precision computation
     scalar M.dj_old = 0 # scalar M.needed for prediction precision computation

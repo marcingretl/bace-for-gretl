@@ -2,7 +2,6 @@ set verbose off
 
 include src/BACE_parse.inp
 include src/BACE_initial_model.inp
-include src/BACE_correlation_coeff.inp
 include src/BACE_jointness_pairs.inp
 include src/BACE_summary.inp
 include src/BACE_setup.inp

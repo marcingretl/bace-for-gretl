@@ -109,9 +109,10 @@ function void BACE_main (bundle *M)
             endif
 
             # Now we decide if to accept the new model
-            if M.model_prior_log[M.k_new+1]-M.model_prior_log[M.k_old+1]+M.lprob_new-M.lprob_old > log(randgen1(u,0,1))
+            #M.model_prior_log[M.k_new+1]-M.model_prior_log[M.k_old+1]+M.lprob_new-M.lprob_old
+            if M.lprob_new-M.lprob_old > log(randgen1(u,0,1))
                 M.lprob_old = M.lprob_new
-                M.k_old = M.k_new
+                M.k_old = M.k_new # ??? Probably to delete
                 M.ess_old = M.ess_new
                 M.mod_struct_old = M.mod_struct_new
                 model_nr_old = model_nr

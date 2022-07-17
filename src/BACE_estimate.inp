@@ -54,18 +54,7 @@ function void BACE_estimate (bundle *M)
     endif
 
     # We estimate current model
-    if nelem(X) > 0 #M.k_new > 0
-    /*
-       if M.model_type == "linear"
-       ols Y X --quiet
-       elif M.model_type == "logit"
-       logit Y X --quiet
-       elif M.model_type == "probit"
-       probit Y X --quiet
-       elif M.model_type == "poisson"
-       poisson Y X --quiet
-       endif
-        */
+    if nelem(X) > 0
         # We estimate model
         @ESTIMATOR Y X --quiet
 
@@ -86,10 +75,8 @@ function void BACE_estimate (bundle *M)
                 M.Yhat_predict_var = ones(M.h_predict)*NA
             endif
         endif
-        #printf "\n##############\n"
-        #eval -.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.N*log(M.ess_new)
-        #eval $lnl +.5*M.N*((1+log(2*$pi)-log(M.N))) -.5*M.k_new*log(M.N)
-        #M.lprob_new = -.5*($bic - M.N*((1+log(2*$pi)-log(M.N))))
+        
+        # We calculate log of marginal density
         if M.bic_type == 1
             M.lprob_new = -.5*$bic
         elif M.bic_type == 2
@@ -97,6 +84,9 @@ function void BACE_estimate (bundle *M)
         elif M.bic_type == 3
             M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1] - 0.5*log(det(invpd($vcv)))
         endif
+        
+        # We calculate log of model probability
+        M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
     else
         M.bhat_tmp = {}
         M.bvar_tmp = {}

@@ -28,7 +28,8 @@ function void BACE_summary (bundle *M)
     M.bhat_avg = transp(M.bhat_avg)
     M.bvar_avg = transp(M.bvar_avg)
 
-    # Normalisation of numerical probabilities of models in ranking
+    # Normalisations
+    M.mod_rank_prob = exp(M.mod_rank_prob) / sum(exp(M.mod_rank_prob))
     M.Numerical_Likelihood = M.mod_nume_prob / NORM
     M.Post_Results = transp(M.var_prob / NORM)
     M.bhat_avg = M.bhat_avg / NORM
@@ -39,7 +40,7 @@ function void BACE_summary (bundle *M)
         M.bhat_avg = M.consthat_avg ~ M.bhat_avg
         M.bvar_avg = M.constvar_avg ~ M.bvar_avg
         M.Post_Results = {1} | M.Post_Results
-    endif
+    endif    
 
     # Average model size (including matrix for plot)
     M.mod_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
@@ -75,7 +76,6 @@ function void BACE_summary (bundle *M)
 
     # Best 100 models
     percents1 = { 5; 25; 50; 75; 100 }
-    #percents1 = selifr(percents1, percents1 .> M.l_rank)
     percents1 = selifr(percents1, percents1 .< M.post_n_models_accepted)
     percents1 = percents1 ~ zeros(nelem(percents1))
     if rows(percents1) > 0
@@ -88,7 +88,7 @@ function void BACE_summary (bundle *M)
     # We look for certain percentiles
     percents2 = { 50; 75; 90; 95; 99 }
     if nelem(percents1) > 0
-        percents2 = selifr(percents2, percents2 .> percents1[rows(percents1),2]) # In future: use [end,end] syntax
+        percents2 = selifr(percents2, percents2 .> percents1[end,end])
         tmps = percents1[rows(percents1),1]
     else
         tmps = 1

@@ -27,21 +27,25 @@ function scalar BACE_correlation_coeff (bundle *M)
     matrix tmp1 = M.mod_rank_prob
     matrix tmp2 = M.Numerical_Likelihood
     scalar j = 0
+    
     # We check if there are zeros in numerical probablities...
     # ...and if so we ommit such rows in both rankings.
     loop i=1..M.l_rank --quiet
-        if (tmp2[i] == 0.0)
+        if tmp2[i] == 0.0
             scalar j = i
             break
         endif
     endloop
-    if (j >= 3)
+    
+    if j >= 3
         tmp1 = tmp1[1:j-1,]
         tmp2 = tmp2[1:j-1,]
     endif
+    
     # Now we have to normalize the given rankings
     tmp1 -= maxc(tmp1)
     tmp1 = exp(tmp1) ./ sumc(exp(tmp1))
     tmp2 = tmp2 ./ sumc(tmp2)
+    
     return corr(tmp1, tmp2)
 end function
