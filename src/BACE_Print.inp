@@ -34,7 +34,7 @@ function void BACE_Print (const bundle *M)
     if M.h_predict > 0
         smpl M.first_obs M.last_obs
     endif
-    
+
     # We set up estimator command
     string ESTIMATOR = M.estimator
 
@@ -48,7 +48,11 @@ function void BACE_Print (const bundle *M)
     printf "Significance level for the initial model: %f\n", M.alpha
     printf "Bayesian information criterion used: %s\n", M.bic_type_name
     printf "Data transformation: %s\n", M.center_vars_name
-    printf "Total number of iterations: %d\n", M.Nrep
+    printf "Total number of iterations: %d\n", M.Nrep + M.n_drop_draws
+    if M.with_const != 1 && M.n_drop_draws
+        printf "   Number of rejected draws: %d\n", M.n_drop_draws
+        printf "   Effective number of iterations: %d\n", M.Nrep
+    endif
     printf "Number of burn-in draws: %d\n", M.Nburn
     if M.model_space < 2^31
         printf "Total number of possible models: %d\n", M.model_space
@@ -126,6 +130,19 @@ function void BACE_Print (const bundle *M)
     printf "\n"
     printf "Correlation coefficient between the analytical\n"
     printf "and numerical probabilities of the above models: %f\n", corr(M.Numerical_Likelihood, M.mod_rank_prob)
+
+    # Contingency table
+    if M.limited_y
+        printf "\n"
+        print "----------------------------------"
+        printf "\n"
+        print "Contingency table:"
+        printf "\t    %s\n", "Predicted"
+        printf "\t  %5d %5d\n", 0, 1
+        printf "%s %d %6d", "Actual", 0,  M.contingency[1,]
+        printf "%s %d %6d", "      ", 1, M.contingency[2,]
+        printf "Number of cases 'correctly predicted' = %d (%.1f%%)\n", tr(M.contingency), 100*tr(M.contingency)/sum(M.contingency)
+    endif
 
     # Forecasts
     if M.h_predict > 0

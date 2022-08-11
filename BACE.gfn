@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2018a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2022-07-17</date>
+<date>2022-08-11</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -106,7 +106,11 @@ printf &quot;Prior average model size: %f\n&quot;, M.av_model_size
 printf &quot;Significance level for the initial model: %f\n&quot;, M.alpha
 printf &quot;Bayesian information criterion used: %s\n&quot;, M.bic_type_name
 printf &quot;Data transformation: %s\n&quot;, M.center_vars_name
-printf &quot;Total number of iterations: %d\n&quot;, M.Nrep
+printf &quot;Total number of iterations: %d\n&quot;, M.Nrep + M.n_drop_draws
+if M.with_const != 1 &amp;&amp; M.n_drop_draws
+  printf &quot;   Number of rejected draws: %d\n&quot;, M.n_drop_draws
+  printf &quot;   Effective number of iterations: %d\n&quot;, M.Nrep
+endif
 printf &quot;Number of burn-in draws: %d\n&quot;, M.Nburn
 if M.model_space &lt; 2^31
   printf &quot;Total number of possible models: %d\n&quot;, M.model_space
@@ -183,6 +187,18 @@ printf &quot;Total probability of the models in ranking (numerical): %f\n&quot;,
 printf &quot;\n&quot;
 printf &quot;Correlation coefficient between the analytical\n&quot;
 printf &quot;and numerical probabilities of the above models: %f\n&quot;, corr(M.Numerical_Likelihood, M.mod_rank_prob)
+# Contingency table
+if M.limited_y
+  printf &quot;\n&quot;
+  print &quot;----------------------------------&quot;
+  printf &quot;\n&quot;
+  print &quot;Contingency table:&quot;
+  printf &quot;\t    %s\n&quot;, &quot;Predicted&quot;
+  printf &quot;\t  %5d %5d\n&quot;, 0, 1
+  printf &quot;%s %d %6d&quot;, &quot;Actual&quot;, 0,  M.contingency[1,]
+  printf &quot;%s %d %6d&quot;, &quot;      &quot;, 1, M.contingency[2,]
+  printf &quot;Number of cases 'correctly predicted' = %d (%.1f%%)\n&quot;, tr(M.contingency), 100*tr(M.contingency)/sum(M.contingency)
+endif
 # Forecasts
 if M.h_predict &gt; 0
   printf &quot;\n&quot;
@@ -749,7 +765,7 @@ We summarise some BACE results and deleting redundand items from the returned bu
 BACE_print_status(&quot;Summarizing&quot;)
 scalar tmps, factor, k
 strings title
-matrix percents1, percents2
+matrix percents1, percents2, tmpm
 scalar NORM = M.Nrep - M.Nburn
 M.bhat_avg = transp(M.bhat_avg)
 M.bvar_avg = transp(M.bvar_avg)
@@ -766,16 +782,25 @@ if M.with_const == 1
   M.bvar_avg = M.constvar_avg ~ M.bvar_avg
   M.Post_Results = {1} | M.Post_Results
 endif
+if M.limited_y
+  M.Yhat = (M.Yhat / NORM) .&gt;= 0.5
+  tmpm = mxtab(M.Y_mat, M.Yhat)
+  if nelem(tmpm) == 4
+    M.contingency = tmpm
+  elif min(M.Y_mat) == 0 &amp;&amp; min(M.Yhat) == 0
+    M.contingency[,1] = tmpm
+  elif min(M.Y_mat) == 0 &amp;&amp; min(M.Yhat) == 1
+    M.contingency[,2] = tmpm
+  endif
+endif
 # Average model size (including matrix for plot)
 M.mod_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
 M.mod_sizes[,2] = M.mod_sizes[,2] / NORM
 M.mod_size_av = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
 M.mod_size_sd = sqrt(sum((M.mod_sizes[,1] - M.mod_size_av) .^2 .* M.mod_sizes[,2]))
 M.mod_sizes = M.mod_sizes ~ zeros(rows(M.mod_sizes),1)
-tmps = M.av_model_size/M.k
 loop i=1..rows(M.mod_sizes) --quiet
   k = M.mod_sizes[i,1]
-  #M.mod_sizes[i,3] = (tmps^k * (1-tmps)^(M.k-k)) * bincoeff(M.k,k)
   if M.with_const != 1
     M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i+1])
   else
@@ -846,7 +871,14 @@ if M.h_predict &gt; 0
   M.Yhat_predict_var_avg = M.Yhat_var_avg / NORM
   M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
   M.prediction = M.Y_mat_predict ~ M.Yhat_predict_avg ~ M.Yhat_predict_var_avg
-  cnameset(M.prediction, M.Y_name ~ &quot; Mean Std.Dev.&quot;)
+  title = defarray(M.Y_name, &quot;Mean&quot;, &quot;Std.Dev&quot;)
+  if M.limited_y
+    M.prediction[,3] = M.prediction[,2]
+    M.prediction[,2] = M.prediction[,2] .&gt;= 0.5
+    title[2] = &quot;Forecast&quot;
+    title[3] = &quot;Mean&quot;
+  endif
+  cnameset(M.prediction, title)
   rnameset(M.prediction, M.predict_obs_names)
 endif
 # Jointess analysis
@@ -919,6 +951,9 @@ if M.h_predict &gt; 0
   delete M.predict_obs_names
   catch delete M.ess
 endif
+if M.limited_y
+  delete M.Yhat
+endif
 BACE_print_status(null, 1, 10)
 </code>
 </gretl-function>
@@ -953,8 +988,6 @@ tmp_str - general purpose string
 */
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
-printf &quot;\n * Check if we have correct model prior (including Options[\&quot;avg_model_size\&quot;]).&quot;
-printf &quot;\n * Check if we have correct prior distribution plot (empty model).&quot;
 printf &quot;\n * Fix const type selection in GUI.&quot;
 printf &quot;\n * Simplify restoring estimates in BACE_collect_results().&quot;
 printf &quot;\n * What to do with predicted values where we have empty model\n\t(if nelem(models_forecasts[i]) &gt; 0 in BACE_collect_results())?&quot;
@@ -1028,7 +1061,15 @@ endif
 matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
 matrix M.big_mat_dem = M.big_mat
 strings M.DiscreteModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;)
-list D = M.var_numbers2[1,]
+scalar M.n_drop_draws = 0
+scalar M.loop_maxiter = 3*Nrep
+if nelem(instrings(M.DiscreteModelTypes, model_type))
+  matrix M.Yhat = {}
+  scalar M.limited_y = 1
+  matrix M.contingency = zeros(2,2)
+else
+  scalar M.limited_y = 0
+endif
 # In case of &quot;out-of-sample&quot; prediction
 if h_predict &gt; 0
   scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
@@ -1101,14 +1142,14 @@ else
 endif
 # Model prior
 matrix M.model_prior_log = zeros(M.k+1)
-if acc_type == 1 # options for the prior
+if acc_type == 1
   string M.prior_name = &quot;Binomial&quot;
   scalar M.a = log(av_model_size/M.k)
   scalar M.b = log(1 - av_model_size/M.k)
   scalar M.c = 0
   tmp = M.av_model_size/M.k
   loop i=0..M.k --quiet
-    M.model_prior_log[i+1] = log(tmp^i * (1-tmp)^(M.k-i))
+    M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
   endloop
 else
   string M.prior_name = &quot;Binomial-Beta&quot;
@@ -1116,9 +1157,13 @@ else
   scalar M.b = (M.k - av_model_size)/av_model_size
   scalar M.c = lngamma(M.a + M.b) - lngamma(M.a) - lngamma(M.b)
   loop i=0..M.k --quiet
-    M.model_prior_log[i+1] = log((gammafun(i+1) * gammafun(M.k-i+M.b) / gammafun(1+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b)))
+    M.model_prior_log[i+1] = (gammafun(i+1) * gammafun(M.k-i+M.b) / gammafun(1+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
   endloop
 endif
+if M.with_const != 1
+  M.model_prior_log[2:] += (M.model_prior_log[1] / M.model_space)
+endif
+M.model_prior_log = log(M.model_prior_log)
 # Posterior results
 matrix M.bhat = {} # vector containing the estimated coefficients for the current model
 matrix M.bvar = {} # vector containing the variances of the coefficients for the current model
@@ -1243,14 +1288,17 @@ if nelem(X) &gt; 0
     M.bvar_tmp = $stderr.^2
   endif
   M.ess_new = $ess
-  if M.h_predict &gt; 0
-    fcast --out-of-sample --quiet #--dynamic
+  if M.h_predict
+    fcast --out-of-sample --quiet
     M.Yhat_predict = $fcast
-    if nelem(instrings(M.DiscreteModelTypes, M.model_type)) == 0
+    if !M.limited_y
       M.Yhat_predict_var = $fcse.^2 + $fcast.^2
     else
       M.Yhat_predict_var = ones(M.h_predict)*NA
     endif
+  endif
+  if M.limited_y
+    M.Yhat = {$model.yhat}
   endif
   # We calculate log of marginal density
   if M.bic_type == 1
@@ -1271,7 +1319,7 @@ endif
 </code>
 </gretl-function>
 <gretl-function name="BACE_collect_results" type="void" private="1">
- <params count="7">
+ <params count="8">
   <param name="M" type="bundleref"/>
   <param name="known_models" type="bundleref"/>
   <param name="models_counter" type="matrixref"/>
@@ -1279,6 +1327,7 @@ endif
   <param name="models_estimates" type="matricesref"/>
   <param name="models_structure" type="matricesref"/>
   <param name="models_forecasts" type="matricesref" optional="true"/>
+  <param name="models_yhat" type="matricesref" optional="true"/>
  </params>
 <code>/*
 Function collects results from MC3 experiment.
@@ -1304,6 +1353,9 @@ if M.h_predict
   Yhat_avg = zeros(M.h_predict)
   Yhat_var_avg = zeros(M.h_predict)
 endif
+if M.limited_y
+  Yhat = zeros($nobs)
+endif
 # We set the number of visited models
 M.post_n_models = nelem(known_models)
 if M.with_const == 0
@@ -1318,6 +1370,9 @@ models_estimates = models_estimates[idx]
 models_structure = models_structure[idx]
 if M.h_predict
   models_forecasts = models_forecasts[idx]
+endif
+if M.limited_y
+  models_yhat = models_yhat[idx]
 endif
 # Models size cumulative distribution
 models_probs = mreverse(msortby(models_counter ~ idx ~ seq(1, M.post_n_models_accepted)', 1))
@@ -1386,6 +1441,9 @@ loop i=1..nelem(models_counter) --quiet
       Yhat_var_avg += weight * models_forecasts[i][,2]
     endif
   endif
+  if M.limited_y
+    Yhat += weight * models_yhat[i]
+  endif
   # Flushing output - showing progress
   if M.show_progress &amp;&amp; i == percentage
     BACE_show_progress(i, &amp;percentage, M.progress, nelem(models_counter))
@@ -1419,6 +1477,10 @@ endif
 M.mod_sizes = seq(1, M.k)' ~ mod_sizes
 if M.with_const == 1
   M.mod_sizes = {0} ~ M.empty_model_count | M.mod_sizes
+endif
+# Fitted values
+if M.limited_y
+  M.Yhat = Yhat
 endif
 if M.show_progress
   printf &quot;\n&quot;
@@ -1517,6 +1579,7 @@ This is main BACE function with complete MC3 simulation procedure.
 # Local variables
 BACE_print_status(&quot;MC3 setup&quot;)
 scalar percentage = M.progress # percentage of progress of MC3
+scalar rep = 1
 string model_id # string containing model id (0-1 'image')
 scalar model_nr	# iteration number under which model's data are stored in matrices/arrays
 scalar model_nr_old
@@ -1533,10 +1596,16 @@ if M.h_predict &gt; 0
 else
   matrices models_forecasts = null
 endif
+if M.limited_y
+  matrices models_yhat = array(M.Nrep+1)
+else
+  matrices models_yhat = null
+endif
 # Sample setting for prediction
 if M.h_predict &gt; 0
   smpl M.first_obs M.last_obs
 endif
+set loop_maxiter M.loop_maxiter
 ##########################
 # Part 1: Starting model #
 ##########################
@@ -1558,6 +1627,9 @@ models_k_new[model_nr] = M.k_new # ??? Probably to delete
 if M.h_predict &amp;&amp; M.k_new
   models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
 endif
+if M.limited_y
+  models_yhat[model_nr] = M.Yhat
+endif
 BACE_print_status(null, 1, 12)
 ############################################################
 # Part 2: Markov Chain Monte Carlo Model Composition - MC3 #
@@ -1567,7 +1639,7 @@ if M.show_progress
 else
   BACE_print_status(&quot;MC3&quot;)
 endif
-loop rep=1..M.Nrep --quiet
+loop while rep &lt;= M.Nrep --quiet
   # Now we draw the number of candidate variable
   potential_var = randint(0, M.k)
   # Now we modify the list of variables (remove an existing variable or add a new variable)
@@ -1575,6 +1647,10 @@ loop rep=1..M.Nrep --quiet
     mod_struct_draw = M.mod_struct_old
     mod_struct_draw[potential_var] = !mod_struct_draw[potential_var]
     M.k_new = sum(mod_struct_draw)
+    if M.with_const != 1 &amp;&amp; !M.k_new
+      M.n_drop_draws += 1
+      continue
+    endif
     M.mod_struct_new = mod_struct_draw
     model_id = sprintf(&quot;%d&quot;, mod_struct_draw)[1:end-1]
     if inbundle(known_models, model_id)
@@ -1590,13 +1666,14 @@ loop rep=1..M.Nrep --quiet
       models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
       models_ess[model_nr] = M.ess_new # ??? Probably to delete
       models_k_new[model_nr] = M.k_new # ??? Probably to delete
-      # Out-of-sample forecasts
       if M.h_predict &amp;&amp; M.k_new
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
       endif
+      if M.limited_y
+        models_yhat[model_nr] = M.Yhat
+      endif
     endif
     # Now we decide if to accept the new model
-    #M.model_prior_log[M.k_new+1]-M.model_prior_log[M.k_old+1]+M.lprob_new-M.lprob_old
     if M.lprob_new-M.lprob_old &gt; log(randgen1(u,0,1))
       M.lprob_old = M.lprob_new
       M.k_old = M.k_new # ??? Probably to delete
@@ -1613,12 +1690,14 @@ loop rep=1..M.Nrep --quiet
   if M.show_progress &amp;&amp; rep == percentage
     BACE_show_progress(rep, &amp;percentage, M.progress, M.Nrep)
   endif
+  # We increase iterator
+  rep++
 endloop
 if !M.show_progress
   BACE_print_status(null, 1, 18)
 endif
 # Now we collect results (averaging and rankings)
-BACE_collect_results(&amp;M, &amp;known_models, &amp;models_counter, &amp;models_lprob, &amp;models_estimates, &amp;models_structure, &amp;models_forecasts)
+BACE_collect_results(&amp;M, &amp;known_models, &amp;models_counter, &amp;models_lprob, &amp;models_estimates, &amp;models_structure, &amp;models_forecasts, &amp;models_yhat)
 </code>
 </gretl-function>
 <gretl-function name="BACE_bcheck" type="string" private="1">

@@ -22,7 +22,7 @@ function void BACE_summary (bundle *M)
     BACE_print_status("Summarizing")
     scalar tmps, factor, k
     strings title
-    matrix percents1, percents2
+    matrix percents1, percents2, tmpm
     scalar NORM = M.Nrep - M.Nburn
 
     M.bhat_avg = transp(M.bhat_avg)
@@ -40,7 +40,18 @@ function void BACE_summary (bundle *M)
         M.bhat_avg = M.consthat_avg ~ M.bhat_avg
         M.bvar_avg = M.constvar_avg ~ M.bvar_avg
         M.Post_Results = {1} | M.Post_Results
-    endif    
+    endif
+    if M.limited_y
+        M.Yhat = (M.Yhat / NORM) .>= 0.5
+        tmpm = mxtab(M.Y_mat, M.Yhat)
+        if nelem(tmpm) == 4
+            M.contingency = tmpm
+        elif min(M.Y_mat) == 0 && min(M.Yhat) == 0
+            M.contingency[,1] = tmpm
+        elif min(M.Y_mat) == 0 && min(M.Yhat) == 1
+            M.contingency[,2] = tmpm
+        endif
+    endif
 
     # Average model size (including matrix for plot)
     M.mod_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
@@ -48,10 +59,8 @@ function void BACE_summary (bundle *M)
     M.mod_size_av = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
     M.mod_size_sd = sqrt(sum((M.mod_sizes[,1] - M.mod_size_av) .^2 .* M.mod_sizes[,2]))
     M.mod_sizes = M.mod_sizes ~ zeros(rows(M.mod_sizes),1)
-    tmps = M.av_model_size/M.k
     loop i=1..rows(M.mod_sizes) --quiet
         k = M.mod_sizes[i,1]
-        #M.mod_sizes[i,3] = (tmps^k * (1-tmps)^(M.k-k)) * bincoeff(M.k,k)
         if M.with_const != 1
             M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i+1])
         else
@@ -128,7 +137,14 @@ function void BACE_summary (bundle *M)
         M.Yhat_predict_var_avg = M.Yhat_var_avg / NORM
         M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
         M.prediction = M.Y_mat_predict ~ M.Yhat_predict_avg ~ M.Yhat_predict_var_avg
-        cnameset(M.prediction, M.Y_name ~ " Mean Std.Dev.")
+        title = defarray(M.Y_name, "Mean", "Std.Dev")
+        if M.limited_y
+            M.prediction[,3] = M.prediction[,2]
+            M.prediction[,2] = M.prediction[,2] .>= 0.5
+            title[2] = "Forecast"
+            title[3] = "Mean"
+        endif
+        cnameset(M.prediction, title)
         rnameset(M.prediction, M.predict_obs_names)
     endif
 
@@ -202,6 +218,9 @@ function void BACE_summary (bundle *M)
         delete M.Yhat_predict_var_avg
         delete M.predict_obs_names
         catch delete M.ess
+    endif
+    if M.limited_y
+        delete M.Yhat
     endif
 
     BACE_print_status(null, 1, 10)

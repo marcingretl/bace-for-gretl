@@ -66,16 +66,19 @@ function void BACE_estimate (bundle *M)
             M.bvar_tmp = $stderr.^2
         endif
         M.ess_new = $ess
-        if M.h_predict > 0
-            fcast --out-of-sample --quiet #--dynamic
+        if M.h_predict
+            fcast --out-of-sample --quiet
             M.Yhat_predict = $fcast
-            if nelem(instrings(M.DiscreteModelTypes, M.model_type)) == 0
+            if !M.limited_y
                 M.Yhat_predict_var = $fcse.^2 + $fcast.^2
             else
                 M.Yhat_predict_var = ones(M.h_predict)*NA
             endif
         endif
-        
+        if M.limited_y
+            M.Yhat = {$model.yhat}
+        endif
+
         # We calculate log of marginal density
         if M.bic_type == 1
             M.lprob_new = -.5*$bic
@@ -84,7 +87,7 @@ function void BACE_estimate (bundle *M)
         elif M.bic_type == 3
             M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1] - 0.5*log(det(invpd($vcv)))
         endif
-        
+
         # We calculate log of model probability
         M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
     else

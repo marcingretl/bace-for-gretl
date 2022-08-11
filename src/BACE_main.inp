@@ -22,7 +22,9 @@ function void BACE_main (bundle *M)
 
     # Local variables
     BACE_print_status("MC3 setup")
+
     scalar percentage = M.progress # percentage of progress of MC3
+    scalar rep = 1
     string model_id # string containing model id (0-1 'image')
     scalar model_nr	# iteration number under which model's data are stored in matrices/arrays
     scalar model_nr_old
@@ -39,10 +41,16 @@ function void BACE_main (bundle *M)
     else
         matrices models_forecasts = null
     endif
+    if M.limited_y
+        matrices models_yhat = array(M.Nrep+1)
+    else
+        matrices models_yhat = null
+    endif
     # Sample setting for prediction
     if M.h_predict > 0
         smpl M.first_obs M.last_obs
     endif
+    set loop_maxiter M.loop_maxiter
 
     ##########################
     # Part 1: Starting model #
@@ -66,6 +74,10 @@ function void BACE_main (bundle *M)
     if M.h_predict && M.k_new
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
     endif
+    if M.limited_y
+        models_yhat[model_nr] = M.Yhat
+    endif
+
     BACE_print_status(null, 1, 12)
 
     ############################################################
@@ -78,7 +90,7 @@ function void BACE_main (bundle *M)
         BACE_print_status("MC3")
     endif
 
-    loop rep=1..M.Nrep --quiet
+    loop while rep <= M.Nrep --quiet
         # Now we draw the number of candidate variable
         potential_var = randint(0, M.k)
 
@@ -87,6 +99,10 @@ function void BACE_main (bundle *M)
             mod_struct_draw = M.mod_struct_old
             mod_struct_draw[potential_var] = !mod_struct_draw[potential_var]
             M.k_new = sum(mod_struct_draw)
+            if M.with_const != 1 && !M.k_new
+                M.n_drop_draws += 1
+                continue
+            endif
             M.mod_struct_new = mod_struct_draw
             model_id = sprintf("%d", mod_struct_draw)[1:end-1]
             if inbundle(known_models, model_id)
@@ -102,14 +118,15 @@ function void BACE_main (bundle *M)
                 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
                 models_ess[model_nr] = M.ess_new # ??? Probably to delete
                 models_k_new[model_nr] = M.k_new # ??? Probably to delete
-                # Out-of-sample forecasts
                 if M.h_predict && M.k_new
                     models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
+                endif
+                if M.limited_y
+                    models_yhat[model_nr] = M.Yhat
                 endif
             endif
 
             # Now we decide if to accept the new model
-            #M.model_prior_log[M.k_new+1]-M.model_prior_log[M.k_old+1]+M.lprob_new-M.lprob_old
             if M.lprob_new-M.lprob_old > log(randgen1(u,0,1))
                 M.lprob_old = M.lprob_new
                 M.k_old = M.k_new # ??? Probably to delete
@@ -128,6 +145,9 @@ function void BACE_main (bundle *M)
         if M.show_progress && rep == percentage
             BACE_show_progress(rep, &percentage, M.progress, M.Nrep)
         endif
+
+        # We increase iterator
+        rep++
     endloop
     if !M.show_progress
         BACE_print_status(null, 1, 18)
@@ -135,5 +155,6 @@ function void BACE_main (bundle *M)
 
     # Now we collect results (averaging and rankings)
     BACE_collect_results(&M, &known_models, &models_counter,
-      &models_lprob, &models_estimates, &models_structure, &models_forecasts)
+      &models_lprob, &models_estimates, &models_structure,
+      &models_forecasts, &models_yhat)
 end function

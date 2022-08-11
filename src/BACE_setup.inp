@@ -43,8 +43,6 @@ function bundle BACE_setup (series Y,
     */
     printf "\n#############################################################################\n"
     printf "To do:"
-    printf "\n * Check if we have correct model prior (including Options[\"avg_model_size\"])."
-    printf "\n * Check if we have correct prior distribution plot (empty model)."
     printf "\n * Fix const type selection in GUI."
     printf "\n * Simplify restoring estimates in BACE_collect_results()."
     printf "\n * What to do with predicted values where we have empty model\n\t(if nelem(models_forecasts[i]) > 0 in BACE_collect_results())?"
@@ -52,7 +50,9 @@ function bundle BACE_setup (series Y,
     printf "\n * Work on speed."
     printf "\n * Clean up the code."
     printf "\n#############################################################################\n"
+
     BACE_print_status("BACE setup")
+
     bundle M
     scalar tmp
     list X_list = X_list_m
@@ -120,7 +120,15 @@ function bundle BACE_setup (series Y,
     matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
     matrix M.big_mat_dem = M.big_mat
     strings M.DiscreteModelTypes = defarray("logit", "probit")
-    list D = M.var_numbers2[1,]
+    scalar M.n_drop_draws = 0
+    scalar M.loop_maxiter = 3*Nrep
+    if nelem(instrings(M.DiscreteModelTypes, model_type))
+        matrix M.Yhat = {}
+        scalar M.limited_y = 1
+        matrix M.contingency = zeros(2,2)
+    else
+        scalar M.limited_y = 0
+    endif
 
     # In case of "out-of-sample" prediction
     if h_predict > 0
@@ -201,14 +209,14 @@ function bundle BACE_setup (series Y,
 
     # Model prior
     matrix M.model_prior_log = zeros(M.k+1)
-    if acc_type == 1 # options for the prior
+    if acc_type == 1
         string M.prior_name = "Binomial"
         scalar M.a = log(av_model_size/M.k)
         scalar M.b = log(1 - av_model_size/M.k)
         scalar M.c = 0
         tmp = M.av_model_size/M.k
         loop i=0..M.k --quiet
-            M.model_prior_log[i+1] = log(tmp^i * (1-tmp)^(M.k-i))
+            M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
         endloop
     else
         string M.prior_name = "Binomial-Beta"
@@ -216,9 +224,13 @@ function bundle BACE_setup (series Y,
         scalar M.b = (M.k - av_model_size)/av_model_size
         scalar M.c = lngamma(M.a + M.b) - lngamma(M.a) - lngamma(M.b)
         loop i=0..M.k --quiet
-            M.model_prior_log[i+1] = log((gammafun(i+1) * gammafun(M.k-i+M.b) / gammafun(1+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b)))
+            M.model_prior_log[i+1] = (gammafun(i+1) * gammafun(M.k-i+M.b) / gammafun(1+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
         endloop
     endif
+    if M.with_const != 1
+        M.model_prior_log[2:] += (M.model_prior_log[1] / M.model_space)
+    endif
+    M.model_prior_log = log(M.model_prior_log)
 
     # Posterior results
     matrix M.bhat = {} # vector containing the estimated coefficients for the current model
