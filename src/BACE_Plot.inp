@@ -85,6 +85,9 @@ function void BACE_Plot (const bundle *MODEL)
     if MODEL.h_predict
         plotmat = MODEL.prediction[,1:2]
         bars = MODEL.prediction[,2:3]
+        if MODEL.limited_y
+            bars[,2] = zeros(MODEL.h_predict)
+        endif        
         cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
         output = basename
         if !$sysinfo.gui_mode

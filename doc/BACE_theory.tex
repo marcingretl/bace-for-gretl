@@ -19,6 +19,8 @@ where  $SSE_j$ and $SSE_i$ are the OLS sum of squared errors, $2^K$ denotes the 
 \end{equation}
 Note that the Binomial distribution implies that we only need to specify a prior expected model size  $\E(\Xi)=K\theta$ where $\E(\Xi) \in (0, K]$. If we define the value of $\E(\Xi)$ our BACE package will automatically produce a value of prior inclusion probability for all competitive models.  In case of  $\theta = 0.5$ prior expected model size  is equal to the average of number of potential regressors,  model prior distribution is uniform $\left( \Pr(M_i) = 2^{-K} \right)$ and reflects a lack of previous knowledge about models.
 
+\emph{Add Beta-Binomial distribution (including truncated \cite{Atwood1980,TripathiGuptaGurland-Estimation-1994})}
+
 Using BACE we can also easily evaluate the mean and variance of
 the posterior distribution of regression parameters $\beta$ across the whole model space (see \cite{Leamer1978}):
 \begin{equation}

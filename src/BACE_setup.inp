@@ -47,8 +47,9 @@ function bundle BACE_setup (series Y,
     printf "\n * Simplify restoring estimates in BACE_collect_results()."
     printf "\n * What to do with predicted values where we have empty model\n\t(if nelem(models_forecasts[i]) > 0 in BACE_collect_results())?"
     printf "\n * Add PDF and GUI entries for both: center_vars and bic_type."
+    printf "\n * Get rid of BACE_correlation_coeff() function."
     printf "\n * Work on speed."
-    printf "\n * Clean up the code."
+    printf "\n * Clean up the code (specially stale matrixes)."
     printf "\n#############################################################################\n"
 
     BACE_print_status("BACE setup")
@@ -129,6 +130,7 @@ function bundle BACE_setup (series Y,
     else
         scalar M.limited_y = 0
     endif
+    scalar M.toler = 1.0e-20
 
     # In case of "out-of-sample" prediction
     if h_predict > 0
@@ -214,21 +216,37 @@ function bundle BACE_setup (series Y,
         scalar M.a = log(av_model_size/M.k)
         scalar M.b = log(1 - av_model_size/M.k)
         scalar M.c = 0
-        tmp = M.av_model_size/M.k
+        if M.with_const == 1
+            tmp = M.av_model_size/M.k
+        else
+            tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, "Binomial"))
+        endif
         loop i=0..M.k --quiet
             M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
         endloop
     else
-        string M.prior_name = "Binomial-Beta"
+        string M.prior_name = "Beta-Binomial"
         scalar M.a = 1
-        scalar M.b = (M.k - av_model_size)/av_model_size
+        if M.with_const == 1
+            scalar M.b = (M.k - av_model_size)/av_model_size
+        else
+            loop while M.toler > 0
+                catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, "Beta-Binomial", M.a), {100, -.00001}, M.toler)
+                if $error
+                    M.toler *= 10
+                else
+                    M.b = tmp
+                    M.toler = 0
+                endif
+            endloop
+        endif
         scalar M.c = lngamma(M.a + M.b) - lngamma(M.a) - lngamma(M.b)
         loop i=0..M.k --quiet
-            M.model_prior_log[i+1] = (gammafun(i+1) * gammafun(M.k-i+M.b) / gammafun(1+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
+            M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
         endloop
     endif
     if M.with_const != 1
-        M.model_prior_log[2:] += (M.model_prior_log[1] / M.model_space)
+        M.model_prior_log[2:] /= (1 - M.model_prior_log[1])
     endif
     M.model_prior_log = log(M.model_prior_log)
 
