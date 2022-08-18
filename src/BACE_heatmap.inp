@@ -24,6 +24,14 @@ function void BACE_heatmap (const bundle M, string MODE, const string basename[n
     scalar nrows, ncols, tmp, height, width, minval, maxval
     string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output
     matrix m
+    strings all_names_sp_m
+
+    # If we have model with const we ommit the first element
+    if M.with_const == 1
+        all_names_sp_m = M.all_names_sp_m[2:end]
+    else
+        all_names_sp_m = M.all_names_sp_m
+    endif
 
     # We set general image options
     if MODE == "inclusions"
@@ -66,7 +74,7 @@ function void BACE_heatmap (const bundle M, string MODE, const string basename[n
     # We set tics
     ytics = "("
     loop i=1..M.k --quiet
-        ytics += sprintf("\"%s\" %d", M.all_names_sp_m[i], M.k-i)
+        ytics += sprintf("\"%s\" %d", all_names_sp_m[i], M.k-i)
         if i == M.k
             ytics += sprintf(")")
         else
@@ -85,7 +93,7 @@ function void BACE_heatmap (const bundle M, string MODE, const string basename[n
         endloop
     else
         loop i=1..M.k --quiet
-            xtics += sprintf("\"%s\" %d", M.all_names_sp_m[i], i-1)
+            xtics += sprintf("\"%s\" %d", all_names_sp_m[i], i-1)
             if i == M.k
                 xtics += sprintf(")")
             else

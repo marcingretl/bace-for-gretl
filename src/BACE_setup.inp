@@ -44,10 +44,8 @@ function bundle BACE_setup (series Y,
     printf "\n#############################################################################\n"
     printf "To do:"
     printf "\n * Fix const type selection in GUI."
-    printf "\n * Simplify restoring estimates in BACE_collect_results()."
-    printf "\n * What to do with predicted values where we have empty model\n\t(if nelem(models_forecasts[i]) > 0 in BACE_collect_results())?"
-    printf "\n * Add PDF and GUI entries for both: center_vars and bic_type."
-    printf "\n * Get rid of BACE_correlation_coeff() function."
+    printf "\n * Simplify restoring estimates in BACE_collect_results()."    
+    printf "\n * Add PDF center_vars and bic_type."
     printf "\n * Work on speed."
     printf "\n * Clean up the code (specially stale matrixes)."
     printf "\n#############################################################################\n"
@@ -120,13 +118,14 @@ function bundle BACE_setup (series Y,
     endif
     matrix M.big_mat = { big_list } # matrix M.of all variables (including Y)
     matrix M.big_mat_dem = M.big_mat
-    strings M.DiscreteModelTypes = defarray("logit", "probit")
+    strings M.DiscreteModelTypes = defarray("logit", "probit") # first two for just 0-1 dependent variable
     scalar M.n_drop_draws = 0
     scalar M.loop_maxiter = 3*Nrep
     if nelem(instrings(M.DiscreteModelTypes, model_type))
         matrix M.Yhat = {}
         scalar M.limited_y = 1
         matrix M.contingency = zeros(2,2)
+        scalar M.correctly_predicted = NA
     else
         scalar M.limited_y = 0
     endif

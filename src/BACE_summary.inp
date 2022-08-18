@@ -24,6 +24,9 @@ function void BACE_summary (bundle *M)
     strings title
     matrix percents1, percents2, tmpm
     scalar NORM = M.Nrep - M.Nburn
+    series Y = M.Y
+    series Yhat
+    list xtab_l
 
     M.bhat_avg = transp(M.bhat_avg)
     M.bvar_avg = transp(M.bvar_avg)
@@ -42,15 +45,15 @@ function void BACE_summary (bundle *M)
         M.Post_Results = {1} | M.Post_Results
     endif
     if M.limited_y
-        M.Yhat = (M.Yhat / NORM) .>= 0.5
-        tmpm = mxtab(M.Y_mat, M.Yhat)
-        if nelem(tmpm) == 4
-            M.contingency = tmpm
-        elif min(M.Y_mat) == 0 && min(M.Yhat) == 0
-            M.contingency[,1] = tmpm
-        elif min(M.Y_mat) == 0 && min(M.Yhat) == 1
-            M.contingency[,2] = tmpm
+        M.Yhat = M.Yhat / NORM
+        if nelem(instrings(M.DiscreteModelTypes[1:2], M.model_type))
+            M.Yhat = M.Yhat .>= 0.5
         endif
+        Yhat = M.Yhat
+        xtab_l = Y Yhat
+        xtab xtab_l --zeros --no-totals --quiet
+        M.contingency = $result
+        M.correctly_predicted = sum(Y == Yhat)
     endif
 
     # Average model size (including matrix for plot)

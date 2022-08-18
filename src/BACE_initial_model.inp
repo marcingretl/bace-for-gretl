@@ -116,7 +116,7 @@ function void BACE_initial_model (bundle *M)
         last = $xlist
         if M.with_const == 1
             last -= const
-            M.k_new = $ncoeff - 1
+            M.k_new = $ncoeff-1
         else
             M.k_new = $ncoeff
         endif
