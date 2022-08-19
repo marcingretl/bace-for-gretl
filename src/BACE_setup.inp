@@ -43,7 +43,6 @@ function bundle BACE_setup (series Y,
     */
     printf "\n#############################################################################\n"
     printf "To do:"
-    printf "\n * Fix const type selection in GUI."
     printf "\n * Simplify restoring estimates in BACE_collect_results()."    
     printf "\n * Add PDF center_vars and bic_type."
     printf "\n * Work on speed."
