@@ -24,7 +24,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     */
     BACE_print_status("Collecting results", 0)
     matrix idx, var_idx, bhat, mod_struct, models_probs, X_new_num
-    matrices models_structure_rank, models_estimates_rank
+    matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank
     scalar nr, mod_struct_sum
     scalar weight = 0
     if M.with_const == 1
@@ -45,7 +45,11 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
     if M.limited_y
         Yhat = zeros($nobs)
-    endif    
+        if M.ordered
+            matrix cutshat_avg = zeros(M.cuts)
+            matrix cutsvar_avg = zeros(M.cuts)
+        endif
+    endif
 
     # We set the number of visited models
     M.post_n_models = nelem(known_models)
@@ -65,6 +69,13 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
     if M.limited_y
         models_yhat = models_yhat[idx]
+        if M.ordered
+            cuts_estimates = array(nelem(models_counter))
+            loop i=1..nelem(models_counter) --quiet
+                cuts_estimates[i] = models_estimates[i][end-M.cuts+1:end,]
+                models_estimates[i] = models_estimates[i][1:end-M.cuts,]
+            endloop
+        endif
     endif
 
     # Models size cumulative distribution
@@ -78,6 +89,9 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     M.mod_rank_prob = models_lprob[models_probs[,2]]
     models_structure_rank = models_structure[models_probs[,3]]
     models_estimates_rank = models_estimates[models_probs[,3]]
+    if M.limited_y && M.ordered
+        cuts_estimates_rank = cuts_estimates[models_probs[,3]]
+    endif
 
     # We restore estimates for models in ranking
     loop i=1..M.l_rank --quiet
@@ -93,6 +107,9 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         endif
         if nelem(models_estimates_rank[i])
             M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
+            if M.limited_y && M.ordered
+                M.mod_rank_cuts_estimates[i] = cuts_estimates_rank[i][,1] ~ sqrt(cuts_estimates_rank[i][,2])
+            endif
         endif
     endloop
 
@@ -123,6 +140,11 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
             bhat = models_estimates[i][,1]
             bhat_avg[var_idx] += weight * bhat
             bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
+            if M.limited_y && M.ordered
+                bhat = cuts_estimates[i][,1]
+                cutshat_avg += weight * bhat
+                cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
+            endif
             if mod_struct_sum
                 mod_sizes[mod_struct_sum] += weight
             else
@@ -141,10 +163,10 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                 Yhat_var_avg += weight * models_forecasts[i][,2]
             endif
         endif
-        
+
         if M.limited_y
             Yhat += weight * models_yhat[i]
-        endif        
+        endif
 
         # Flushing output - showing progress
         if M.show_progress && i == percentage
@@ -166,6 +188,10 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         M.bhat_avg = bhat_avg
         M.bvar_avg = bvar_avg
     endif
+    if M.limited_y && M.ordered
+        M.cutshat_avg = cutshat_avg
+        M.cutsvar_avg = cutsvar_avg
+    endif
 
     # Probability of variables
     M.var_prob = var_prob
@@ -186,11 +212,11 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     if M.with_const == 1
         M.mod_sizes = {0} ~ M.empty_model_count | M.mod_sizes
     endif
-    
+
     # Fitted values
     if M.limited_y
         M.Yhat = Yhat
-    endif    
+    endif
 
     if M.show_progress
         printf "\n"
