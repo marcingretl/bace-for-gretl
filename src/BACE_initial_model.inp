@@ -28,6 +28,12 @@ function void BACE_initial_model (bundle *M)
     
     # We set up estimator command
     string ESTIMATOR = M.estimator
+    
+    # If we have ordered logit/probit we have to correct $ncoeff
+    scalar cuts = 0
+    if M.limited_y
+        cuts = M.cuts
+    endif    
 
     # Starting values of the local variables
     if M.h_predict
@@ -97,7 +103,7 @@ function void BACE_initial_model (bundle *M)
                     last -= const
                     M.k_new = $ncoeff-1
                 else
-                    M.k_new = $ncoeff
+                    M.k_new = $ncoeff-cuts
                 endif
                 M.StartModel_b = $model
                 strings M.StartModel_xnames = varnames($xlist)
@@ -118,7 +124,7 @@ function void BACE_initial_model (bundle *M)
             last -= const
             M.k_new = $ncoeff-1
         else
-            M.k_new = $ncoeff
+            M.k_new = $ncoeff-cuts
         endif
         M.StartModel_b = $model
         strings M.StartModel_xnames = varnames($xlist)
