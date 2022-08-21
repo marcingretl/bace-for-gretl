@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function void BACE_Print (const bundle *M)
+function void BACE_Print (bundle *M)
 /*
    Function prints BACE results.
     */
@@ -41,7 +41,11 @@ function void BACE_Print (const bundle *M)
     # Additional information in summary
     printf "\n"
     print "----------------------------------"
-    printf "Model type: %s\n", M.model_type
+    if M.limited_y && M.ordered
+        printf "Model type: ordered %s\n", M.model_type
+    else
+        printf "Model type: %s\n", M.model_type
+    endif    
     printf "Constant type: %s\n", M.const_type
     printf "Prior: %s\n", M.prior_name
     printf "Prior average model size: %f\n", M.av_model_size
@@ -68,7 +72,11 @@ function void BACE_Print (const bundle *M)
         printf "\n"
         print "----------------------------------"
         if nelem(M.StartModel_b) != 0
-            printf "The initial model: %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
+            if M.limited_y && M.ordered
+                printf "The initial model: ordered %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
+            else
+                printf "The initial model: %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
+            endif            
             loop i=1..nelem(M.StartModel_xnames) --quiet
                 if substr(M.StartModel_xnames[i], 1, 4) == "YyY_"
                     M.StartModel_xnames[i] = strsub(M.StartModel_xnames[i], "YyY", M.Y_name)
@@ -76,6 +84,9 @@ function void BACE_Print (const bundle *M)
             endloop
             coeffmat = M.StartModel_b.coeff ~ M.StartModel_b.stderr
             strings coeffmat_xnames = M.StartModel_xnames
+            if M.limited_y && M.ordered
+                coeffmat_xnames += M.cuts_names
+            endif
             modprint coeffmat coeffmat_xnames
         else
             printf("The initial model was empty.\n")
@@ -107,6 +118,9 @@ function void BACE_Print (const bundle *M)
             Post_Results = mreverse(msortby(Post_Results, 1))
         endif
         printf "%15f", Post_Results
+        if M.limited_y && M.ordered
+            printf "\n%15f", M.cuts_avg
+        endif        
     endif
     printf "\n"
     print "----------------------------------"
@@ -136,16 +150,8 @@ function void BACE_Print (const bundle *M)
         printf "\n"
         print "----------------------------------"
         printf "\n"
-        print "Contingency table:"
-        printf "\t    %s\n", "Predicted"
-        /*
-        
-        printf "\t  %5d %5d\n", 0, 1
-        printf "%s %d %6d", "Actual", 0,  M.contingency[1,]
-        printf "%s %d %6d", "      ", 1, M.contingency[2,]
-        */
-        #eval M.contingency
-        printf "%s %6d", "Actual", M.contingency
+        print "Contingency table (actual in rows, predicted in columns):"
+        eval M.contingency
         printf "Number of cases 'correctly predicted' = %d (%.1f%%)\n", M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
     endif
 
@@ -247,6 +253,10 @@ function void BACE_Print (const bundle *M)
                 else
                     coeffmat = M.mod_rank_estimates[i][,1:2]
                     Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
+                    if M.limited_y && M.ordered                        
+                        coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
+                        Xnames += M.cuts_names
+                    endif                    
                     modprint coeffmat Xnames
                 endif
             endif

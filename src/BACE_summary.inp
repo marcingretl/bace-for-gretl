@@ -46,14 +46,10 @@ function void BACE_summary (bundle *M)
     endif
     if M.limited_y
         M.Yhat = M.Yhat / NORM
-        if nelem(instrings(M.DiscreteModelTypes[1:2], M.model_type))
-            M.Yhat = M.Yhat .>= 0.5
+        if M.ordered
+            M.cutshat_avg = M.cutshat_avg / NORM
+            M.cutsvar_avg = M.cutsvar_avg / NORM
         endif
-        Yhat = M.Yhat
-        xtab_l = Y Yhat
-        xtab xtab_l --zeros --no-totals --quiet
-        M.contingency = $result
-        M.correctly_predicted = sum(Y == Yhat)
     endif
 
     # Average model size (including matrix for plot)
@@ -133,6 +129,29 @@ function void BACE_summary (bundle *M)
     title = defarray("PIP", "Mean", "Std.Dev.", "Cond.Mean", "Cond.Std.Dev")
     cnameset(M.Post_Results, title)
     rnameset(M.Post_Results, M.all_names_sp_m)
+    if M.limited_y && M.ordered
+        matrix bvar = sqrt(M.cutsvar_avg - M.cutshat_avg.^2)
+        matrix M.cuts_avg = M.cutshat_avg ~ bvar
+        title = defarray("Mean", "Std.Dev.")
+        cnameset(M.cuts_avg, title)
+        rnameset(M.cuts_avg, M.cuts_names)
+    endif
+    if M.limited_y
+        if nelem(instrings(M.DiscreteModelTypes[1:2], M.model_type))
+            if !M.ordered
+                M.Yhat = M.Yhat .>= 0.5
+            else
+                Yhat = M.Yhat
+                tmps = M.model_type == "logit" ? 1 : 0
+                M.Yhat = ordered_prediction(M.cuts_avg[,1], Yhat, M.yvalues[1], tmps, 1)
+            endif            
+        endif
+        Yhat = M.Yhat
+        xtab_l = Y Yhat
+        xtab xtab_l --zeros --no-totals --quiet
+        M.contingency = $result
+        M.correctly_predicted = sum(Y == Yhat)
+    endif
 
     # Forecasts
     if M.h_predict > 0
@@ -224,6 +243,10 @@ function void BACE_summary (bundle *M)
     endif
     if M.limited_y
         delete M.Yhat
+        if M.ordered
+            delete M.cutsvar_avg
+            delete M.cutshat_avg
+        endif
     endif
 
     BACE_print_status(null, 1, 10)
