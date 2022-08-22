@@ -876,6 +876,10 @@ endloop
 percents2 = selifr(percents2, percents2[,1] .&gt; 0)
 M.models_probs_percents = percents2 | { M.post_n_models_accepted , 1 }
 if nelem(percents1) &gt; 0
+  tmps = sum(contains(percents2[,1], percents1[,1]))
+  if tmps &gt; 0
+    M.models_probs_percents = M.models_probs_percents[tmps+1:end,]
+  endif
   M.models_probs_percents = percents1 | M.models_probs_percents
 endif
 # We construct Post_Results matrix

@@ -115,6 +115,10 @@ function void BACE_summary (bundle *M)
     percents2 = selifr(percents2, percents2[,1] .> 0)
     M.models_probs_percents = percents2 | { M.post_n_models_accepted , 1 }
     if nelem(percents1) > 0
+        tmps = sum(contains(percents2[,1], percents1[,1]))
+        if tmps > 0
+            M.models_probs_percents = M.models_probs_percents[tmps+1:end,]
+        endif
         M.models_probs_percents = percents1 | M.models_probs_percents
     endif
 
@@ -144,7 +148,7 @@ function void BACE_summary (bundle *M)
                 Yhat = M.Yhat
                 tmps = M.model_type == "logit" ? 1 : 0
                 M.Yhat = ordered_prediction(M.cuts_avg[,1], Yhat, M.yvalues[1], tmps, 1)
-            endif            
+            endif
         endif
         Yhat = M.Yhat
         xtab_l = Y Yhat
