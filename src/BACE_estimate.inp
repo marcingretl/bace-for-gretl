@@ -54,7 +54,7 @@ function void BACE_estimate (bundle *M)
     endif
 
     # We estimate current model
-    if nelem(X) > 0
+    if nelem(X) > 0 || M.limited_y && M.ordered
         # We estimate model
         @ESTIMATOR Y X --quiet
 

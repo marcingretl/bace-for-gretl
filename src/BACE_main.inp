@@ -99,10 +99,16 @@ function void BACE_main (bundle *M)
             mod_struct_draw = M.mod_struct_old
             mod_struct_draw[potential_var] = !mod_struct_draw[potential_var]
             M.k_new = sum(mod_struct_draw)
-            if M.with_const != 1 && !M.k_new
+            if M.with_const != 1 && !M.k_new && !(M.limited_y && M.ordered)
                 M.n_drop_draws += 1
                 continue
             endif
+            /*
+            if M.limited_y && M.ordered && !M.k_new
+                printf "\n####### jestem ########\n"
+                catch eval known_models[sprintf("%d", mod_struct_draw)[1:end-1]]
+            endif
+            */
             M.mod_struct_new = mod_struct_draw
             model_id = sprintf("%d", mod_struct_draw)[1:end-1]
             if inbundle(known_models, model_id)

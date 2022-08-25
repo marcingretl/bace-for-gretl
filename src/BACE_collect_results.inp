@@ -53,8 +53,8 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
 
     # We set the number of visited models
     M.post_n_models = nelem(known_models)
-    if M.with_const == 0
-        M.post_n_models = xmin(M.post_n_models, 2^M.k -1)
+    if M.with_const == 0 && !(M.limited_y && M.ordered)
+        M.post_n_models = xmin(M.post_n_models, 2^M.k-1)
     endif
     known_models = null
 
@@ -73,7 +73,11 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
             cuts_estimates = array(nelem(models_counter))
             loop i=1..nelem(models_counter) --quiet
                 cuts_estimates[i] = models_estimates[i][end-M.cuts+1:end,]
-                models_estimates[i] = models_estimates[i][1:end-M.cuts,]
+                if rows(models_estimates[i]) > M.cuts
+                    models_estimates[i] = models_estimates[i][1:end-M.cuts,]
+                else
+                    models_estimates[i] = {}
+                endif                
             endloop
         endif
     endif
@@ -209,7 +213,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
 
     # Models size distribution
     M.mod_sizes = seq(1, M.k)' ~ mod_sizes
-    if M.with_const == 1
+    if M.with_const == 1 || M.limited_y && M.ordered
         M.mod_sizes = {0} ~ M.empty_model_count | M.mod_sizes
     endif
 

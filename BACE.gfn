@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2022-08-20</date>
+<date>2022-08-25</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -79,7 +79,7 @@ return MODEL
 </gretl-function>
 <gretl-function name="BACE_Print" type="void" pkg-role="bundle-print">
  <params count="1">
-  <param name="M" type="bundleref" const="true"/>
+  <param name="M" type="bundleref"/>
  </params>
 <code>/*
 Function prints BACE results.
@@ -208,15 +208,8 @@ if M.limited_y
   printf &quot;\n&quot;
   print &quot;----------------------------------&quot;
   printf &quot;\n&quot;
-  print &quot;Contingency table:&quot;
-  printf &quot;\t    %s\n&quot;, &quot;Predicted&quot;
-  /*
-  printf &quot;\t  %5d %5d\n&quot;, 0, 1
-  printf &quot;%s %d %6d&quot;, &quot;Actual&quot;, 0,  M.contingency[1,]
-  printf &quot;%s %d %6d&quot;, &quot;      &quot;, 1, M.contingency[2,]
-  */
-  #eval M.contingency
-  printf &quot;%s %6d&quot;, &quot;Actual&quot;, M.contingency
+  print &quot;Contingency table (actual in rows, predicted in columns):&quot;
+  eval M.contingency
   printf &quot;Number of cases 'correctly predicted' = %d (%.1f%%)\n&quot;, M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
 endif
 # Forecasts
@@ -446,7 +439,7 @@ endif
   <param name="model_prior" type="int" min="1" max="2" default="1">
 <description>Model prior</description>
 <labels count="2">
-"Binomial" "Binomial-Beta" </labels>
+"Binomial" "Beta-Binomial" </labels>
   </param>
   <param name="bic_type" type="int" min="1" max="3" default="1">
 <description>Bayesian information</description>
@@ -832,7 +825,7 @@ M.mod_size_sd = sqrt(sum((M.mod_sizes[,1] - M.mod_size_av) .^2 .* M.mod_sizes[,2
 M.mod_sizes = M.mod_sizes ~ zeros(rows(M.mod_sizes),1)
 loop i=1..rows(M.mod_sizes) --quiet
   k = M.mod_sizes[i,1]
-  if M.with_const != 1
+  if M.with_const != 1 &amp;&amp; !(M.limited_y &amp;&amp; M.ordered)
     M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i+1])
   else
     M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i])
@@ -883,6 +876,10 @@ endloop
 percents2 = selifr(percents2, percents2[,1] .&gt; 0)
 M.models_probs_percents = percents2 | { M.post_n_models_accepted , 1 }
 if nelem(percents1) &gt; 0
+  tmps = sum(contains(percents2[,1], percents1[,1]))
+  if tmps &gt; 0
+    M.models_probs_percents = M.models_probs_percents[tmps+1:end,]
+  endif
   M.models_probs_percents = percents1 | M.models_probs_percents
 endif
 # We construct Post_Results matrix
@@ -908,13 +905,9 @@ if M.limited_y
     if !M.ordered
       M.Yhat = M.Yhat .&gt;= 0.5
     else
-      eval M.cuts_avg[,1]
-      eval M.yvalues
-      loop i=M.cuts..1 --decr --quiet
-        eval i
-        M.Yhat .&lt;= M.cuts_avg[1,1]
-      endloop
-      mread
+      Yhat = M.Yhat
+      tmps = M.model_type == &quot;logit&quot; ? 1 : 0
+      M.Yhat = ordered_prediction(M.cuts_avg[,1], Yhat, M.yvalues[1], tmps, 1)
     endif
   endif
   Yhat = M.Yhat
@@ -1052,6 +1045,7 @@ printf &quot;\n#################################################################
 printf &quot;To do:&quot;
 printf &quot;\n * Simplify restoring estimates in BACE_collect_results().&quot;
 printf &quot;\n * Add PDF center_vars and bic_type.&quot;
+printf &quot;\n * Add PDF information on dependecies.&quot;
 printf &quot;\n * Work on speed.&quot;
 printf &quot;\n * Clean up the code (specially stale matrixes).&quot;
 printf &quot;\n#############################################################################\n&quot;
@@ -1235,7 +1229,6 @@ if acc_type == 1
   scalar M.b = log(1 - av_model_size/M.k)
   scalar M.c = 0
   if M.with_const == 1 || M.limited_y &amp;&amp; M.ordered
-    print &quot;jestem&quot;
     tmp = M.av_model_size/M.k
   else
     tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, &quot;Binomial&quot;))
@@ -1381,7 +1374,7 @@ if M.with_const == 1
   X += const
 endif
 # We estimate current model
-if nelem(X) &gt; 0
+if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
   # We estimate model
   @ESTIMATOR Y X --quiet
   if M.with_const == 2 &amp;&amp; $ncoeff &gt; 1 &amp;&amp; $model.parnames[1] == &quot;const&quot;
@@ -1466,8 +1459,8 @@ if M.limited_y
 endif
 # We set the number of visited models
 M.post_n_models = nelem(known_models)
-if M.with_const == 0
-  M.post_n_models = xmin(M.post_n_models, 2^M.k -1)
+if M.with_const == 0 &amp;&amp; !(M.limited_y &amp;&amp; M.ordered)
+  M.post_n_models = xmin(M.post_n_models, 2^M.k-1)
 endif
 known_models = null
 # We select objects only for accepted models
@@ -1485,7 +1478,11 @@ if M.limited_y
     cuts_estimates = array(nelem(models_counter))
     loop i=1..nelem(models_counter) --quiet
       cuts_estimates[i] = models_estimates[i][end-M.cuts+1:end,]
-      models_estimates[i] = models_estimates[i][1:end-M.cuts,]
+      if rows(models_estimates[i]) &gt; M.cuts
+        models_estimates[i] = models_estimates[i][1:end-M.cuts,]
+      else
+        models_estimates[i] = {}
+      endif
     endloop
   endif
 endif
@@ -1605,7 +1602,7 @@ if M.h_predict
 endif
 # Models size distribution
 M.mod_sizes = seq(1, M.k)' ~ mod_sizes
-if M.with_const == 1
+if M.with_const == 1 || M.limited_y &amp;&amp; M.ordered
   M.mod_sizes = {0} ~ M.empty_model_count | M.mod_sizes
 endif
 # Fitted values
@@ -1777,10 +1774,16 @@ loop while rep &lt;= M.Nrep --quiet
     mod_struct_draw = M.mod_struct_old
     mod_struct_draw[potential_var] = !mod_struct_draw[potential_var]
     M.k_new = sum(mod_struct_draw)
-    if M.with_const != 1 &amp;&amp; !M.k_new
+    if M.with_const != 1 &amp;&amp; !M.k_new &amp;&amp; !(M.limited_y &amp;&amp; M.ordered)
       M.n_drop_draws += 1
       continue
     endif
+    /*
+    if M.limited_y &amp;&amp; M.ordered &amp;&amp; !M.k_new
+      printf &quot;\n####### jestem ########\n&quot;
+      catch eval known_models[sprintf(&quot;%d&quot;, mod_struct_draw)[1:end-1]]
+    endif
+    */
     M.mod_struct_new = mod_struct_draw
     model_id = sprintf(&quot;%d&quot;, mod_struct_draw)[1:end-1]
     if inbundle(known_models, model_id)
@@ -1885,10 +1888,10 @@ else
   Nrep = 1e+06
 endif
 # We set temporal Y_AR_p value
-if isnan(Y_AR_p)
+if !inbundle(UserOpts, &quot;Y_AR_p&quot;) || typeof(UserOpts[&quot;Y_AR_p&quot;]) != 1
   Y_AR_p_tmp = 0
 else
-  Y_AR_p_tmp = Y_AR_p
+  Y_AR_p_tmp = UserOpts[&quot;Y_AR_p&quot;]
 endif
 # We set temporal with_const value and calculate prior average model size
 if !inbundle(UserOpts, &quot;with_const&quot;)
@@ -1897,11 +1900,6 @@ if !inbundle(UserOpts, &quot;with_const&quot;)
 else
   with_const_tmp = UserOpts[&quot;with_const&quot;]
   avg_model_size_tmp = (k + Y_AR_p_tmp + (with_const_tmp == 2)) / 2
-  /*
-  loop i=1..k --quiet
-    avg_model_size_tmp += i * bincoeff(k,i) * (2^(k + Y_AR_p_tmp + (with_const_tmp == 2)) - 1)^-1
-  endloop
-  */
 endif
 # Template bundle with default values
 scalar Options[&quot;Y_AR_p&quot;] = 0
@@ -1909,7 +1907,7 @@ scalar Options[&quot;with_const&quot;] = 1
 scalar Options[&quot;model_prior&quot;] = 1
 scalar Options[&quot;avg_model_size&quot;] = avg_model_size_tmp
 scalar Options[&quot;alpha&quot;] = 0.6
-scalar Options[&quot;Nrank&quot;] = xmin(2^(k-1), 40)
+scalar Options[&quot;Nrank&quot;] = xmin(2^(k+Y_AR_p_tmp-1), 40)
 scalar Options[&quot;do_joint&quot;] = 0
 scalar Options[&quot;Npredict&quot;] = 0
 scalar Options[&quot;Nrep&quot;] = Nrep
