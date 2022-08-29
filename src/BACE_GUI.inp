@@ -26,7 +26,7 @@ function bundle BACE_GUI (series Y "Dependent variable",
       scalar alpha[0:1:0.6] "Significance level for the initial model",
       int Nrank[2::4] "Number of the top ranked models",
       int do_joint[0:7:0] "Jointness analysis" {"None", "Doppelhofer-Weeks Measure (DW1)", "Doppelhofer-Weeks Measure (DW2)", \
-      "Ley-Steel Measure (LS1)", "Ley-Steel Measure (LS2)", "Strachan Measure", "Yule's Q Measure (YQ)", "Modified Yule's Q Measure (YQM)"},
+      "Ley-Steel Measure (LS1)", "Ley-Steel Measure (LS2)", "Strachan Measure (SM)", "Yule's Q Measure (YQ)", "Modified Yule's Q Measure (MYQ)"},
       int Npredict[0::0] "Number of out-of-sample forecasts",
       int Nrep[1e+06] "Total number of replications",
       int burn[0:99:10] "Percentage of burn-in draws",

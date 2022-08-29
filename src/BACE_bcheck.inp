@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *with_const,
+function string BACE_bcheck (bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *with_const,
                              scalar *acc_type, scalar *av_model_size, scalar *alpha, scalar *l_rank,
                              scalar *do_joint, scalar *h_predict, scalar *Nrep, scalar *burn,
                              scalar *verbosity, scalar *show_progress, scalar *do_plot,
@@ -31,8 +31,9 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
     string err = ""
     scalar avg_model_size_tmp = 0
     scalar err2, arg_val, do_plot_tmp, do_show_progress
-    bundle Options
-    string arg_name
+    bundle Options, Overloadable
+    string arg_name, parameter_value
+    strings OverloadableKeys
     strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
       "do_joint", "Npredict", "Nrep", "burn", "verbosity", "center_vars", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
@@ -45,6 +46,32 @@ function string BACE_bcheck (const bundle UserOpts, scalar k, scalar *Y_AR_p, sc
         do_plot_tmp = 0
         do_show_progress = 0
     endif
+    Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3)
+    Overloadable["model_prior"] = _(binomial=1, betabinomial=2)
+    Overloadable["with_const"] = _(never=0, always=1, canbedropped=2)
+    Overloadable["do_joint"] = _(dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7)
+
+    # We look for overloaded parameters and we convert them into integers
+    OverloadableKeys = getkeys(Overloadable)
+    loop i=1..nelem(OverloadableKeys) --quiet
+        arg_name = OverloadableKeys[i]
+        if inbundle(UserOpts, arg_name)
+            if typeof(UserOpts[arg_name]) == 4
+                parameter_value = tolower(UserOpts[arg_name])
+                parameter_value = strsub(parameter_value, " ", "")
+                if arg_name == "model_prior"
+                    parameter_value = strsub(parameter_value, "-", "")
+                endif
+                catch arg_val = Overloadable[arg_name][parameter_value]
+                if $error
+                    err = sprintf("Unknown '%s' value for parameter %s", UserOpts[arg_name], arg_name)
+                    return err
+                else
+                    UserOpts[arg_name] = arg_val
+                endif
+            endif
+        endif
+    endloop
 
     # We set the default Nrep conditional on k
     if k <= 10
