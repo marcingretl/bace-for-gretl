@@ -60,8 +60,8 @@ function void BACE_summary (bundle *M)
     M.mod_sizes = M.mod_sizes ~ zeros(rows(M.mod_sizes),1)
     loop i=1..rows(M.mod_sizes) --quiet
         k = M.mod_sizes[i,1]
-        if M.with_const != 1
-            M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i+1])
+        if M.with_const != 1 && !(M.limited_y && M.ordered)
+            M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i+1])            
         else
             M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i])
         endif

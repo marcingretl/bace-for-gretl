@@ -80,7 +80,7 @@ function matrix BACE_jointness_measure (bundle *M)
                 jointness_measure[i,j] = (a+b)/N * (a+c)/N * log(a*N/(b*c))
             elif M.do_joint == 6 # Yule's Q (YQ)
                 jointness_measure[i,j] = (a*d - b*c) / (a*d + b*c)
-            elif M.do_joint == 7 # Modified Yule's Q (YQM)
+            elif M.do_joint == 7 # Modified Yule's Q (MYQ)
                 jointness_measure[i,j] = ((a+0.5)*(d+0.5)-(b+0.5)*(c+0.5)) / ((a+0.5)*(d+0.5)+(b+0.5)*(c+0.5)-0.5)
             endif
         endloop

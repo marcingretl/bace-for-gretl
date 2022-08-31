@@ -33,7 +33,7 @@ function bundle BACE_setup (series Y,
                             int Norig,
                             bool do_plot,
                             string model_type,
-                            scalar center_vars,
+                            scalar data_trans,
                             scalar bic_type)
     /*
        This function creates BUNDLE holding all BACE information
@@ -43,8 +43,10 @@ function bundle BACE_setup (series Y,
     */
     printf "\n#############################################################################\n"
     printf "To do:"
+    printf "\n * Allow for 'overloading' in options bundle."
+    printf "\n * Get rid off redundancy in setup BACE_bcheck() + BACE_parse() + BACE_setup()."
     printf "\n * Simplify restoring estimates in BACE_collect_results()."
-    printf "\n * Add PDF center_vars and bic_type."
+    printf "\n * Add PDF data_trans and bic_type."
     printf "\n * Add PDF information on dependecies."
     printf "\n * Work on speed."
     printf "\n * Clean up the code (specially stale matrixes)."
@@ -94,7 +96,7 @@ function bundle BACE_setup (series Y,
         X_list = X_list const
     else
         if M.limited_y && M.ordered
-            string M.const_type = "Never (with cut poits)"
+            string M.const_type = "Never (with cut points)"
         else
             string M.const_type = "Never"
         endif
@@ -122,7 +124,7 @@ function bundle BACE_setup (series Y,
     scalar M.do_plot = do_plot
     scalar M.CPU_num = 1
     scalar M.bic_type = bic_type
-    scalar M.center_vars = center_vars
+    scalar M.data_trans = data_trans
 
     # Local variables
     matrix M.StartModel = {} # list with variables selected in starting model UWAGA: do wyrzucenia!!!
@@ -227,8 +229,8 @@ function bundle BACE_setup (series Y,
         matrix M.jointness_m = zeros(M.k, M.k) # square matrix containing counts of coexistence (jointness) of every pair of indenpendent variables
         strings M.jointess_measure_names = defarray("Doppelhofer-Weeks Measure (DW1)", \
           "Doppelhofer-Weeks Measure (DW2)", "Ley-Steel Measure (LS1)", \
-          "Ley-Steel Measure (LS2)", "Strachan Measure", "Yule's Q Measure (YQ)", \
-          "Modified Yule's Q Measure (YQM)")
+          "Ley-Steel Measure (LS2)", "Strachan Measure (SM)", "Yule's Q Measure (YQ)", \
+          "Modified Yule's Q Measure (MYQ)")
     else
         matrix M.jointness_m = {}
     endif
@@ -322,12 +324,12 @@ function bundle BACE_setup (series Y,
     endif
 
     # Data standarization
-    if M.center_vars == 1
-        string M.center_vars_name = "centering"
-    elif M.center_vars == 2
-        string M.center_vars_name = "standarization"
+    if M.data_trans == 1
+        string M.data_trans_name = "centering"
+    elif M.data_trans == 2
+        string M.data_trans_name = "standarizing"
     else
-        string M.center_vars_name = "none"
+        string M.data_trans_name = "none"
     endif
 
     if verbosity == 1

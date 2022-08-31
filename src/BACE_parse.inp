@@ -49,7 +49,7 @@ function string BACE_parse (bundle *M,
     if (inlist(X_list, Y_name) != 0)
         X_list -= X_list[inlist(X_list, Y_name)]
         k -= 1
-        print "Dependent viariable was removed from the X list."
+        print "Dependent variable was removed from the X list."
     endif
 
     # We check if given X_list does not include lagged Y
@@ -93,7 +93,7 @@ function string BACE_parse (bundle *M,
     # We check if average model size is within 0 and K
     scalar max_model_size = k # We chould check it!!!
     if ((av_model_size <= 0) || (av_model_size >= max_model_size))
-        err = "Average model size should be greater then 0 and lower than K"
+        err = "Average model size should be greater than 0 and lower than K"
         return err
     endif
 

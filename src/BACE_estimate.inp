@@ -19,7 +19,7 @@ function void BACE_estimate (bundle *M)
 /*
    This function estimates and forecasts drawn models.
     */
-    matrix mod_struct_new, mod_struct_new_Y_lags
+    matrix mod_struct_new, mod_struct_new_Y_lags, vcv
     list Y_lags
 
     # We set up estimator command
@@ -54,7 +54,7 @@ function void BACE_estimate (bundle *M)
     endif
 
     # We estimate current model
-    if nelem(X) > 0
+    if nelem(X) > 0 || M.limited_y && M.ordered
         # We estimate model
         @ESTIMATOR Y X --quiet
 
@@ -85,7 +85,12 @@ function void BACE_estimate (bundle *M)
         elif M.bic_type == 2
             M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1]
         elif M.bic_type == 3
-            M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1] - 0.5*log(det(invpd($vcv)))
+            if ESTIMATOR == "ols"
+                vcv = $vcv*$df/$nobs
+            else
+                vcv = $vcv
+            endif
+            M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1] - 0.5*log(det(invpd(vcv)))
         endif
 
         # We calculate log of model probability

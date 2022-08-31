@@ -51,7 +51,7 @@ function void BACE_Print (bundle *M)
     printf "Prior average model size: %f\n", M.av_model_size
     printf "Significance level for the initial model: %f\n", M.alpha
     printf "Bayesian information criterion used: %s\n", M.bic_type_name
-    printf "Data transformation: %s\n", M.center_vars_name
+    printf "Data transformation: %s\n", M.data_trans_name
     printf "Total number of iterations: %d\n", M.Nrep + M.n_drop_draws
     if M.with_const != 1 && M.n_drop_draws
         printf "   Number of rejected draws: %d\n", M.n_drop_draws
@@ -166,24 +166,9 @@ function void BACE_Print (bundle *M)
     endif
 
     # Jointess analysis
-    if M.do_joint != 0
+    if M.do_joint
         matrix jointess_measure = BACE_jointness_measure(&M)
-        string jointess_measure_name = M.jointess_measure_names[M.do_joint]
-        if M.do_joint == 1
-            string jointess_measure_name = "Ley-Steel Measure (LS2)"
-        elif M.do_joint == 2
-            string jointess_measure_name = "Doppelhofer-Weeks Measure (DW2)"
-        elif M.do_joint == 3
-            string jointess_measure_name = "Ley-Steel Measure (LS1)"
-        elif M.do_joint == 4
-            string jointess_measure_name = "Doppelhofer-Weeks Measure (DW1)"
-        elif M.do_joint == 5
-            string jointess_measure_name = "Strachan Measure"
-        elif M.do_joint == 6
-            string jointess_measure_name = "Yule's Q Measure (YQ)"
-        elif M.do_joint == 7
-            string jointess_measure_name = "Modified Yule's Q Measure (YQM)"
-        endif
+        string jointess_measure_name = M.jointess_measure_names[M.do_joint]        
         print "----------------------------------"
         printf "\n"
         print "Posterior joint probability of variables:"
@@ -198,8 +183,8 @@ function void BACE_Print (bundle *M)
         matrix pairs = zeros(round(0.5*M.k^2), 3)
         scalar pair = 0
         loop i=1..M.k --quiet
-            loop j=i+1..M.k --quiet
-                if abs(jointess_measure[i,j]) > 1
+            loop j=i+1..M.k --quiet                
+                if !isnan(jointess_measure[i,j]) && abs(jointess_measure[i,j]) > 1
                     pair += 1
                     pairs[pair,1] = jointess_measure[i,j]
                     pairs[pair,2] = i
