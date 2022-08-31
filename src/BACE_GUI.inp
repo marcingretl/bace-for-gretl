@@ -19,7 +19,7 @@ function bundle BACE_GUI (series Y "Dependent variable",
                           int Y_AR_p[0::0] "Y lags",
                           list X_list[null] "List of independent variables (X)",
       int with_const[0:2:1] "Constant in model" {"Never", "Always", "Can be dropped"},
-      int center_vars[0:2:0] "Data transformation" {"None", "Center", "Standarize"},
+      int data_trans[0:2:0] "Data transformation" {"None", "Center", "Standarize"},
       int model_prior[1:2:1] "Model prior" {"Binomial", "Beta-Binomial"},
       int bic_type[1:3:1] "Bayesian information" {"BIC", "HBIC", "IBIC"},
       scalar avg_model_size[0::1] "Prior average model size",
@@ -54,7 +54,7 @@ function bundle BACE_GUI (series Y "Dependent variable",
     scalar Options["verbosity"] = verbosity
     scalar Options["show_progress"] = show_progress
     scalar Options["do_plot"] = do_plot    
-    scalar Options["center_vars"] = center_vars
+    scalar Options["data_trans"] = data_trans
     scalar Options["bic_type"] = bic_type
 
     return BACE(@Y_name, X_list, Options)
