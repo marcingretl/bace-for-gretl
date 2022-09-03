@@ -1,39 +1,4 @@
-\documentclass[a4paper]{article}
-\usepackage{gretlwp}
-\usepackage[utf8]{inputenc}
-\usepackage{enumitem}
-\usepackage{pifont}
-\usepackage{amsmath,amssymb,amsfonts,textcomp}
-\usepackage{url}
-\usepackage[colorlinks]{hyperref}
-    \hypersetup{citecolor=blue}
-\usepackage[authoryear]{natbib}
-
-\newcommand{\proglang}[1]{\texttt{#1}}
-\newcommand{\pkg}[1]{{\fontseries{b}\selectfont #1}}
-% \newcommand{\code}{\bgroup\@makeother\_\@makeother\~\@makeother\$\@codex}
-\newcommand{\E}{\mathsf{E}}
-\newcommand{\VAR}{\mathsf{VAR}}
-\newcommand{\COV}{\mathsf{COV}}
-\newcommand{\Prob}{\mathsf{P}}
-\newcommand{\Code}[1]{\texttt{#1}}
-
-\newenvironment{CodeChunk}{}{}
-
-% \DefineVerbatimEnvironment{Code}{Verbatim}{}
-\DefineVerbatimEnvironment{CodeInput}{Verbatim}{fontshape=sl,fontsize=\small}
-\DefineVerbatimEnvironment{CodeOutput}{Verbatim}{}
-
-\author{Marcin Błażejowski\\
-  {\small WSB University in Torun}\\
-  {\small \url{marcin.blazejowski@wsb.torun.pl}}\\\\
-  Jacek Kwiatkowski\\ 
-  {\small Nicolaus Copernicus University in Toru\'{n}}\\
-  {\small \url{jkwiat@umk.pl}}}
-\title{Bayesian Averaging of Classical Estimates (BACE) for \pkg{gretl}}
-\prognum{6}
-
-\date{August 25, 2018}
+\documentclass[a4paper]{BACE}
 
 \begin{document}
 \pagestyle{headings}
@@ -68,6 +33,8 @@ Bayesian Averaging of Classical Estimates \pkg{BACE}~ver.~1.3 for the \pkg{gretl
 	\centering	
 	This PDF is outdated and needs to be updated.
 \end{quote}
+
+\tableofcontents
 
 \section*{Changelog}
 \begin{description}
@@ -104,10 +71,7 @@ Bayesian Averaging of Classical Estimates \pkg{BACE}~ver.~1.3 for the \pkg{gretl
 	\item[1.0] Initial version.
 \end{description}
 
-\section{Introduction}
 \input{Introduction}
-
-\section{Bayesian Averaging of Classical Estimates}
 \input{BACE_theory}
 
 \section[Usage of the BACE package]{Usage of the \pkg{BACE} package}%

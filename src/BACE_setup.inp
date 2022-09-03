@@ -43,7 +43,6 @@ function bundle BACE_setup (series Y,
     */
     printf "\n#############################################################################\n"
     printf "To do:"
-    printf "\n * Allow for 'overloading' in options bundle."
     printf "\n * Get rid off redundancy in setup BACE_bcheck() + BACE_parse() + BACE_setup()."
     printf "\n * Simplify restoring estimates in BACE_collect_results()."
     printf "\n * Add PDF data_trans and bic_type."

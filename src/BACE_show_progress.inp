@@ -20,9 +20,23 @@ function void BACE_show_progress (const scalar iter,
                                   const scalar progress,
                                   const scalar N)
     /*
-       Function prints overall progress
+       Function prints overall progress.
     */
-    printf "%d%%\r", ceil(100 * iter/N)
+    string bar, sign
+    
+    x = ceil(100 * iter/N)
+    x4 = int(x/4)
+    bar = "["
+    loop j=1..25 --quiet
+        if j <= x4
+            sign = "#"
+        else
+            sign = "."
+        endif
+        bar+= sprintf("%s", sign)
+    endloop
+    bar+= sprintf("%s", "]")
+    printf "%s %4.1f%%\r", bar, x
     percentage += progress
     flush
 end function

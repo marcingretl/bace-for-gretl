@@ -15,10 +15,7 @@ The \cmd{BACE\_GUI()} takes following parameters:
  \item \textbf{Model prior} as integer [required]:
     \begin{enumerate}
      \item Binomial -- binomial distribution,
-     \item Binomial-Beta -- binomial-beta distribution%
-       \footnote{Note: this option may generate errors as this
-         distribution follows Occam's razor principle in a very
-         aggressive way.}.
+     \item Beta-Binomial -- beta-binomial distribution.
     \end{enumerate}
  \item \textbf{Prior average model size} as scalar with zero [required].
  \item \textbf{Significance level for the initial model} as scalar from $(0,1)$
@@ -121,8 +118,51 @@ always, never or can be dropped.
 \end{itemize}
 
 \subsection{The script way}
-\subsubsection{General remarks}
+\subsubsection{Script}
 The \pkg{BACE} package can also be used inside \proglang{Hansl} scripts.
+A very minimal code could be as follows:
+%
+\begin{lstlisting}
+ open greene9_1.gdt
+ include BACE.gfn
+	
+ list greene = capital labor nfirm
+	
+ BACE(valadd, greene)
+\end{lstlisting}
+The above code triggers BACE analysis with default option
+described on page~\pageref{sec:default_option_bundle}.
+On contrary, the corresponding ''big call'', i.e. with
+setting all possible parameters, would be as follows:
+\begin{lstlisting}
+ bundle opts = defbundle("model_prior", 2, "avg_model_size", 1.5, \
+  "alpha", 0.6, "Nrank", 4, "do_joint", 0, "Npredict", 0, \
+  "Nrep", 1000, "burn", 10, "verbosity", 2, "show_progress", 1, \
+  "do_plot", 1, "model_type", "linear", "const_type", 1, \
+  "bic_type", 1, "data_trans", 0)
+	
+ BACE(valadd, greene, opts)
+\end{lstlisting}
+
+or alternatively with the new syntax for creating a bundle
+on-the-fly:
+\begin{lstlisting}
+ BACE(valadd, greene, _(model_prior=2, avg_model_size=1.5, \
+  alpha=0.6, Nrank=4, do_joint=0, Npredict=0, Nrep=1000, \
+  burn=10, verbosity=2, show_progress=1, do_plot=1, \
+  model_type="linear", const_type=1, bic_type=1, data_trans=0))
+\end{lstlisting}
+Since some parameters in option bundle are over-loadable,
+the equivalent call looks like this:
+\begin{lstlisting}
+ BACE(valadd, greene, _(model_prior="beta-binomial", \
+  avg_model_size=1.5, alpha=0.6, Nrank=4, do_joint=0, Npredict=0, \
+  Nrep=1000, burn=10, verbosity=2, show_progress=1, do_plot=1, \
+  model_type="linear", const_type="always", bic_type="bic", \
+  data_trans="none"))
+\end{lstlisting} 
+The above example consists of three blocks.
+
 \begin{CodeChunk}
 \begin{CodeInput}
 open greene9_1.gdt

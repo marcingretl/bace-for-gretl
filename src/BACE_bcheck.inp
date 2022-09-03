@@ -105,7 +105,7 @@ function string BACE_bcheck (bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *
     # Template bundle with default values
     scalar Options["Y_AR_p"] = 0
     scalar Options["with_const"] = 1
-    scalar Options["model_prior"] = 1
+    scalar Options["model_prior"] = 2
     scalar Options["avg_model_size"] = avg_model_size_tmp
     scalar Options["alpha"] = 0.6
     scalar Options["Nrank"] = xmin(2^(k+Y_AR_p_tmp-1), 40)
