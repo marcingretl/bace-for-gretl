@@ -192,7 +192,6 @@ function void BACE_summary (bundle *M)
     # Cleaning up the bundle
     delete M.show_progress
     delete M.var_numbers2
-    delete M.big_mat
     delete M.k_new
     delete M.lprob_new
     delete M.X_new_num
@@ -214,9 +213,7 @@ function void BACE_summary (bundle *M)
     delete M.consthat_avg
     delete M.constvar_avg
     if M.h_predict > 0
-        delete M.big_mat_predict
         delete M.Y_mat_predict
-        delete M.precision
         delete M.Yhat_predict_avg
         delete M.Yhat_predict_var_avg
         delete M.predict_obs_names

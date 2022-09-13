@@ -37,14 +37,11 @@ function bundle BACE_setup (series Y,
                             scalar bic_type)
     /*
        This function creates BUNDLE holding all BACE information
-       #
-       Local variables:
-       tmp_str - general purpose string
     */
     printf "\n#############################################################################\n"
     printf "To do:"
     printf "\n * Get rid off redundancy in setup BACE_bcheck() + BACE_parse() + BACE_setup()."
-    printf "\n * Simplify restoring estimates in BACE_collect_results()."
+    printf "\n * Change type of M.predict_obs_names."
     printf "\n * Add PDF data_trans and bic_type."
     printf "\n * Add PDF information on dependecies."
     printf "\n * Work on speed."
@@ -55,6 +52,7 @@ function bundle BACE_setup (series Y,
 
     bundle M
     scalar tmp
+    string tmp_str = ""
     list X_list = X_list_m
 
     ###############################################
@@ -103,10 +101,7 @@ function bundle BACE_setup (series Y,
     if Y_AR_p > 0
         X_list = lags(Y_AR_p, Y) X_list
     endif
-    list big_list = Y X_list
-    string tmp_str = ""
     series M.Y = Y
-    matrix M.X_list = X_list # Look down - repeated!!!
     scalar M.acc_type = acc_type
     scalar M.av_model_size = av_model_size
     scalar M.alpha = alpha
@@ -125,17 +120,33 @@ function bundle BACE_setup (series Y,
     scalar M.bic_type = bic_type
     scalar M.data_trans = data_trans
     scalar M.Y_AR_p = Y_AR_p
+    matrix M.X_list = X_list
     string M.model_type = model_type # name of model type (linear, logit, etc...)
     string M.Y_name = Y_name # string with name of denpendent variable
+    # UWAGA ----------------------- CZYSZCZENIE W GÓRĘ -----------------------
 
     ###############################################
     # Local variables							  #
     ###############################################
-    matrix M.StartModel = {} # list with variables selected in starting model UWAGA: do wyrzucenia!!!
-    bundle StartModel_b
-    bundle M.StartModel_b = StartModel_b
-    matrix M.X_list = X_list # List of all explanatory variables UWAGA: powtórzone (patrz góra)
+    bundle M.StartModel_b = null
+    scalar M.Nburn = round(burn/100*Nrep) # number of burn-in draws
     scalar M.k = nelem(X_list) # total number of indenpendent variables
+    scalar M.model_space = 2^M.k
+    if M.with_const != 1 && !(M.limited_y && M.ordered)
+        M.model_space -= 1
+    endif
+    if M.with_const == 2
+        scalar M.k2 = M.k+1 # maximum number of estimated slope coefficients
+    else
+        scalar M.k2 = M.k
+    endif
+    scalar M.n_drop_draws = 0
+    scalar M.loop_maxiter = 3*Nrep
+    scalar M.toler = 1.0e-20
+    matrix M.StartModel = {}
+    matrix M.Y_mat = { Y }
+    matrix M.var_numbers = Y || X_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
+    matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
     strings M.all_names_sp_m = varnames(X_list)
     loop i=1..Y_AR_p --quiet
         M.all_names_sp_m[i] = strsub(M.all_names_sp_m[i], "Y_$i", Y_name~"_$i")
@@ -143,35 +154,16 @@ function bundle BACE_setup (series Y,
     if M.with_const == 1
         strings const_name = defarray("const")
         M.all_names_sp_m = const_name + M.all_names_sp_m
-    endif
-    if M.with_const == 2
-        scalar M.k2 = M.k+1 # maximum number of estimated slope coefficients
-    else
-        scalar M.k2 = M.k
-    endif
-    scalar M.Nburn = round(burn/100*Nrep) # number of burn-in draws
-    matrix M.var_numbers = big_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
-    matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
-    scalar M.model_space = 2^M.k
-    if M.with_const != 1 && !(M.limited_y && M.ordered)
-        M.model_space -= 1
-    endif
-    matrix M.big_mat = { big_list } # matrix of all variables (including Y)
-    scalar M.n_drop_draws = 0
-    scalar M.loop_maxiter = 3*Nrep
-    scalar M.toler = 1.0e-20
-    matrix M.Y_mat = { Y }
+    endif    
 
     # In case of "out-of-sample" prediction
     if h_predict > 0
         scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
         scalar M.last_obs = $tmax-h_predict # the last observation for smpl command
-        matrix M.big_mat_predict = M.big_mat[rows(M.big_mat)-h_predict+1:rows(M.big_mat),] # "out-of-sample" matrix of all variables (including Y)
         matrix M.Y_mat_predict = M.Y_mat[end-h_predict+1:end] # "out-of-sample" matrix of the dependent variable
         M.Y_mat = M.Y_mat[1:end-h_predict]
         matrix M.Yhat_predict = zeros(h_predict) # vector of Y predictions in current draw
         matrix M.Yhat_predict_var = zeros(h_predict) # vector of Y predictions in current draw (variances!!!)
-        matrix M.precision = zeros(h_predict,1) # prediction precision
         matrix M.Yhat_predict_avg = zeros(h_predict,1) # vector of Y predictions - average
         matrix M.Yhat_predict_var_avg = zeros(h_predict,1) # predicion variance
         matrix M.prediction = {} # matrix with prediction results
@@ -180,7 +172,6 @@ function bundle BACE_setup (series Y,
         endloop
         string M.predict_obs_names = tmp_str # obs labels for forecasts
         smpl M.first_obs M.last_obs #$nobs-h_predict-Y_AR_p #M.last_obs # setting sample
-        matrix M.big_mat = M.big_mat[1:rows(M.big_mat)-h_predict,] # big_mat for limited sample
     else
         matrix M.Yhat_avg = {}
         matrix M.Yhat_var_avg = {}
@@ -188,7 +179,6 @@ function bundle BACE_setup (series Y,
         string M.predict_obs_names = ""
     endif
     scalar M.N = $nobs
-    # UWAGA ----------------------- CZYSZCZENIE W GÓRĘ -----------------------
 
     # New/old model stuff
     scalar M.mod_size = 0 # size of models in MC3 (sum)
