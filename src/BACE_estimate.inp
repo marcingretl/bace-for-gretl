@@ -91,6 +91,9 @@ function void BACE_estimate (bundle *M)
                 vcv = $vcv
             endif
             M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1] - 0.5*log(det(invpd(vcv)))
+        elif M.bic_type == 4
+            scalar gamma = 0.5
+            M.lprob_new = -.5*$bic - gamma*log(bincoeff(M.k2+1, $ncoeff))
         endif
 
         # We calculate log of model probability

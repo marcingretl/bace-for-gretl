@@ -320,6 +320,8 @@ function bundle BACE_setup (series Y,
     elif bic_type == 3
         string M.bic_type_name = "IBIC"
         M.scaling_f[1] = log(.5*M.N/$pi)
+    elif bic_type == 4
+        string M.bic_type_name = "EBIC"
     endif
 
     # Data standarization
