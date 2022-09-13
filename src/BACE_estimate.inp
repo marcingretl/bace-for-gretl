@@ -65,7 +65,6 @@ function void BACE_estimate (bundle *M)
             M.bhat_tmp = $coeff
             M.bvar_tmp = $stderr.^2
         endif
-        M.ess_new = $ess
         if M.h_predict
             fcast --out-of-sample --quiet
             M.Yhat_predict = $fcast
@@ -98,7 +97,6 @@ function void BACE_estimate (bundle *M)
     else
         M.bhat_tmp = {}
         M.bvar_tmp = {}
-        #M.ess_new = M.y_dem_sq
         M.lprob_new = -10^20
     endif
 end function

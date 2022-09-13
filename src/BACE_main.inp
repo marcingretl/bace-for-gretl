@@ -31,8 +31,6 @@ function void BACE_main (bundle *M)
     bundle known_models
     matrix models_counter = zeros(M.Nrep+1) # this is because starting model has labeled as 1
     matrix models_lprob = zeros(M.Nrep+1)
-    matrix models_ess = zeros(M.Nrep+1)
-    matrix models_k_new = zeros(M.Nrep+1) # To delete
     matrices models_estimates = array(M.Nrep+1)
     matrices models_structure = array(M.Nrep+1)
     matrix mod_struct_draw
@@ -61,7 +59,6 @@ function void BACE_main (bundle *M)
     BACE_estimate(&M)
     M.lprob_old = M.lprob_new
     M.mod_struct_old = M.mod_struct_new
-    M.ess_old = M.ess_new
     model_id = sprintf("%d", M.mod_struct_old)[1:end-1] # we trim the "\n" at the end !!!
     model_nr = M.Nrep+1
     model_nr_old = model_nr
@@ -69,8 +66,6 @@ function void BACE_main (bundle *M)
     models_structure[model_nr] = M.mod_struct_new
     models_lprob[model_nr] = M.lprob_new
     models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-    models_ess[model_nr] = M.ess_new # ??? Probably to delete
-    models_k_new[model_nr] = M.k_new # ??? Probably to delete
     if M.h_predict && M.k_new
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
     endif
@@ -83,7 +78,6 @@ function void BACE_main (bundle *M)
     ############################################################
     # Part 2: Markov Chain Monte Carlo Model Composition - MC3 #
     ############################################################
-
     if M.show_progress
         BACE_print_status("MC3 overall progress", 0, 0, 1)
     else
@@ -122,8 +116,6 @@ function void BACE_main (bundle *M)
                 models_structure[model_nr] = M.mod_struct_new
                 models_lprob[model_nr] = M.lprob_new
                 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-                models_ess[model_nr] = M.ess_new # ??? Probably to delete
-                models_k_new[model_nr] = M.k_new # ??? Probably to delete
                 if M.h_predict && M.k_new
                     models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
                 endif
@@ -135,8 +127,6 @@ function void BACE_main (bundle *M)
             # Now we decide if to accept the new model
             if M.lprob_new-M.lprob_old > log(randgen1(u,0,1))
                 M.lprob_old = M.lprob_new
-                M.k_old = M.k_new # ??? Probably to delete
-                M.ess_old = M.ess_new
                 M.mod_struct_old = M.mod_struct_new
                 model_nr_old = model_nr
             endif

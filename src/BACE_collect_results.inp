@@ -23,7 +23,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
        Function collects results from MC3 experiment.
     */
     BACE_print_status("Collecting results", 0)
-    matrix idx, var_idx, bhat, mod_struct, models_probs, X_new_num
+    matrix idx, var_idx, bhat, mod_struct, models_probs
     matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank
     scalar nr, mod_struct_sum
     scalar weight = 0

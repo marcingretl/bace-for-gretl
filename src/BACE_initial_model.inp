@@ -48,7 +48,7 @@ function void BACE_initial_model (bundle *M)
             endif
         endif
     endif
-    series YyY = M.Y #M.Y_mat
+    series YyY = M.Y
     if M.Y_AR_p > 0
         lags M.Y_AR_p ; YyY
     endif
@@ -131,7 +131,6 @@ function void BACE_initial_model (bundle *M)
     endif
 
     # Starting values
-    M.k_old = nelem(last)
     matrix M.StartModel = last
     matrix M.mod_struct_new = zeros(1,M.k)
     
