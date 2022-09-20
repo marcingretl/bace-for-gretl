@@ -16,8 +16,8 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function bundle BACE (series Y "Dependent variable",
-                     list X_list "List of indenpendent variables (X)",
-      bundle Options[null])
+                      list X_list "List of indenpendent variables (X)",
+                      bundle Options[null])
     /*
        Bundle-based to carry out BMA analysis.
        Function returns bundle MODEL with (formatted) results.
@@ -25,30 +25,28 @@ function bundle BACE (series Y "Dependent variable",
     bundle MODEL
     string Y_name = argname(Y)
     series @Y_name = Y
-    scalar Y_AR_p,with_const,acc_type,av_model_size,alpha,l_rank,do_joint,h_predict,\
-      Nrep,burn,verbosity,show_progress,do_plot,data_trans,bic_type
-    string model_type,err,tmp_varname
+    string err
 
     if !exists(Options)
         bundle Options
     endif
 
-    # Basic parsing and checking
-    err = BACE_bcheck(Options, nelem(X_list), &Y_AR_p, &with_const, &acc_type,
-      &av_model_size, &alpha, &l_rank, &do_joint, &h_predict, &Nrep, &burn,
-      &verbosity, &show_progress, &do_plot, &model_type, &data_trans, &bic_type)
+    # Bundle check and setting default values (if needed)
+    err = BACE_bcheck(Options, &MODEL, nelem(X_list))
     if strlen(err) != 0
         funcerr "@err !!!"
         return MODEL
     endif
     
-    if data_trans == 1
+    # Data transformation (if needed)
+    if MODEL.data_trans == 1
         X_list = stdize(X_list, -1)
-    elif data_trans == 2
+    elif MODEL.data_trans == 2
         X_list = stdize(X_list, 0)
     endif
     
-    Norig = $nobs    
+    # Handling missing values
+    Norig = $nobs
     if $datatype == 2
         smpl Y X_list --no-all-missing
     else
@@ -60,13 +58,12 @@ function bundle BACE (series Y "Dependent variable",
         Norig = NA
     endif
 
-    err = BACE_parse(&MODEL, Y, argname(Y), Y_AR_p, X_list, av_model_size, l_rank, alpha, with_const, model_type)
+    # Basic parsing and checking
+    err = BACE_parse(&MODEL, Y, Y_name, X_list)
     if strlen(err) != 0
         funcerr "@err !!!"
     else
-        MODEL = BACE_setup(Y, Y_AR_p, MODEL.X_list, acc_type, av_model_size, alpha,
-          l_rank, do_joint, h_predict, Nrep, burn, verbosity, argname(Y),
-          show_progress, with_const, Norig, do_plot, model_type, data_trans, bic_type)
+        BACE_setup(&MODEL, Norig)
         # Setting sample for forecasting
         if MODEL.h_predict > 0
             smpl 1 MODEL.last_obs

@@ -15,11 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function string BACE_bcheck (bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *with_const,
-                             scalar *acc_type, scalar *av_model_size, scalar *alpha, scalar *l_rank,
-                             scalar *do_joint, scalar *h_predict, scalar *Nrep, scalar *burn,
-                             scalar *verbosity, scalar *show_progress, scalar *do_plot,
-                             string *model_type, scalar *data_trans, scalar *bic_type)
+function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     /*
        This function checks options bundle and returns error message in
        any problem found.
@@ -32,13 +28,13 @@ function string BACE_bcheck (bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *
     scalar avg_model_size_tmp = 0
     scalar err2, arg_val, do_plot_tmp, do_show_progress
     bundle Options, Overloadable
-    string arg_name, parameter_value
-    strings OverloadableKeys
+    string arg_name, parameter_value    
     strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
       "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("avg_model_size", "alpha")
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
+    strings OverloadableKeys
     if $sysinfo.gui_mode
         do_plot_tmp = 1
         do_show_progress = 1
@@ -153,50 +149,44 @@ function string BACE_bcheck (bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *
         err += sprintf("Unknown model type: '%s'", UserOpts["model_type"])
     endif
 
-    # We set arguments
-    Y_AR_p = Options["Y_AR_p"]
-    with_const = Options["with_const"]
-    acc_type = Options["model_prior"]
-    av_model_size = Options["avg_model_size"]
-    alpha = Options["alpha"]
-    l_rank = Options["Nrank"]
-    do_joint = Options["do_joint"]
-    h_predict = Options["Npredict"]
-    Nrep = Options["Nrep"]
-    burn = Options["burn"]
-    verbosity = Options["verbosity"]
-    show_progress = Options["show_progress"]
-    do_plot = Options["do_plot"]
-    model_type = Options["model_type"]
-    data_trans = Options["data_trans"]
-    bic_type = Options["bic_type"]
-
     # We check arguments for valid values
-    if Y_AR_p < 0
+    if Options.Y_AR_p < 0
         err += "Y lags (Y_AR_p) takes the integer values"
-    elif with_const < 0 || with_const > 2
+    elif Options.with_const < 0 || Options.with_const > 2
         err += "Constant in model takes the integer values in the range [0; 2]"
-    elif acc_type < 1 || acc_type > 2
+    elif Options.model_prior < 1 || Options.model_prior > 2
         err += "Model prior takes the integer values in the range [1; 2]"
-    elif alpha < 0 || alpha > 1
+    elif Options.alpha < 0 || Options.alpha > 1
         err += "The significance level (alpha) takes the real values in the range [0; 1]"
-    elif do_joint < 0 || do_joint > 7
+    elif Options.do_joint < 0 || Options.do_joint > 7
         err += "Jointess type (do_joint) takes the integer values in the range [1; 7]"
-    elif h_predict < 0
+    elif Options.Npredict < 0
         err += "Number of out-of-sample forecasts (h_predict) takes the integer values"
-    elif h_predict >= round($nobs/2)
+    elif Options.Npredict >= round($nobs/2)
         printf("Number of out-of-sample forecasts is more than 50%s of sample length.\n", "%")
-    elif Nrep < 0
+    elif Options.Nrep < 0
         err += "Total number of replications (Nrep) takes the integer values"
-    elif burn < 0 || burn > 99
+    elif Options.burn < 0 || Options.burn > 99
         err += "Percentage of burn-in draws (do_burn) takes the integer values in the range [0; 99]"
-    elif verbosity < 1 || verbosity > 2
+    elif Options.verbosity < 1 || Options.verbosity > 2
         err += "Verbosity takes the integer values in the range [1; 2]"
-    elif data_trans < 0 || data_trans > 2
+    elif Options.data_trans < 0 || Options.data_trans > 2
         err += "Parameter data_trans takes the integer values in the range [0; 2]"
-    elif bic_type < 1 || bic_type > 3
+    elif Options.bic_type < 1 || Options.bic_type > 3
         err += "BIC type takes the integer values in the range [1; 3]"
     endif
+
+    # We save options in M
+    M = Options
+    # This must be fixed!!!
+    M.acc_type = Options["model_prior"]
+    M.av_model_size = Options["avg_model_size"]
+    M.l_rank = Options["Nrank"]
+    M.h_predict = Options["Npredict"]
+    delete M["model_prior"]
+    delete M["avg_model_size"]
+    delete M["Nrank"]
+    delete M["Npredict"]
 
     return err
 end function

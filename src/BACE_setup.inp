@@ -15,57 +15,43 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function bundle BACE_setup (series Y,
-                            int Y_AR_p,
-                            matrix X_list_m,
-                            int acc_type[1:2:1],
-                            scalar av_model_size[0::1],
-                            scalar alpha[0:1:0.6],
-                            int l_rank[2::4],
-                            int do_joint[0:7:0],
-                            int h_predict[0::],
-                            int Nrep[1e+06],
-                            int burn[0:99:10],
-                            int verbosity[1:2:1],
-                            string Y_name,
-                            bool show_progress[1],
-                            int with_const,
-                            int Norig,
-                            bool do_plot,
-                            string model_type,
-                            scalar data_trans,
-                            scalar bic_type)
-    /*
-       This function creates BUNDLE holding all BACE information
+function void BACE_setup (bundle *M, int Norig)
+/*
+   This function creates BUNDLE holding all BACE information
     */
     printf "\n#############################################################################\n"
     printf "To do:"
-    printf "\n * Get rid off redundancy in setup BACE_bcheck() + BACE_parse() + BACE_setup()."
-    printf "\n * Change type of M.predict_obs_names."
+    printf "\n * Change old names of parameters to new ones (see bottom of BACE_bcheck())."
+    printf "\n * Change type of M.predict_obs_names: should be an array of strings."
     printf "\n * Add PDF data_trans and bic_type."
     printf "\n * Add PDF information on dependecies."
     printf "\n * Work on speed."
-    printf "\n * Clean up the code (specially stale matrixes)."
     printf "\n#############################################################################\n"
 
     BACE_print_status("BACE setup")
 
-    bundle M
     scalar tmp
     string tmp_str = ""
-    list X_list = X_list_m
+    list X_list = M.X_list
+    series Y = M.Y
 
     ###############################################
     # Global variables (given by user of default) #
     ###############################################
-    strings M.DiscreteModelTypes = defarray("logit", "probit") # first two for just 0-1 dependent variable
-    if model_type == "linear"
+    if ok(Norig)
+        scalar M.Norig = Norig
+    endif
+
+    ###############################################
+    # Local variables - presettings				  #
+    ###############################################
+    strings M.DiscreteModelTypes = defarray("logit", "probit") # Note: the first two for 0-1 dependent variable!
+    if M.model_type == "linear"
         string M.estimator = "ols"
     else
-        string M.estimator = model_type
+        string M.estimator = M.model_type
     endif
-    scalar M.with_const = with_const
-    if nelem(instrings(M.DiscreteModelTypes, model_type))
+    if nelem(instrings(M.DiscreteModelTypes, M.model_type))
         scalar M.limited_y = 1
         scalar M.ordered = 0
         scalar M.cuts = 0
@@ -98,38 +84,16 @@ function bundle BACE_setup (series Y,
             string M.const_type = "Never"
         endif
     endif
-    if Y_AR_p > 0
-        X_list = lags(Y_AR_p, Y) X_list
+    if M.Y_AR_p > 0
+        X_list = lags(M.Y_AR_p, Y) X_list
     endif
-    series M.Y = Y
-    scalar M.acc_type = acc_type
-    scalar M.av_model_size = av_model_size
-    scalar M.alpha = alpha
-    scalar M.l_rank = l_rank
-    scalar M.do_joint = do_joint
-    scalar M.h_predict = h_predict
-    scalar M.Nrep = Nrep
-    scalar M.burn = burn
-    scalar M.verbosity = verbosity
-    scalar M.show_progress = show_progress
-    if ok(Norig)
-        scalar M.Norig = Norig
-    endif
-    scalar M.do_plot = do_plot
-    scalar M.CPU_num = 1
-    scalar M.bic_type = bic_type
-    scalar M.data_trans = data_trans
-    scalar M.Y_AR_p = Y_AR_p
-    matrix M.X_list = X_list
-    string M.model_type = model_type # name of model type (linear, logit, etc...)
-    string M.Y_name = Y_name # string with name of denpendent variable
-    # UWAGA ----------------------- CZYSZCZENIE W GÓRĘ -----------------------
+    M.X_list = X_list
 
     ###############################################
     # Local variables							  #
     ###############################################
     bundle M.StartModel_b = null
-    scalar M.Nburn = round(burn/100*Nrep) # number of burn-in draws
+    scalar M.Nburn = round(M.burn/100*M.Nrep) # number of burn-in draws
     scalar M.k = nelem(X_list) # total number of indenpendent variables
     scalar M.model_space = 2^M.k
     if M.with_const != 1 && !(M.limited_y && M.ordered)
@@ -141,33 +105,34 @@ function bundle BACE_setup (series Y,
         scalar M.k2 = M.k
     endif
     scalar M.n_drop_draws = 0
-    scalar M.loop_maxiter = 3*Nrep
+    scalar M.loop_maxiter = 3*M.Nrep
     scalar M.toler = 1.0e-20
+    scalar M.CPU_num = 1
     matrix M.StartModel = {}
     matrix M.Y_mat = { Y }
     matrix M.var_numbers = Y || X_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
     matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
     strings M.all_names_sp_m = varnames(X_list)
-    loop i=1..Y_AR_p --quiet
-        M.all_names_sp_m[i] = strsub(M.all_names_sp_m[i], "Y_$i", Y_name~"_$i")
+    loop i=1..M.Y_AR_p --quiet
+        M.all_names_sp_m[i] = strsub(M.all_names_sp_m[i], "Y_$i", M.Y_name~"_$i")
     endloop
     if M.with_const == 1
         strings const_name = defarray("const")
         M.all_names_sp_m = const_name + M.all_names_sp_m
-    endif    
+    endif
 
     # In case of "out-of-sample" prediction
-    if h_predict > 0
+    if M.h_predict
         scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
-        scalar M.last_obs = $tmax-h_predict # the last observation for smpl command
-        matrix M.Y_mat_predict = M.Y_mat[end-h_predict+1:end] # "out-of-sample" matrix of the dependent variable
-        M.Y_mat = M.Y_mat[1:end-h_predict]
-        matrix M.Yhat_predict = zeros(h_predict) # vector of Y predictions in current draw
-        matrix M.Yhat_predict_var = zeros(h_predict) # vector of Y predictions in current draw (variances!!!)
-        matrix M.Yhat_predict_avg = zeros(h_predict,1) # vector of Y predictions - average
-        matrix M.Yhat_predict_var_avg = zeros(h_predict,1) # predicion variance
+        scalar M.last_obs = $tmax-M.h_predict # the last observation for smpl command
+        matrix M.Y_mat_predict = M.Y_mat[end-M.h_predict+1:end] # "out-of-sample" matrix of the dependent variable
+        M.Y_mat = M.Y_mat[1:end-M.h_predict]
+        matrix M.Yhat_predict = zeros(M.h_predict) # vector of Y predictions in current draw
+        matrix M.Yhat_predict_var = zeros(M.h_predict) # vector of Y predictions in current draw (variances!!!)
+        matrix M.Yhat_predict_avg = zeros(M.h_predict,1) # vector of Y predictions - average
+        matrix M.Yhat_predict_var_avg = zeros(M.h_predict,1) # predicion variance
         matrix M.prediction = {} # matrix with prediction results
-        loop i=($nobs-h_predict+1)..$nobs --quiet
+        loop i=($nobs-M.h_predict+1)..$nobs --quiet
             tmp_str += strsub(obslabel(i), " ", "") ~ " "
         endloop
         string M.predict_obs_names = tmp_str # obs labels for forecasts
@@ -208,24 +173,24 @@ function bundle BACE_setup (series Y,
     matrix M.models_probs_percents = {} # CDF-like matrix for accepted models
     matrix M.models_probs_cdf = {} # accepted models CDF
     matrix M.models_probs_cum = {} # accepted models cumulation
-    matrix M.mod_rank_prob = zeros(l_rank,1) # probability of the models in ranking (analytical)
-    matrix M.mod_nume_prob = zeros(l_rank,1) # probability of the models in ranking (numerical)
+    matrix M.mod_rank_prob = zeros(M.l_rank,1) # probability of the models in ranking (analytical)
+    matrix M.mod_nume_prob = zeros(M.l_rank,1) # probability of the models in ranking (numerical)
     matrix M.var_prob = zeros(1,M.k) # vector containing PIPs
-    matrices M.mod_rank_estimates = array(l_rank) # estimates of models in ranking
+    matrices M.mod_rank_estimates = array(M.l_rank) # estimates of models in ranking
     matrices M.mod_rank = array(M.l_rank) #-1 * ones(l_rank,M.k) # 0-1 matrix M.containing structure of models in ranking
     if M.limited_y && M.ordered
         matrix M.cutshat_avg = {}
         matrix M.cutsvar_avg = {}
         matrix M.cuts_avg = {}
-        matrices M.mod_rank_cuts_estimates = array(l_rank) # cuts estimates for models in ranking
+        matrices M.mod_rank_cuts_estimates = array(M.l_rank) # cuts estimates for models in ranking
     endif
 
     # Model prior
     matrix M.model_prior_log = zeros(M.k+1)
-    if acc_type == 1
+    if M.acc_type == 1
         string M.prior_name = "Binomial"
-        scalar M.a = log(av_model_size/M.k)
-        scalar M.b = log(1 - av_model_size/M.k)
+        scalar M.a = log(M.av_model_size/M.k)
+        scalar M.b = log(1 - M.av_model_size/M.k)
         if M.with_const == 1 || M.limited_y && M.ordered
             tmp = M.av_model_size/M.k
         else
@@ -238,7 +203,7 @@ function bundle BACE_setup (series Y,
         string M.prior_name = "Beta-Binomial"
         scalar M.a = 1
         if M.with_const == 1 || M.limited_y && M.ordered
-            scalar M.b = (M.k - av_model_size)/av_model_size
+            scalar M.b = (M.k - M.av_model_size)/M.av_model_size
         else
             loop while M.toler > 0
                 catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, "Beta-Binomial", M.a), {100, -.00001}, M.toler)
@@ -260,7 +225,7 @@ function bundle BACE_setup (series Y,
     M.model_prior_log = log(M.model_prior_log)
 
     # Jointness stuff
-    if do_joint
+    if M.do_joint
         matrix M.jointness_m = zeros(M.k, M.k) # square matrix containing counts of coexistence (jointness) of every pair of indenpendent variables
         strings M.jointess_measure_names = defarray("Doppelhofer-Weeks Measure (DW1)", \
           "Doppelhofer-Weeks Measure (DW2)", "Ley-Steel Measure (LS1)", \
@@ -271,12 +236,12 @@ function bundle BACE_setup (series Y,
     endif
 
     # BIC version
-    if bic_type == 1
+    if M.bic_type == 1
         string M.bic_type_name = "BIC"
-    elif bic_type == 2
+    elif M.bic_type == 2
         string M.bic_type_name = "HBIC"
         M.scaling_f[1] = log(.5*M.N/$pi)
-    elif bic_type == 3
+    elif M.bic_type == 3
         string M.bic_type_name = "IBIC"
         M.scaling_f[1] = log(.5*M.N/$pi)
     endif
@@ -290,7 +255,7 @@ function bundle BACE_setup (series Y,
         string M.data_trans_name = "none"
     endif
 
-    if verbosity == 1
+    if M.verbosity == 1
         set warnings off
     endif
 
@@ -298,6 +263,4 @@ function bundle BACE_setup (series Y,
     scalar M.progress = floor(M.Nrep/100)
 
     BACE_print_status(null, 1, 11)
-
-    return M
 end function

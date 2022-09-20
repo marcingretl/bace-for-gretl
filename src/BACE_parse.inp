@@ -18,45 +18,33 @@
 function string BACE_parse (bundle *M,
                             series Y,
                             string Y_name,
-                            int Y_AR_p,
-                            list X_list,
-                            const scalar av_model_size,
-                            const scalar l_rank,
-                            const scalar alpha,
-                            const scalar with_const,
-                            const string model_type)
+                            list X_list)
     /*
        Function parses given parameters end checks several conditions:
        M				- pointer to the bundle
        Y				- dependent variable
        Y_name			- name of dependent variable
-       Y_AR_p			- Y autoregression order
        X_list			- list of given independent variables
-       av_model_size	- scalar with prior average model size
-       l_rank			- scalar with number of models in ranking
-       alpha			- scalar with significant level for initial model
-       with_const		- scalar with constant type (never, always, random)
        #
        Returns: string err holding the first error found in given dataset or parameters
     */
     # Local variables
-    scalar k = nelem(X_list) + Y_AR_p + (with_const > 1)
-    strings DiscreteModelTypes = defarray("logit", "probit")
+    scalar k = nelem(X_list) + M.Y_AR_p + (M.with_const > 1)
     string err = ""
     string tmp_str
 
     # We check if given X_list does not include Y
-    if (inlist(X_list, Y_name) != 0)
+    if inlist(X_list, Y_name) != 0
         X_list -= X_list[inlist(X_list, Y_name)]
         k -= 1
         print "Dependent variable was removed from the X list."
     endif
 
     # We check if given X_list does not include lagged Y
-    if (Y_AR_p > 0)
-        loop i=1..Y_AR_p --quiet
+    if M.Y_AR_p > 0
+        loop i=1..M.Y_AR_p --quiet
             tmp_str = Y_name ~ "_" ~ "$i"
-            if (inlist(X_list, tmp_str) != 0)
+            if inlist(X_list, tmp_str) != 0
                 X_list -= X_list[inlist(X_list, tmp_str)]
                 k -= 1
                 printf "Lag %d of dependent viariable (%s) was removed from the X list.\n", i, tmp_str
@@ -65,24 +53,23 @@ function string BACE_parse (bundle *M,
     endif
 
     # We check if given X_list does not include const
-    if (inlist(X_list, const) != 0)
+    if inlist(X_list, const) != 0
         X_list -= const
         k -= 1
         print "Const was removed from the X list."
     endif
 
     # We check if given variables are not co-linear
-    # dropcoll() seems not to work good here
-    if (nelem(X_list) > 0)
-        if (Y_AR_p > 0)
-            ols Y Y(-1 to -Y_AR_p) X_list const --quiet
+    if nelem(X_list) > 0
+        if M.Y_AR_p > 0
+            ols Y Y(-1 to -M.Y_AR_p) X_list const --quiet
         else
             ols Y X_list const --quiet
         endif
-        if ($ncoeff < k + 1)
+        if $ncoeff < k + 1
             X_list = $xlist - const
-            if (Y_AR_p > 0)
-                loop i=1..Y_AR_p --quiet
+            if M.Y_AR_p > 0
+                loop i=1..M.Y_AR_p --quiet
                     X_list = X_list - Y_$i
                 endloop
             endif
@@ -91,33 +78,25 @@ function string BACE_parse (bundle *M,
     endif
 
     # We check if average model size is within 0 and K
-    scalar max_model_size = k # We chould check it!!!
-    if ((av_model_size <= 0) || (av_model_size >= max_model_size))
+    if M.av_model_size <= 0 || M.av_model_size >= k
         err = "Average model size should be greater than 0 and lower than K"
         return err
     endif
 
     # We check if aplha then 0 in we don't have const (we can't have empty model)
-    if ((alpha == 0) && (with_const == 0))
+    if M.alpha == 0 && M.with_const == 0
         err = "We cannot have empty initial model (alpha = 0) when we don't have constant"
         return err
     endif
 
     # We check if number of models in ranking is not greater than 2^K (model space)
-    if (l_rank > 2^(k+Y_AR_p))
+    if M.l_rank > 2^(k+M.Y_AR_p)
         err = "Number of the top ranked models cannot be greater than 2^K (space of parameters)"
         return err
     endif
 
-    # We check if we have discrete Y variable in case of logit/probit/etc models
-    /*
-    if nelem(instrings(DiscreteModelTypes, model_type)) && !isdiscrete(Y)
-        err = sprintf("The variable '%s' is not discrete", Y_name)
-    endif
-    */
-
     # We check if we have Y_AR_p only in case of linear model for time-series
-    if Y_AR_p > 0 && (model_type != "linear" || $datatype != 2)
+    if M.Y_AR_p > 0 && (M.model_type != "linear" || $datatype != 2)
         string datatype
         if $datatype == 1
             datatype = "cross-sectional (undated) data"
@@ -129,6 +108,8 @@ function string BACE_parse (bundle *M,
         err = sprintf("You try to estimate %s model for %s => you cannot have lagged %s", model_type, datatype, Y_name)
     endif
 
+    series M.Y = Y
+    string M.Y_name = Y_name
     matrix M.X_list = X_list
 
     return err
