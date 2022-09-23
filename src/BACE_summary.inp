@@ -158,7 +158,7 @@ function void BACE_summary (bundle *M)
     endif
 
     # Forecasts
-    if M.h_predict > 0
+    if M.h_predict
         M.Yhat_predict_avg = M.Yhat_avg / NORM
         M.Yhat_predict_var_avg = M.Yhat_var_avg / NORM
         M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
@@ -212,7 +212,7 @@ function void BACE_summary (bundle *M)
     delete M.bvar_tmp
     delete M.consthat_avg
     delete M.constvar_avg
-    if M.h_predict > 0
+    if M.h_predict
         delete M.Y_mat_predict
         delete M.Yhat_predict_avg
         delete M.Yhat_predict_var_avg

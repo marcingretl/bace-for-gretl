@@ -22,7 +22,7 @@ function void BACE_setup (bundle *M, int Norig)
     printf "\n#############################################################################\n"
     printf "To do:"
     printf "\n * Change old names of parameters to new ones (see bottom of BACE_bcheck())."
-    printf "\n * Change type of M.predict_obs_names: should be an array of strings."
+    printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
     printf "\n * Add PDF data_trans and bic_type."
     printf "\n * Add PDF information on dependecies."
     printf "\n * Work on speed."
@@ -43,9 +43,9 @@ function void BACE_setup (bundle *M, int Norig)
     endif
 
     ###############################################
-    # Local variables - presettings				  #
+    # Local variables - presets					  #
     ###############################################
-    strings M.DiscreteModelTypes = defarray("logit", "probit") # Note: the first two for 0-1 dependent variable!
+    strings M.DiscreteModelTypes = defarray("logit", "probit") # Note: the first two for binary dependent variable!
     if M.model_type == "linear"
         string M.estimator = "ols"
     else
@@ -132,16 +132,13 @@ function void BACE_setup (bundle *M, int Norig)
         matrix M.Yhat_predict_avg = zeros(M.h_predict,1) # vector of Y predictions - average
         matrix M.Yhat_predict_var_avg = zeros(M.h_predict,1) # predicion variance
         matrix M.prediction = {} # matrix with prediction results
-        loop i=($nobs-M.h_predict+1)..$nobs --quiet
-            tmp_str += strsub(obslabel(i), " ", "") ~ " "
-        endloop
-        string M.predict_obs_names = tmp_str # obs labels for forecasts
+        strings M.predict_obs_names = obslabel(seq($nobs-M.h_predict+1,$nobs)) # obs labels for forecasts
         smpl M.first_obs M.last_obs #$nobs-h_predict-Y_AR_p #M.last_obs # setting sample
     else
         matrix M.Yhat_avg = {}
         matrix M.Yhat_var_avg = {}
         matrix M.Y_mat_predict = {}
-        string M.predict_obs_names = ""
+        strings M.predict_obs_names = null
     endif
     scalar M.N = $nobs
 
@@ -177,7 +174,8 @@ function void BACE_setup (bundle *M, int Norig)
     matrix M.mod_nume_prob = zeros(M.l_rank,1) # probability of the models in ranking (numerical)
     matrix M.var_prob = zeros(1,M.k) # vector containing PIPs
     matrices M.mod_rank_estimates = array(M.l_rank) # estimates of models in ranking
-    matrices M.mod_rank = array(M.l_rank) #-1 * ones(l_rank,M.k) # 0-1 matrix M.containing structure of models in ranking
+    matrices M.mod_rank_bic = array(M.l_rank) # BICs of models in ranking
+    matrices M.mod_rank = array(M.l_rank) # structure of models in ranking
     if M.limited_y && M.ordered
         matrix M.cutshat_avg = {}
         matrix M.cutsvar_avg = {}
@@ -244,6 +242,8 @@ function void BACE_setup (bundle *M, int Norig)
     elif M.bic_type == 3
         string M.bic_type_name = "IBIC"
         M.scaling_f[1] = log(.5*M.N/$pi)
+    elif M.bic_type == 4
+        string M.bic_type_name = "BICREG"
     endif
 
     # Data transformation

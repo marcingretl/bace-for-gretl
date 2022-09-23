@@ -231,7 +231,7 @@ function void BACE_Print (bundle *M)
             if M.mod_nume_prob[i]
                 printf "\n"
                 print "----------------------------------"
-                printf "\nModel: %d, posterior probability: %f", i, M.Numerical_Likelihood[i]
+                printf "\nModel: %d, %s: %f, posterior probability: %f", i, M.bic_type_name, M.mod_rank_bic[i], M.Numerical_Likelihood[i]
                 if sumr(M.mod_rank[i]) == 0 && M.with_const != 1
                     printf "\n\n  %s\n", "None of the variables were significant."
                     printf "  %s\n", "Model includes only the intercept term which is simply the average of the dependent variable."

@@ -65,7 +65,7 @@ function bundle BACE (series Y "Dependent variable",
     else
         BACE_setup(&MODEL, Norig)
         # Setting sample for forecasting
-        if MODEL.h_predict > 0
+        if MODEL.h_predict
             smpl 1 MODEL.last_obs
         endif
         BACE_main(&MODEL)

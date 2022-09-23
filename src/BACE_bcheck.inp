@@ -42,10 +42,10 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         do_plot_tmp = 0
         do_show_progress = 0
     endif
-    Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3, valid="BIC, HBIC, IBIC")
+    Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3, bicreg=4, valid="BIC, HBIC, IBIC, BICREG")
     Overloadable["model_prior"] = _(binomial=1, betabinomial=2, valid="Binomial, Beta-Binomial")
     Overloadable["with_const"] = _(never=0, always=1, canbedropped=2, valid="Never, Always, Can be dropped")
-    Overloadable["do_joint"] = _(dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="DW1, DW2, LS1, LS2, SM, YQ, MYQ")
+    Overloadable["do_joint"] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="none, DW1, DW2, LS1, LS2, SM, YQ, MYQ")
     Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid="none, centering, standarizing")
 
     # We look for overloaded parameters and we convert them into integers
@@ -172,8 +172,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         err += "Verbosity takes the integer values in the range [1; 2]"
     elif Options.data_trans < 0 || Options.data_trans > 2
         err += "Parameter data_trans takes the integer values in the range [0; 2]"
-    elif Options.bic_type < 1 || Options.bic_type > 3
-        err += "BIC type takes the integer values in the range [1; 3]"
+    elif Options.bic_type < 1 || Options.bic_type > 4
+        err += "BIC type takes the integer values in the range [1; 4]"
     endif
 
     # We save options in M
