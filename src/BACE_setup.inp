@@ -23,8 +23,9 @@ function void BACE_setup (bundle *M, int Norig)
     printf "To do:"
     printf "\n * Change old names of parameters to new ones (see bottom of BACE_bcheck())."
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
-    printf "\n * Add PDF data_trans and bic_type."
-    printf "\n * Add PDF information on dependecies."
+    printf "\n * Add EBIC."
+    printf "\n * Add in PDF information data_trans and bic_type."
+    printf "\n * Add in PDF information on dependecies."
     printf "\n * Work on speed."
     printf "\n#############################################################################\n"
 
@@ -237,8 +238,10 @@ function void BACE_setup (bundle *M, int Norig)
     M.bic_type_name = M.BicTypes[M.bic_type]
     if M.bic_type_name == "HBIC" || M.bic_type_name == "IBIC"
         M.bic_correction = log(.5*M.N/$pi)
-    elif bic_type == 4
-        string M.bic_type_name = "EBIC"
+        /*
+           elif bic_type == 4
+           string M.bic_type_name = "EBIC"
+        */
     endif
 
     # Data transformation

@@ -79,10 +79,10 @@ function void BACE_estimate (bundle *M)
         endif
 
         # We calculate log of marginal density
-        if M.bic_type_name == "BIC"            
+        if M.bic_type_name == "BIC"
             M.lprob_new = -.5*$bic
         elif M.bic_type_name == "HBIC"
-            M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction            
+            M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction
         elif M.bic_type_name == "IBIC"
             if ESTIMATOR == "ols"
                 vcv = $vcv*$df/$nobs
@@ -92,9 +92,11 @@ function void BACE_estimate (bundle *M)
             M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction - 0.5*log(det(invpd(vcv)))
         elif M.bic_type_name == "BICREG"
             M.lprob_new = -.5*($nobs*log(1-$rsq) + ($ncoeff-1)*log($nobs))
-        elif M.bic_type == 4
-            scalar gamma = 0.5
-            M.lprob_new = -.5*$bic - gamma*log(bincoeff(M.k2+1, $ncoeff))
+            /*
+               elif M.bic_type == 4
+               scalar gamma = 0.5
+               M.lprob_new = -.5*$bic - gamma*log(bincoeff(M.k2+1, $ncoeff))
+            */
         endif
 
         # We calculate log of model probability
