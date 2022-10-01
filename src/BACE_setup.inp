@@ -45,7 +45,7 @@ function void BACE_setup (bundle *M, int Norig)
     ###############################################
     # Local variables - presets					  #
     ###############################################
-    strings M.DiscreteModelTypes = defarray("logit", "probit") # Note: the first two for binary dependent variable!
+    strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable!
     if M.model_type == "linear"
         string M.estimator = "ols"
     else
@@ -73,15 +73,15 @@ function void BACE_setup (bundle *M, int Norig)
         scalar M.limited_y = 0
     endif
     if M.with_const == 1
-        string M.const_type = "Always"
+        string M.const_type = M.ConstTypes[2]
     elif M.with_const == 2
-        string M.const_type = "Can be dropped"
+        string M.const_type = M.ConstTypes[3]
         X_list = X_list const
     else
         if M.limited_y && M.ordered
-            string M.const_type = "Never (with cut points)"
+            string M.const_type = M.ConstTypes[1] ~ " (with cut points)"
         else
-            string M.const_type = "Never"
+            string M.const_type = M.ConstTypes[1]
         endif
     endif
     if M.Y_AR_p > 0
@@ -148,7 +148,7 @@ function void BACE_setup (bundle *M, int Norig)
     scalar M.k_old = 0 # number of variables in the previous (old) model
     scalar M.lprob_new = 0 # natural logarithm of probability of the new model
     scalar M.lprob_old = 0 # natural logarithm of probability  of the old model
-    matrix M.scaling_f = zeros(1) # vector containing the scaling factors
+    scalar M.bic_correction = 0 # value for HBIC or IBIC calculation
     matrix M.bhat_tmp = {} # temporary column vector containing the estimated coefficients for the current model (candidates)
     matrix M.bvar_tmp = {} # temporary column vector containing the variances of the coefficients for the current model (candidates)
     matrix M.X_new_num = {} # vector containing numbers of variables in the new model
@@ -186,7 +186,7 @@ function void BACE_setup (bundle *M, int Norig)
     # Model prior
     matrix M.model_prior_log = zeros(M.k+1)
     if M.acc_type == 1
-        string M.prior_name = "Binomial"
+        string M.prior_name = M.ModelPriorTypes[1]
         scalar M.a = log(M.av_model_size/M.k)
         scalar M.b = log(1 - M.av_model_size/M.k)
         if M.with_const == 1 || M.limited_y && M.ordered
@@ -198,7 +198,7 @@ function void BACE_setup (bundle *M, int Norig)
             M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
         endloop
     else
-        string M.prior_name = "Beta-Binomial"
+        string M.prior_name = M.ModelPriorTypes[2]
         scalar M.a = 1
         if M.with_const == 1 || M.limited_y && M.ordered
             scalar M.b = (M.k - M.av_model_size)/M.av_model_size
@@ -234,26 +234,13 @@ function void BACE_setup (bundle *M, int Norig)
     endif
 
     # BIC version
-    if M.bic_type == 1
-        string M.bic_type_name = "BIC"
-    elif M.bic_type == 2
-        string M.bic_type_name = "HBIC"
-        M.scaling_f[1] = log(.5*M.N/$pi)
-    elif M.bic_type == 3
-        string M.bic_type_name = "IBIC"
-        M.scaling_f[1] = log(.5*M.N/$pi)
-    elif M.bic_type == 4
-        string M.bic_type_name = "BICREG"
+    M.bic_type_name = M.BicTypes[M.bic_type]
+    if M.bic_type_name == "HBIC" || M.bic_type_name == "IBIC"
+        M.bic_correction = log(.5*M.N/$pi)
     endif
 
     # Data transformation
-    if M.data_trans == 1
-        string M.data_trans_name = "centering"
-    elif M.data_trans == 2
-        string M.data_trans_name = "standarizing"
-    else
-        string M.data_trans_name = "none"
-    endif
+    M.data_trans_name = M.DataTransTypes[M.data_trans+1]
 
     if M.verbosity == 1
         set warnings off

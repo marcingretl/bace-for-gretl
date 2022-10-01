@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2022-09-21</date>
+<date>2022-10-01</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -288,7 +288,7 @@ if M.verbosity == 2
     if M.mod_nume_prob[i]
       printf &quot;\n&quot;
       print &quot;----------------------------------&quot;
-      printf &quot;\nModel: %d, posterior probability: %f&quot;, i, M.Numerical_Likelihood[i]
+      printf &quot;\nModel: %d, %s: %f, posterior probability: %f&quot;, i, M.bic_type_name, M.mod_rank_bic[i], M.Numerical_Likelihood[i]
       if sumr(M.mod_rank[i]) == 0 &amp;&amp; M.with_const != 1
         printf &quot;\n\n  %s\n&quot;, &quot;None of the variables were significant.&quot;
         printf &quot;  %s\n&quot;, &quot;Model includes only the intercept term which is simply the average of the dependent variable.&quot;
@@ -932,11 +932,16 @@ delete M.bhat_avg
 delete M.bvar_avg
 delete M.X_list
 delete M.N
-delete M.scaling_f
+delete M.bic_correction
 delete M.bhat_tmp
 delete M.bvar_tmp
 delete M.consthat_avg
 delete M.constvar_avg
+delete M.ModelTypes
+delete M.BicTypes
+delete M.ModelPriorTypes
+delete M.ConstTypes
+delete M.DataTransTypes
 if M.h_predict
   delete M.Y_mat_predict
   delete M.Yhat_predict_avg
@@ -965,6 +970,7 @@ This function creates BUNDLE holding all BACE information
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
 printf &quot;\n * Change old names of parameters to new ones (see bottom of BACE_bcheck()).&quot;
+printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot;
 printf &quot;\n * Add PDF data_trans and bic_type.&quot;
 printf &quot;\n * Add PDF information on dependecies.&quot;
 printf &quot;\n * Work on speed.&quot;
@@ -983,7 +989,7 @@ endif
 ###############################################
 # Local variables - presets					  #
 ###############################################
-strings M.DiscreteModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;) # Note: the first two for binary dependent variable!
+strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable!
 if M.model_type == &quot;linear&quot;
   string M.estimator = &quot;ols&quot;
 else
@@ -1011,15 +1017,15 @@ else
   scalar M.limited_y = 0
 endif
 if M.with_const == 1
-  string M.const_type = &quot;Always&quot;
+  string M.const_type = M.ConstTypes[2]
 elif M.with_const == 2
-  string M.const_type = &quot;Can be dropped&quot;
+  string M.const_type = M.ConstTypes[3]
   X_list = X_list const
 else
   if M.limited_y &amp;&amp; M.ordered
-    string M.const_type = &quot;Never (with cut points)&quot;
+    string M.const_type = M.ConstTypes[1] ~ &quot; (with cut points)&quot;
   else
-    string M.const_type = &quot;Never&quot;
+    string M.const_type = M.ConstTypes[1]
   endif
 endif
 if M.Y_AR_p &gt; 0
@@ -1083,7 +1089,7 @@ scalar M.k_new = 0 # number of variables in the current (new) model
 scalar M.k_old = 0 # number of variables in the previous (old) model
 scalar M.lprob_new = 0 # natural logarithm of probability of the new model
 scalar M.lprob_old = 0 # natural logarithm of probability  of the old model
-matrix M.scaling_f = zeros(1) # vector containing the scaling factors
+scalar M.bic_correction = 0 # value for HBIC or IBIC calculation
 matrix M.bhat_tmp = {} # temporary column vector containing the estimated coefficients for the current model (candidates)
 matrix M.bvar_tmp = {} # temporary column vector containing the variances of the coefficients for the current model (candidates)
 matrix M.X_new_num = {} # vector containing numbers of variables in the new model
@@ -1108,7 +1114,8 @@ matrix M.mod_rank_prob = zeros(M.l_rank,1) # probability of the models in rankin
 matrix M.mod_nume_prob = zeros(M.l_rank,1) # probability of the models in ranking (numerical)
 matrix M.var_prob = zeros(1,M.k) # vector containing PIPs
 matrices M.mod_rank_estimates = array(M.l_rank) # estimates of models in ranking
-matrices M.mod_rank = array(M.l_rank) #-1 * ones(l_rank,M.k) # 0-1 matrix M.containing structure of models in ranking
+matrices M.mod_rank_bic = array(M.l_rank) # BICs of models in ranking
+matrices M.mod_rank = array(M.l_rank) # structure of models in ranking
 if M.limited_y &amp;&amp; M.ordered
   matrix M.cutshat_avg = {}
   matrix M.cutsvar_avg = {}
@@ -1118,7 +1125,7 @@ endif
 # Model prior
 matrix M.model_prior_log = zeros(M.k+1)
 if M.acc_type == 1
-  string M.prior_name = &quot;Binomial&quot;
+  string M.prior_name = M.ModelPriorTypes[1]
   scalar M.a = log(M.av_model_size/M.k)
   scalar M.b = log(1 - M.av_model_size/M.k)
   if M.with_const == 1 || M.limited_y &amp;&amp; M.ordered
@@ -1130,7 +1137,7 @@ if M.acc_type == 1
     M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
   endloop
 else
-  string M.prior_name = &quot;Beta-Binomial&quot;
+  string M.prior_name = M.ModelPriorTypes[2]
   scalar M.a = 1
   if M.with_const == 1 || M.limited_y &amp;&amp; M.ordered
     scalar M.b = (M.k - M.av_model_size)/M.av_model_size
@@ -1161,23 +1168,12 @@ else
   matrix M.jointness_m = {}
 endif
 # BIC version
-if M.bic_type == 1
-  string M.bic_type_name = &quot;BIC&quot;
-elif M.bic_type == 2
-  string M.bic_type_name = &quot;HBIC&quot;
-  M.scaling_f[1] = log(.5*M.N/$pi)
-elif M.bic_type == 3
-  string M.bic_type_name = &quot;IBIC&quot;
-  M.scaling_f[1] = log(.5*M.N/$pi)
+M.bic_type_name = M.BicTypes[M.bic_type]
+if M.bic_type_name == &quot;HBIC&quot; || M.bic_type_name == &quot;IBIC&quot;
+  M.bic_correction = log(.5*M.N/$pi)
 endif
 # Data transformation
-if M.data_trans == 1
-  string M.data_trans_name = &quot;centering&quot;
-elif M.data_trans == 2
-  string M.data_trans_name = &quot;standarizing&quot;
-else
-  string M.data_trans_name = &quot;none&quot;
-endif
+M.data_trans_name = M.DataTransTypes[M.data_trans+1]
 if M.verbosity == 1
   set warnings off
 endif
@@ -1273,17 +1269,19 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     M.Yhat = {$model.yhat}
   endif
   # We calculate log of marginal density
-  if M.bic_type == 1
+  if M.bic_type_name == &quot;BIC&quot;
     M.lprob_new = -.5*$bic
-  elif M.bic_type == 2
-    M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1]
-  elif M.bic_type == 3
+  elif M.bic_type_name == &quot;HBIC&quot;
+    M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction
+  elif M.bic_type_name == &quot;IBIC&quot;
     if ESTIMATOR == &quot;ols&quot;
       vcv = $vcv*$df/$nobs
     else
       vcv = $vcv
     endif
-    M.lprob_new = $lnl - .5*$ncoeff*M.scaling_f[1] - 0.5*log(det(invpd(vcv)))
+    M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction - 0.5*log(det(invpd(vcv)))
+  elif M.bic_type_name == &quot;BICREG&quot;
+    M.lprob_new = -.5*($nobs*log(1-$rsq) + ($ncoeff-1)*log($nobs))
   endif
   # We calculate log of model probability
   M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
@@ -1392,6 +1390,7 @@ loop i=1..M.l_rank --quiet
   endif
   if nelem(models_estimates_rank[i])
     M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
+    M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
     if M.limited_y &amp;&amp; M.ordered
       M.mod_rank_cuts_estimates[i] = cuts_estimates_rank[i][,1] ~ sqrt(cuts_estimates_rank[i][,2])
     endif
@@ -1717,6 +1716,7 @@ UserOpts - bundle with user-defined options for BACE
 k - number of independent variables
 */
 string err = &quot;&quot;
+string separator = &quot;, &quot;
 scalar avg_model_size_tmp = 0
 scalar err2, arg_val, do_plot_tmp, do_show_progress
 bundle Options, Overloadable
@@ -1725,6 +1725,10 @@ strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;mo
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;)
 strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;)
+strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;BICREG&quot;)
+strings ModelPriorTypes = defarray(&quot;Binomial&quot;, &quot;Beta-Binomial&quot;)
+strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
+strings DataTransTypes = defarray(&quot;none&quot;, &quot;centering&quot;, &quot;standarizing&quot;)
 strings OverloadableKeys
 if $sysinfo.gui_mode
   do_plot_tmp = 1
@@ -1733,29 +1737,27 @@ else
   do_plot_tmp = 0
   do_show_progress = 0
 endif
-Overloadable[&quot;bic_type&quot;] = _(bic=1, hbic=2, ibic=3, valid=&quot;BIC, HBIC, IBIC&quot;)
-Overloadable[&quot;model_prior&quot;] = _(binomial=1, betabinomial=2, valid=&quot;Binomial, Beta-Binomial&quot;)
-Overloadable[&quot;with_const&quot;] = _(never=0, always=1, canbedropped=2, valid=&quot;Never, Always, Can be dropped&quot;)
-Overloadable[&quot;do_joint&quot;] = _(dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid=&quot;DW1, DW2, LS1, LS2, SM, YQ, MYQ&quot;)
-Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=&quot;none, centering, standarizing&quot;)
+Overloadable[&quot;bic_type&quot;] = _(bic=1, hbic=2, ibic=3, bicreg=4, valid=tolower(flatten(BicTypes, separator)))
+Overloadable[&quot;model_prior&quot;] = _(binomial=1, betabinomial=2, valid=tolower(flatten(ModelPriorTypes, separator)))
+Overloadable[&quot;with_const&quot;] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
+Overloadable[&quot;do_joint&quot;] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid=&quot;none, DW1, DW2, LS1, LS2, SM, YQ, MYQ&quot;)
+Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
 # We look for overloaded parameters and we convert them into integers
 OverloadableKeys = getkeys(Overloadable)
 loop i=1..nelem(OverloadableKeys) --quiet
   arg_name = OverloadableKeys[i]
   if inbundle(UserOpts, arg_name)
     if typeof(UserOpts[arg_name]) == 4
-      parameter_value = tolower(UserOpts[arg_name])
-      parameter_value = strsub(parameter_value, &quot; &quot;, &quot;&quot;)
+      parameter_value = strsub(tolower(UserOpts[arg_name]), &quot; &quot;, &quot;&quot;)
       if arg_name == &quot;model_prior&quot;
         parameter_value = strsub(parameter_value, &quot;-&quot;, &quot;&quot;)
       endif
-      catch arg_val = Overloadable[arg_name][parameter_value]
-      if $error
+      if inbundle(Overloadable[arg_name], parameter_value)
+        UserOpts[arg_name] = Overloadable[arg_name][parameter_value]
+      else
         err = sprintf(&quot;Unknown '%s' value for parameter %s.\n&quot;, UserOpts[arg_name], arg_name)
         err += sprintf(&quot; Valid options are: %s&quot;, Overloadable[arg_name].valid)
         return err
-      else
-        UserOpts[arg_name] = arg_val
       endif
     endif
   endif
@@ -1853,11 +1855,16 @@ elif Options.verbosity &lt; 1 || Options.verbosity &gt; 2
   err += &quot;Verbosity takes the integer values in the range [1; 2]&quot;
 elif Options.data_trans &lt; 0 || Options.data_trans &gt; 2
   err += &quot;Parameter data_trans takes the integer values in the range [0; 2]&quot;
-elif Options.bic_type &lt; 1 || Options.bic_type &gt; 3
-  err += &quot;BIC type takes the integer values in the range [1; 3]&quot;
+elif Options.bic_type &lt; 1 || Options.bic_type &gt; 4
+  err += &quot;BIC type takes the integer values in the range [1; 4]&quot;
 endif
 # We save options in M
 M = Options
+M.ModelTypes = ModelTypes
+M.BicTypes = BicTypes
+M.ModelPriorTypes = ModelPriorTypes
+M.ConstTypes = ConstTypes
+M.DataTransTypes = DataTransTypes
 # This must be fixed!!!
 M.acc_type = Options[&quot;model_prior&quot;]
 M.av_model_size = Options[&quot;avg_model_size&quot;]

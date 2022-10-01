@@ -16,24 +16,29 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
-    /*
-       This function checks options bundle and returns error message in
-       any problem found.
-       Parameters:
+/*
+   This function checks options bundle and returns error message in
+   any problem found.
+   Parameters:
 
-       UserOpts - bundle with user-defined options for BACE
-       k - number of independent variables
+   UserOpts - bundle with user-defined options for BACE
+   k - number of independent variables
     */
     string err = ""
+    string separator = ", "
     scalar avg_model_size_tmp = 0
     scalar err2, arg_val, do_plot_tmp, do_show_progress
     bundle Options, Overloadable
-    string arg_name, parameter_value    
+    string arg_name, parameter_value
     strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
       "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("avg_model_size", "alpha")
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
+    strings BicTypes = defarray("BIC", "HBIC", "IBIC", "BICREG")
+    strings ModelPriorTypes = defarray("Binomial", "Beta-Binomial")
+    strings ConstTypes = defarray("Never", "Always", "Can be dropped")
+    strings DataTransTypes = defarray("none", "centering", "standarizing")
     strings OverloadableKeys
     if $sysinfo.gui_mode
         do_plot_tmp = 1
@@ -42,11 +47,11 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         do_plot_tmp = 0
         do_show_progress = 0
     endif
-    Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3, bicreg=4, valid="BIC, HBIC, IBIC, BICREG")
-    Overloadable["model_prior"] = _(binomial=1, betabinomial=2, valid="Binomial, Beta-Binomial")
-    Overloadable["with_const"] = _(never=0, always=1, canbedropped=2, valid="Never, Always, Can be dropped")
+    Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3, bicreg=4, valid=tolower(flatten(BicTypes, separator)))
+    Overloadable["model_prior"] = _(binomial=1, betabinomial=2, valid=tolower(flatten(ModelPriorTypes, separator)))
+    Overloadable["with_const"] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
     Overloadable["do_joint"] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="none, DW1, DW2, LS1, LS2, SM, YQ, MYQ")
-    Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid="none, centering, standarizing")
+    Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
 
     # We look for overloaded parameters and we convert them into integers
     OverloadableKeys = getkeys(Overloadable)
@@ -54,18 +59,16 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         arg_name = OverloadableKeys[i]
         if inbundle(UserOpts, arg_name)
             if typeof(UserOpts[arg_name]) == 4
-                parameter_value = tolower(UserOpts[arg_name])
-                parameter_value = strsub(parameter_value, " ", "")
+                parameter_value = strsub(tolower(UserOpts[arg_name]), " ", "")
                 if arg_name == "model_prior"
                     parameter_value = strsub(parameter_value, "-", "")
                 endif
-                catch arg_val = Overloadable[arg_name][parameter_value]
-                if $error
+                if inbundle(Overloadable[arg_name], parameter_value)
+                    UserOpts[arg_name] = Overloadable[arg_name][parameter_value]
+                else
                     err = sprintf("Unknown '%s' value for parameter %s.\n", UserOpts[arg_name], arg_name)
                     err += sprintf(" Valid options are: %s", Overloadable[arg_name].valid)
                     return err
-                else
-                    UserOpts[arg_name] = arg_val
                 endif
             endif
         endif
@@ -178,6 +181,11 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
 
     # We save options in M
     M = Options
+    M.ModelTypes = ModelTypes
+    M.BicTypes = BicTypes
+    M.ModelPriorTypes = ModelPriorTypes
+    M.ConstTypes = ConstTypes
+    M.DataTransTypes = DataTransTypes
     # This must be fixed!!!
     M.acc_type = Options["model_prior"]
     M.av_model_size = Options["avg_model_size"]

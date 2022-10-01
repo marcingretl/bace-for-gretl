@@ -207,11 +207,16 @@ function void BACE_summary (bundle *M)
     delete M.bvar_avg
     delete M.X_list
     delete M.N
-    delete M.scaling_f
+    delete M.bic_correction
     delete M.bhat_tmp
     delete M.bvar_tmp
     delete M.consthat_avg
     delete M.constvar_avg
+    delete M.ModelTypes
+    delete M.BicTypes
+    delete M.ModelPriorTypes
+    delete M.ConstTypes
+    delete M.DataTransTypes
     if M.h_predict
         delete M.Y_mat_predict
         delete M.Yhat_predict_avg
