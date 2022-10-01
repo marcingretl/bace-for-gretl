@@ -971,8 +971,9 @@ printf &quot;\n#################################################################
 printf &quot;To do:&quot;
 printf &quot;\n * Change old names of parameters to new ones (see bottom of BACE_bcheck()).&quot;
 printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot;
-printf &quot;\n * Add PDF data_trans and bic_type.&quot;
-printf &quot;\n * Add PDF information on dependecies.&quot;
+printf &quot;\n * Add EBIC.&quot;
+printf &quot;\n * Add in PDF information data_trans and bic_type.&quot;
+printf &quot;\n * Add in PDF information on dependecies.&quot;
 printf &quot;\n * Work on speed.&quot;
 printf &quot;\n#############################################################################\n&quot;
 BACE_print_status(&quot;BACE setup&quot;)
@@ -1171,6 +1172,10 @@ endif
 M.bic_type_name = M.BicTypes[M.bic_type]
 if M.bic_type_name == &quot;HBIC&quot; || M.bic_type_name == &quot;IBIC&quot;
   M.bic_correction = log(.5*M.N/$pi)
+  /*
+elif bic_type == 4
+  string M.bic_type_name = &quot;EBIC&quot;
+  */
 endif
 # Data transformation
 M.data_trans_name = M.DataTransTypes[M.data_trans+1]
@@ -1282,6 +1287,11 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction - 0.5*log(det(invpd(vcv)))
   elif M.bic_type_name == &quot;BICREG&quot;
     M.lprob_new = -.5*($nobs*log(1-$rsq) + ($ncoeff-1)*log($nobs))
+    /*
+  elif M.bic_type == 4
+    scalar gamma = 0.5
+    M.lprob_new = -.5*$bic - gamma*log(bincoeff(M.k2+1, $ncoeff))
+    */
   endif
   # We calculate log of model probability
   M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
