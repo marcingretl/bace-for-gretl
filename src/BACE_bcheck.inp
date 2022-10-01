@@ -15,30 +15,31 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function string BACE_bcheck (bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *with_const,
-                             scalar *acc_type, scalar *av_model_size, scalar *alpha, scalar *l_rank,
-                             scalar *do_joint, scalar *h_predict, scalar *Nrep, scalar *burn,
-                             scalar *verbosity, scalar *show_progress, scalar *do_plot,
-                             string *model_type, scalar *data_trans, scalar *bic_type)
-    /*
-       This function checks options bundle and returns error message in
-       any problem found.
-       Parameters:
+function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
+/*
+   This function checks options bundle and returns error message in
+   any problem found.
+   Parameters:
 
-       UserOpts - bundle with user-defined options for BACE
-       k - number of independent variables
+   UserOpts - bundle with user-defined options for BACE
+   k - number of independent variables
     */
     string err = ""
+    string separator = ", "
     scalar avg_model_size_tmp = 0
     scalar err2, arg_val, do_plot_tmp, do_show_progress
     bundle Options, Overloadable
     string arg_name, parameter_value
-    strings OverloadableKeys
     strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
       "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("avg_model_size", "alpha")
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
+    strings BicTypes = defarray("BIC", "HBIC", "IBIC", "BICREG")
+    strings ModelPriorTypes = defarray("Binomial", "Beta-Binomial")
+    strings ConstTypes = defarray("Never", "Always", "Can be dropped")
+    strings DataTransTypes = defarray("none", "centering", "standarizing")
+    strings OverloadableKeys
     if $sysinfo.gui_mode
         do_plot_tmp = 1
         do_show_progress = 1
@@ -46,11 +47,11 @@ function string BACE_bcheck (bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *
         do_plot_tmp = 0
         do_show_progress = 0
     endif
-    Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3, ebic=4, valid="BIC, HBIC, IBIC, EBIC")
-    Overloadable["model_prior"] = _(binomial=1, betabinomial=2, valid="Binomial, Beta-Binomial")
-    Overloadable["with_const"] = _(never=0, always=1, canbedropped=2, valid="Never, Always, Can be dropped")
-    Overloadable["do_joint"] = _(dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="DW1, DW2, LS1, LS2, SM, YQ, MYQ")
-    Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid="none, centering, standarizing")
+    Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3, bicreg=4, valid=tolower(flatten(BicTypes, separator)))
+    Overloadable["model_prior"] = _(binomial=1, betabinomial=2, valid=tolower(flatten(ModelPriorTypes, separator)))
+    Overloadable["with_const"] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
+    Overloadable["do_joint"] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="none, DW1, DW2, LS1, LS2, SM, YQ, MYQ")
+    Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
 
     # We look for overloaded parameters and we convert them into integers
     OverloadableKeys = getkeys(Overloadable)
@@ -58,18 +59,16 @@ function string BACE_bcheck (bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *
         arg_name = OverloadableKeys[i]
         if inbundle(UserOpts, arg_name)
             if typeof(UserOpts[arg_name]) == 4
-                parameter_value = tolower(UserOpts[arg_name])
-                parameter_value = strsub(parameter_value, " ", "")
+                parameter_value = strsub(tolower(UserOpts[arg_name]), " ", "")
                 if arg_name == "model_prior"
                     parameter_value = strsub(parameter_value, "-", "")
                 endif
-                catch arg_val = Overloadable[arg_name][parameter_value]
-                if $error
+                if inbundle(Overloadable[arg_name], parameter_value)
+                    UserOpts[arg_name] = Overloadable[arg_name][parameter_value]
+                else
                     err = sprintf("Unknown '%s' value for parameter %s.\n", UserOpts[arg_name], arg_name)
                     err += sprintf(" Valid options are: %s", Overloadable[arg_name].valid)
                     return err
-                else
-                    UserOpts[arg_name] = arg_val
                 endif
             endif
         endif
@@ -153,50 +152,49 @@ function string BACE_bcheck (bundle UserOpts, scalar k, scalar *Y_AR_p, scalar *
         err += sprintf("Unknown model type: '%s'", UserOpts["model_type"])
     endif
 
-    # We set arguments
-    Y_AR_p = Options["Y_AR_p"]
-    with_const = Options["with_const"]
-    acc_type = Options["model_prior"]
-    av_model_size = Options["avg_model_size"]
-    alpha = Options["alpha"]
-    l_rank = Options["Nrank"]
-    do_joint = Options["do_joint"]
-    h_predict = Options["Npredict"]
-    Nrep = Options["Nrep"]
-    burn = Options["burn"]
-    verbosity = Options["verbosity"]
-    show_progress = Options["show_progress"]
-    do_plot = Options["do_plot"]
-    model_type = Options["model_type"]
-    data_trans = Options["data_trans"]
-    bic_type = Options["bic_type"]
-
     # We check arguments for valid values
-    if Y_AR_p < 0
+    if Options.Y_AR_p < 0
         err += "Y lags (Y_AR_p) takes the integer values"
-    elif with_const < 0 || with_const > 2
+    elif Options.with_const < 0 || Options.with_const > 2
         err += "Constant in model takes the integer values in the range [0; 2]"
-    elif acc_type < 1 || acc_type > 2
+    elif Options.model_prior < 1 || Options.model_prior > 2
         err += "Model prior takes the integer values in the range [1; 2]"
-    elif alpha < 0 || alpha > 1
+    elif Options.alpha < 0 || Options.alpha > 1
         err += "The significance level (alpha) takes the real values in the range [0; 1]"
-    elif do_joint < 0 || do_joint > 7
+    elif Options.do_joint < 0 || Options.do_joint > 7
         err += "Jointess type (do_joint) takes the integer values in the range [1; 7]"
-    elif h_predict < 0
+    elif Options.Npredict < 0
         err += "Number of out-of-sample forecasts (h_predict) takes the integer values"
-    elif h_predict >= round($nobs/2)
+    elif Options.Npredict >= round($nobs/2)
         printf("Number of out-of-sample forecasts is more than 50%s of sample length.\n", "%")
-    elif Nrep < 0
+    elif Options.Nrep < 0
         err += "Total number of replications (Nrep) takes the integer values"
-    elif burn < 0 || burn > 99
+    elif Options.burn < 0 || Options.burn > 99
         err += "Percentage of burn-in draws (do_burn) takes the integer values in the range [0; 99]"
-    elif verbosity < 1 || verbosity > 2
+    elif Options.verbosity < 1 || Options.verbosity > 2
         err += "Verbosity takes the integer values in the range [1; 2]"
-    elif data_trans < 0 || data_trans > 2
+    elif Options.data_trans < 0 || Options.data_trans > 2
         err += "Parameter data_trans takes the integer values in the range [0; 2]"
-    elif bic_type < 1 || bic_type > 4
+    elif Options.bic_type < 1 || Options.bic_type > 4
         err += "BIC type takes the integer values in the range [1; 4]"
     endif
+
+    # We save options in M
+    M = Options
+    M.ModelTypes = ModelTypes
+    M.BicTypes = BicTypes
+    M.ModelPriorTypes = ModelPriorTypes
+    M.ConstTypes = ConstTypes
+    M.DataTransTypes = DataTransTypes
+    # This must be fixed!!!
+    M.acc_type = Options["model_prior"]
+    M.av_model_size = Options["avg_model_size"]
+    M.l_rank = Options["Nrank"]
+    M.h_predict = Options["Npredict"]
+    delete M["model_prior"]
+    delete M["avg_model_size"]
+    delete M["Nrank"]
+    delete M["Npredict"]
 
     return err
 end function

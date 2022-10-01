@@ -20,6 +20,7 @@ function scalar BACE_exp_trunc_dist (scalar x, const scalar n, const scalar avg,
     /*
        Function for finding a x to have truncated distribution
        with desired expected value which equals 'avg'.
+       Note: it is prepared for use with fzero()!!!
        Parameters:
        n - number of variables
        dist - name of distribution

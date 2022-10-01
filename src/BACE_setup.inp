@@ -15,59 +15,43 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function bundle BACE_setup (series Y,
-                            int Y_AR_p,
-                            matrix X_list_m,
-                            int acc_type[1:2:1],
-                            scalar av_model_size[0::1],
-                            scalar alpha[0:1:0.6],
-                            int l_rank[2::4],
-                            int do_joint[0:7:0],
-                            int h_predict[0::],
-                            int Nrep[1e+06],
-                            int burn[0:99:10],
-                            int verbosity[1:2:1],
-                            string Y_name,
-                            bool show_progress[1],
-                            int with_const,
-                            int Norig,
-                            bool do_plot,
-                            string model_type,
-                            scalar data_trans,
-                            scalar bic_type)
-    /*
-       This function creates BUNDLE holding all BACE information
-       #
-       Local variables:
-       tmp_str - general purpose string
+function void BACE_setup (bundle *M, int Norig)
+/*
+   This function creates BUNDLE holding all BACE information
     */
     printf "\n#############################################################################\n"
     printf "To do:"
-    printf "\n * Get rid off redundancy in setup BACE_bcheck() + BACE_parse() + BACE_setup()."
-    printf "\n * Simplify restoring estimates in BACE_collect_results()."
+    printf "\n * Change old names of parameters to new ones (see bottom of BACE_bcheck())."
+    printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
     printf "\n * Add PDF data_trans and bic_type."
     printf "\n * Add PDF information on dependecies."
     printf "\n * Work on speed."
-    printf "\n * Clean up the code (specially stale matrixes)."
     printf "\n#############################################################################\n"
 
     BACE_print_status("BACE setup")
 
-    bundle M
     scalar tmp
-    list X_list = X_list_m
+    string tmp_str = ""
+    list X_list = M.X_list
+    series Y = M.Y
 
     ###############################################
     # Global variables (given by user of default) #
     ###############################################
-    strings M.DiscreteModelTypes = defarray("logit", "probit") # first two for just 0-1 dependent variable
-    if model_type == "linear"
+    if ok(Norig)
+        scalar M.Norig = Norig
+    endif
+
+    ###############################################
+    # Local variables - presets					  #
+    ###############################################
+    strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable!
+    if M.model_type == "linear"
         string M.estimator = "ols"
     else
-        string M.estimator = model_type
+        string M.estimator = M.model_type
     endif
-    scalar M.with_const = with_const
-    if nelem(instrings(M.DiscreteModelTypes, model_type))
+    if nelem(instrings(M.DiscreteModelTypes, M.model_type))
         scalar M.limited_y = 1
         scalar M.ordered = 0
         scalar M.cuts = 0
@@ -89,158 +73,122 @@ function bundle BACE_setup (series Y,
         scalar M.limited_y = 0
     endif
     if M.with_const == 1
-        string M.const_type = "Always"
+        string M.const_type = M.ConstTypes[2]
     elif M.with_const == 2
-        string M.const_type = "Can be dropped"
+        string M.const_type = M.ConstTypes[3]
         X_list = X_list const
     else
         if M.limited_y && M.ordered
-            string M.const_type = "Never (with cut points)"
+            string M.const_type = M.ConstTypes[1] ~ " (with cut points)"
         else
-            string M.const_type = "Never"
+            string M.const_type = M.ConstTypes[1]
         endif
     endif
-    if Y_AR_p > 0
-        X_list = lags(Y_AR_p, Y) X_list
+    if M.Y_AR_p > 0
+        X_list = lags(M.Y_AR_p, Y) X_list
     endif
-    list big_list = Y X_list
-    string tmp_str = ""
-    series M.Y = Y
-    matrix M.X_list = X_list # Look down - repeated!!!
-    scalar M.acc_type = acc_type
-    scalar M.av_model_size = av_model_size
-    scalar M.alpha = alpha
-    scalar M.l_rank = l_rank
-    scalar M.do_joint = do_joint
-    scalar M.h_predict = h_predict
-    scalar M.Nrep = Nrep
-    scalar M.burn = burn
-    scalar M.verbosity = verbosity
-    scalar M.show_progress = show_progress
-    if ok(Norig)
-        scalar M.Norig = Norig
-    endif
-    scalar M.do_plot = do_plot
-    scalar M.CPU_num = 1
-    scalar M.bic_type = bic_type
-    scalar M.data_trans = data_trans
+    M.X_list = X_list
 
-    # Local variables
-    matrix M.StartModel = {} # list with variables selected in starting model UWAGA: do wyrzucenia!!!
-    bundle StartModel_b
-    bundle M.StartModel_b = StartModel_b
-    matrix M.X_list = X_list # List of all explanatory variables UWAGA: powtórzone (patrz góra)
+    ###############################################
+    # Local variables							  #
+    ###############################################
+    bundle M.StartModel_b = null
+    scalar M.Nburn = round(M.burn/100*M.Nrep) # number of burn-in draws
     scalar M.k = nelem(X_list) # total number of indenpendent variables
+    scalar M.model_space = 2^M.k
+    if M.with_const != 1 && !(M.limited_y && M.ordered)
+        M.model_space -= 1
+    endif
     if M.with_const == 2
         scalar M.k2 = M.k+1 # maximum number of estimated slope coefficients
     else
         scalar M.k2 = M.k
     endif
-    scalar M.Nburn = round(burn/100*Nrep) # number of burn-in draws
-    matrix M.var_numbers = big_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
-    if M.with_const == 2
-        matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
-    else
-        matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
-        #matrix M.var_numbers2 = transp(msortby(transp(M.var_numbers[2:1+M.k] | seq(2,1+M.k)), 1)) # vector containing the dataset numbers of all variables and their order in the 'big_list'
-    endif
-    scalar M.model_space = 2^M.k
-    if M.with_const != 1 && !(M.limited_y && M.ordered)
-        M.model_space -= 1
-    endif
-    matrix M.big_mat = { big_list } # matrix of all variables (including Y)
-    matrix M.big_mat_dem = M.big_mat
     scalar M.n_drop_draws = 0
-    scalar M.loop_maxiter = 3*Nrep
+    scalar M.loop_maxiter = 3*M.Nrep
     scalar M.toler = 1.0e-20
-
-    # In case of "out-of-sample" prediction
-    if h_predict > 0
-        scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
-        scalar M.last_obs = $tmax-h_predict # the last observation for smpl command
-        matrix M.big_mat_predict = M.big_mat[rows(M.big_mat)-h_predict+1:rows(M.big_mat),] # "out-of-sample" matrix of all variables (including Y)
-        matrix M.big_mat_dem_predict = M.big_mat_dem[rows(M.big_mat_dem)-h_predict+1:rows(M.big_mat_dem),] # "out-of-sample" matrix M.of all demeaned variables (including Y)
-        matrix M.Y_mat_predict = M.big_mat_predict[,1] # "out-of-sample" matrix of the dependent variable
-        matrix M.Yhat_predict = zeros(h_predict) # vector of Y predictions in current draw
-        matrix M.Yhat_predict_var = zeros(h_predict) # vector of Y predictions in current draw (variances!!!)
-        matrix M.precision = zeros(h_predict,1) # prediction precision
-        matrix M.Yhat_predict_avg = zeros(h_predict,1) # vector of Y predictions - average
-        matrix M.Yhat_predict_var_avg = zeros(h_predict,1) # predicion variance
-        matrix M.prediction = {} # matrix with prediction results
-        loop i=($nobs-h_predict+1)..$nobs --quiet
-            tmp_str += strsub(obslabel(i), " ", "") ~ " "
-        endloop
-        string M.predict_obs_names = tmp_str # obs labels for forecasts
-        smpl M.first_obs M.last_obs #$nobs-h_predict-Y_AR_p #M.last_obs # setting sample
-        matrix M.big_mat = M.big_mat[1:rows(M.big_mat)-h_predict,] # big_mat for limited sample
-        matrix M.big_mat_dem = M.big_mat_dem[1:rows(M.big_mat_dem)-h_predict,] # big_mat_dem for limited sample
-    else
-        matrix M.big_mat_dem_predict = {}
-        matrix M.Yhat_avg = {}
-        matrix M.Yhat_var_avg = {}
-        matrix M.Y_mat_predict = {}
-        string M.predict_obs_names = ""
-    endif
-
-    # New model
-    matrix M.ZtZinv_new = {} # inverse of Z'Z (X's without constant term)
-    scalar M.k_new = 0 # number of variables in the current (new) model
-    scalar M.lprob_new = 0 # natural logarithm of probability of the new model
-    matrix M.X_new_num = {} # vector containing numbers of variables in the new model
-    matrix M.X_new = {} # the X matrix M.for the current (new) model (demeaned)
-    # Old model
-    matrix M.ZtZinv_old = {} # old inverse of Z'Z (X's without constant term)
-    scalar M.k_old = 0 # number of variables in the previous (old) model
-    scalar M.lprob_old = 0 # natural logarithm of probability  of the old model
-    matrix M.X_old_num = {} # vector containing numbers of variables in the old model
-    scalar M.dj_new = 0 # scalar M.needed for prediction precision computation
-    scalar M.dj_old = 0 # scalar M.needed for prediction precision computation
-    matrix M.X_new_predict = {} # "out-of-sample" the X matrix M.for the current (new) model (demeaned)
-    matrix M.X_old_predict = {} # "out-of-sample" the X matrix M.for the previous (old) model (demeaned)
-    matrix M.Y_mat = M.big_mat[,1] # matrix of the dependent variable
-    scalar M.y_dem_sq = M.big_mat_dem[,1]'M.big_mat_dem[,1] # sum of squares of the demeaned Y
-    scalar M.y_mean = meanc(M.Y_mat) # mean of the Y
-    scalar M.mod_size = 0 # size of models in MC3 (sum)
-    scalar M.yMy = 0 # scalar M.for P_y computation
-    matrix M.scaling_f = zeros(1) # vector containing the scaling factors
-    matrix M.mod_struct_old = zeros(1,M.k) # 0-1 vector containing the structure of the current model
-    matrix M.mod_struct_new = zeros(1,M.k) # 0-1 vector containing the structure of the current model
-    matrices M.mod_rank = array(M.l_rank) #-1 * ones(l_rank,M.k) # 0-1 matrix M.containing structure of models in ranking
-    matrix M.mod_rank_prob = zeros(l_rank,1) # probability of the models in ranking (analytical)
-    matrix M.mod_nume_prob = zeros(l_rank,1) # probability of the models in ranking (numerical)
-    matrices M.mod_rank_estimates = array(l_rank) # estimates of models in ranking
-    matrix M.var_prob = zeros(1,M.k) # vector containing PIPs
-    if M.limited_y && M.ordered
-        matrices M.mod_rank_cuts_estimates = array(l_rank) # cuts estimates for models in ranking
-    endif
-
+    scalar M.CPU_num = 1
+    matrix M.StartModel = {}
+    matrix M.Y_mat = { Y }
+    matrix M.var_numbers = Y || X_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
+    matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
     strings M.all_names_sp_m = varnames(X_list)
-    loop i=1..Y_AR_p --quiet
-        M.all_names_sp_m[i] = strsub(M.all_names_sp_m[i], "Y_$i", Y_name~"_$i")
+    loop i=1..M.Y_AR_p --quiet
+        M.all_names_sp_m[i] = strsub(M.all_names_sp_m[i], "Y_$i", M.Y_name~"_$i")
     endloop
     if M.with_const == 1
         strings const_name = defarray("const")
         M.all_names_sp_m = const_name + M.all_names_sp_m
     endif
-    string M.Y_name = Y_name # string with name of denpendent variable
 
-    if do_joint
-        matrix M.jointness_m = zeros(M.k, M.k) # square matrix containing counts of coexistence (jointness) of every pair of indenpendent variables
-        strings M.jointess_measure_names = defarray("Doppelhofer-Weeks Measure (DW1)", \
-          "Doppelhofer-Weeks Measure (DW2)", "Ley-Steel Measure (LS1)", \
-          "Ley-Steel Measure (LS2)", "Strachan Measure (SM)", "Yule's Q Measure (YQ)", \
-          "Modified Yule's Q Measure (MYQ)")
+    # In case of "out-of-sample" prediction
+    if M.h_predict
+        scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
+        scalar M.last_obs = $tmax-M.h_predict # the last observation for smpl command
+        matrix M.Y_mat_predict = M.Y_mat[end-M.h_predict+1:end] # "out-of-sample" matrix of the dependent variable
+        M.Y_mat = M.Y_mat[1:end-M.h_predict]
+        matrix M.Yhat_predict = zeros(M.h_predict) # vector of Y predictions in current draw
+        matrix M.Yhat_predict_var = zeros(M.h_predict) # vector of Y predictions in current draw (variances!!!)
+        matrix M.Yhat_predict_avg = zeros(M.h_predict,1) # vector of Y predictions - average
+        matrix M.Yhat_predict_var_avg = zeros(M.h_predict,1) # predicion variance
+        matrix M.prediction = {} # matrix with prediction results
+        strings M.predict_obs_names = obslabel(seq($nobs-M.h_predict+1,$nobs)) # obs labels for forecasts
+        smpl M.first_obs M.last_obs #$nobs-h_predict-Y_AR_p #M.last_obs # setting sample
     else
-        matrix M.jointness_m = {}
+        matrix M.Yhat_avg = {}
+        matrix M.Yhat_var_avg = {}
+        matrix M.Y_mat_predict = {}
+        strings M.predict_obs_names = null
+    endif
+    scalar M.N = $nobs
+
+    # New/old model stuff
+    scalar M.mod_size = 0 # size of models in MC3 (sum)
+    scalar M.k_new = 0 # number of variables in the current (new) model
+    scalar M.k_old = 0 # number of variables in the previous (old) model
+    scalar M.lprob_new = 0 # natural logarithm of probability of the new model
+    scalar M.lprob_old = 0 # natural logarithm of probability  of the old model
+    scalar M.bic_correction = 0 # value for HBIC or IBIC calculation
+    matrix M.bhat_tmp = {} # temporary column vector containing the estimated coefficients for the current model (candidates)
+    matrix M.bvar_tmp = {} # temporary column vector containing the variances of the coefficients for the current model (candidates)
+    matrix M.X_new_num = {} # vector containing numbers of variables in the new model
+    matrix M.X_old_num = {} # vector containing numbers of variables in the old model
+    matrix M.mod_struct_new = zeros(1,M.k) # 0-1 vector containing the structure of the current model
+    matrix M.mod_struct_old = zeros(1,M.k) # 0-1 vector containing the structure of the current model
+
+    # Posterior results
+    scalar M.consthat_avg = 0
+    scalar M.constvar_avg = 0
+    scalar M.post_n_models = 0 # number of considered models
+    scalar M.post_n_models_accepted = 0 # number of accepted models
+    scalar M.empty_model_count = 0 # counter for empty model
+    matrix M.bhat_avg = zeros(M.k,1) # vector containing average values of coefficients (over MCMC)
+    matrix M.bvar_avg = zeros(M.k,1) # vector containing average values of variances of the coefficients (over MCMC)
+    matrix M.Numerical_Likelihood = {} # column vector containing numerical probabilities for models
+    matrix M.Post_Results = {} # matrix with all posterior results
+    matrix M.mod_sizes = {} # Vector with models size distribution
+    matrix M.models_probs_percents = {} # CDF-like matrix for accepted models
+    matrix M.models_probs_cdf = {} # accepted models CDF
+    matrix M.models_probs_cum = {} # accepted models cumulation
+    matrix M.mod_rank_prob = zeros(M.l_rank,1) # probability of the models in ranking (analytical)
+    matrix M.mod_nume_prob = zeros(M.l_rank,1) # probability of the models in ranking (numerical)
+    matrix M.var_prob = zeros(1,M.k) # vector containing PIPs
+    matrices M.mod_rank_estimates = array(M.l_rank) # estimates of models in ranking
+    matrices M.mod_rank_bic = array(M.l_rank) # BICs of models in ranking
+    matrices M.mod_rank = array(M.l_rank) # structure of models in ranking
+    if M.limited_y && M.ordered
+        matrix M.cutshat_avg = {}
+        matrix M.cutsvar_avg = {}
+        matrix M.cuts_avg = {}
+        matrices M.mod_rank_cuts_estimates = array(M.l_rank) # cuts estimates for models in ranking
     endif
 
     # Model prior
     matrix M.model_prior_log = zeros(M.k+1)
-    if acc_type == 1
-        string M.prior_name = "Binomial"
-        scalar M.a = log(av_model_size/M.k)
-        scalar M.b = log(1 - av_model_size/M.k)
-        scalar M.c = 0
+    if M.acc_type == 1
+        string M.prior_name = M.ModelPriorTypes[1]
+        scalar M.a = log(M.av_model_size/M.k)
+        scalar M.b = log(1 - M.av_model_size/M.k)
         if M.with_const == 1 || M.limited_y && M.ordered
             tmp = M.av_model_size/M.k
         else
@@ -250,10 +198,10 @@ function bundle BACE_setup (series Y,
             M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
         endloop
     else
-        string M.prior_name = "Beta-Binomial"
+        string M.prior_name = M.ModelPriorTypes[2]
         scalar M.a = 1
         if M.with_const == 1 || M.limited_y && M.ordered
-            scalar M.b = (M.k - av_model_size)/av_model_size
+            scalar M.b = (M.k - M.av_model_size)/M.av_model_size
         else
             loop while M.toler > 0
                 catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, "Beta-Binomial", M.a), {100, -.00001}, M.toler)
@@ -265,7 +213,6 @@ function bundle BACE_setup (series Y,
                 endif
             endloop
         endif
-        scalar M.c = lngamma(M.a + M.b) - lngamma(M.a) - lngamma(M.b)
         loop i=0..M.k --quiet
             M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
         endloop
@@ -275,65 +222,29 @@ function bundle BACE_setup (series Y,
     endif
     M.model_prior_log = log(M.model_prior_log)
 
-    # Posterior results
-    matrix M.bhat = {} # vector containing the estimated coefficients for the current model
-    matrix M.bvar = {} # vector containing the variances of the coefficients for the current model
-    matrix M.XtY = {} # X'Y (part of OLS)
-    matrix M.XtXinv = {} # inverse of X'X (part of OLS)
-    matrix M.bhat_avg = zeros(M.k, 1) # vector containing average values of coefficients (over MCMC)
-    matrix M.bvar_avg = zeros(M.k, 1) # vector containing average values of variances of the coefficients (over MCMC)
-    matrix M.Numerical_Likelihood = {} # column vector containing numerical probabilities for models
-    matrix M.Post_Results = {} # matrix with all posterior results
-    matrix M.mod_sizes = {} # Vector with models size distribution
-    matrix M.models_probs_percents = {} # CDF-like matrix for accepted models
-    matrix M.models_probs_cdf = {} # accepted models CDF
-    matrix M.models_probs_cum = {} # accepted models cumulation
-    string M.model_type = model_type # name of model type (linear, logit, etc...)
-    scalar M.N = rows(M.big_mat)
-    scalar M.Y_AR_p = Y_AR_p # max Y lag order
-    matrix M.bhat_tmp = {} # temporary column vector containing the estimated coefficients for the current model (candidates)
-    matrix M.bvar_tmp = {} # temporary column vector containing the variances of the coefficients for the current model (candidates)
-    scalar M.ess_new = 0 # Error sum of squares in new model
-    scalar M.ess_old = 0 # Error sum of squares in old model
-    scalar M.consthat_avg = 0
-    scalar M.constvar_avg = 0
-    scalar M.post_n_models = 0 # number of considered models
-    scalar M.post_n_models_accepted = 0 # number of accepted models
-    if M.limited_y && M.ordered
-        matrix M.cutshat_avg = {}
-        matrix M.cutsvar_avg = {}
-        matrix M.cuts_avg = {}
+    # Jointness stuff
+    if M.do_joint
+        matrix M.jointness_m = zeros(M.k, M.k) # square matrix containing counts of coexistence (jointness) of every pair of indenpendent variables
+        strings M.jointess_measure_names = defarray("Doppelhofer-Weeks Measure (DW1)", \
+          "Doppelhofer-Weeks Measure (DW2)", "Ley-Steel Measure (LS1)", \
+          "Ley-Steel Measure (LS2)", "Strachan Measure (SM)", "Yule's Q Measure (YQ)", \
+          "Modified Yule's Q Measure (MYQ)")
+    else
+        matrix M.jointness_m = {}
     endif
-    # Those below to delete: modify BACE_model_switch()
-    scalar M.model_index_new = 0 # decimal index of new model
-    scalar M.model_index_old = 0 # decimal index of old model
-    string M.model_hex_index_new = "" # hex index of model
-    string M.model_hex_index_old = "" # hex index of model
-    scalar M.empty_model_count = 0 # counter for empty model
 
     # BIC version
-    if bic_type == 1
-        string M.bic_type_name = "BIC"
-    elif bic_type == 2
-        string M.bic_type_name = "HBIC"
-        M.scaling_f[1] = log(.5*M.N/$pi)
-    elif bic_type == 3
-        string M.bic_type_name = "IBIC"
-        M.scaling_f[1] = log(.5*M.N/$pi)
+    M.bic_type_name = M.BicTypes[M.bic_type]
+    if M.bic_type_name == "HBIC" || M.bic_type_name == "IBIC"
+        M.bic_correction = log(.5*M.N/$pi)
     elif bic_type == 4
         string M.bic_type_name = "EBIC"
     endif
 
-    # Data standarization
-    if M.data_trans == 1
-        string M.data_trans_name = "centering"
-    elif M.data_trans == 2
-        string M.data_trans_name = "standarizing"
-    else
-        string M.data_trans_name = "none"
-    endif
+    # Data transformation
+    M.data_trans_name = M.DataTransTypes[M.data_trans+1]
 
-    if verbosity == 1
+    if M.verbosity == 1
         set warnings off
     endif
 
@@ -341,6 +252,4 @@ function bundle BACE_setup (series Y,
     scalar M.progress = floor(M.Nrep/100)
 
     BACE_print_status(null, 1, 11)
-
-    return M
 end function

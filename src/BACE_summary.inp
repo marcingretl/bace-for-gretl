@@ -158,7 +158,7 @@ function void BACE_summary (bundle *M)
     endif
 
     # Forecasts
-    if M.h_predict > 0
+    if M.h_predict
         M.Yhat_predict_avg = M.Yhat_avg / NORM
         M.Yhat_predict_var_avg = M.Yhat_var_avg / NORM
         M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
@@ -192,54 +192,33 @@ function void BACE_summary (bundle *M)
     # Cleaning up the bundle
     delete M.show_progress
     delete M.var_numbers2
-    delete M.big_mat
-    delete M.ZtZinv_new
     delete M.k_new
     delete M.lprob_new
     delete M.X_new_num
-    delete M.X_new
-    delete M.ZtZinv_old
     delete M.k_old
     delete M.lprob_old
     delete M.X_old_num
-    delete M.dj_new
-    delete M.dj_old
-    delete M.X_new_predict
-    delete M.X_old_predict
-    delete M.y_dem_sq
-    delete M.y_mean
-    delete M.yMy
     delete M.mod_struct_old
     delete M.mod_struct_new
     delete M.var_prob
     delete M.a
     delete M.b
-    delete M.c
-    delete M.bhat
-    delete M.bvar
-    delete M.XtY
-    delete M.XtXinv
     delete M.bhat_avg
     delete M.bvar_avg
     delete M.X_list
     delete M.N
-    delete M.scaling_f
-    delete M.ess_new
-    delete M.ess_old
+    delete M.bic_correction
     delete M.bhat_tmp
     delete M.bvar_tmp
     delete M.consthat_avg
     delete M.constvar_avg
-    delete M.big_mat_dem
-    delete M.model_index_new
-    delete M.model_index_old
-    delete M.model_hex_index_new
-    delete M.model_hex_index_old
-    if M.h_predict > 0
-        delete M.big_mat_predict
-        delete M.big_mat_dem_predict
+    delete M.ModelTypes
+    delete M.BicTypes
+    delete M.ModelPriorTypes
+    delete M.ConstTypes
+    delete M.DataTransTypes
+    if M.h_predict
         delete M.Y_mat_predict
-        delete M.precision
         delete M.Yhat_predict_avg
         delete M.Yhat_predict_var_avg
         delete M.predict_obs_names
