@@ -39,9 +39,9 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     if M.do_joint
         matrix jointness_m = zeros(M.k,M.k)
     endif
-    if M.h_predict
-        Yhat_avg = zeros(M.h_predict)
-        Yhat_var_avg = zeros(M.h_predict)
+    if M.Npredict
+        Yhat_avg = zeros(M.Npredict)
+        Yhat_var_avg = zeros(M.Npredict)
     endif
     if M.limited_y
         Yhat = zeros($nobs)
@@ -64,7 +64,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     models_counter = models_counter[idx]
     models_estimates = models_estimates[idx]
     models_structure = models_structure[idx]
-    if M.h_predict
+    if M.Npredict
         models_forecasts = models_forecasts[idx]
     endif
     if M.limited_y
@@ -87,8 +87,8 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     M.models_probs_cum = cum(dsort(models_probs[,1]))
 
     # We build analytical and numerical rankings
-    M.l_rank = xmin(M.l_rank, M.post_n_models_accepted)
-    models_probs = models_probs[1:M.l_rank,]
+    M.Nrank = xmin(M.Nrank, M.post_n_models_accepted)
+    models_probs = models_probs[1:M.Nrank,]
     M.mod_nume_prob = models_probs[,1]
     M.mod_rank_prob = models_lprob[models_probs[,2]]
     models_structure_rank = models_structure[models_probs[,3]]
@@ -98,7 +98,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
 
     # We restore estimates for models in ranking
-    loop i=1..M.l_rank --quiet
+    loop i=1..M.Nrank --quiet
         var_idx = {}
         mod_struct = models_structure_rank[i]
         M.mod_rank[i] = mod_struct
@@ -162,7 +162,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
             jointness_m = upper(jointness_m .+ weight * ((mod_struct .* mod_struct') .> 0))
         endif
 
-        if M.h_predict
+        if M.Npredict
             if nelem(models_forecasts[i]) > 0
                 Yhat_avg += weight * models_forecasts[i][,1]
                 Yhat_var_avg += weight * models_forecasts[i][,2]
@@ -207,7 +207,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
 
     # Forecasts
-    if M.h_predict
+    if M.Npredict
         M.Yhat_avg = Yhat_avg
         M.Yhat_var_avg = Yhat_var_avg
     endif

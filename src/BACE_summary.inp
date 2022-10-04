@@ -86,7 +86,7 @@ function void BACE_summary (bundle *M)
     if M.prior_name == "none"
         M.mod_size_sd_prior = NA
     else
-        M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.av_model_size) .^2 .* M.mod_sizes[,3]))
+        M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size) .^2 .* M.mod_sizes[,3]))
     endif    
     if M.prior_based_bic
         tmpm = tmpm / sum(tmpm)
@@ -188,7 +188,7 @@ function void BACE_summary (bundle *M)
     endif
 
     # Forecasts
-    if M.h_predict
+    if M.Npredict
         M.Yhat_predict_avg = M.Yhat_avg / NORM
         M.Yhat_predict_var_avg = M.Yhat_var_avg / NORM
         M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
@@ -247,7 +247,7 @@ function void BACE_summary (bundle *M)
     delete M.ModelPriorTypes
     delete M.ConstTypes
     delete M.DataTransTypes
-    if M.h_predict
+    if M.Npredict
         delete M.Y_mat_predict
         delete M.Yhat_predict_avg
         delete M.Yhat_predict_var_avg

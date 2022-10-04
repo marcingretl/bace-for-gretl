@@ -34,7 +34,7 @@ function void BACE_main (bundle *M)
     matrices models_estimates = array(M.Nrep+1)
     matrices models_structure = array(M.Nrep+1)
     matrix mod_struct_draw
-    if M.h_predict > 0
+    if M.Npredict > 0
         matrices models_forecasts = array(M.Nrep+1)
     else
         matrices models_forecasts = null
@@ -45,7 +45,7 @@ function void BACE_main (bundle *M)
         matrices models_yhat = null
     endif
     # Sample setting for prediction
-    if M.h_predict > 0
+    if M.Npredict > 0
         smpl M.first_obs M.last_obs
     endif
     set loop_maxiter M.loop_maxiter
@@ -66,7 +66,7 @@ function void BACE_main (bundle *M)
     models_structure[model_nr] = M.mod_struct_new
     models_lprob[model_nr] = M.lprob_new
     models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-    if M.h_predict && M.k_new
+    if M.Npredict && M.k_new
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
     endif
     if M.limited_y
@@ -116,7 +116,7 @@ function void BACE_main (bundle *M)
                 models_structure[model_nr] = M.mod_struct_new
                 models_lprob[model_nr] = M.lprob_new
                 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-                if M.h_predict && M.k_new
+                if M.Npredict && M.k_new
                     models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
                 endif
                 if M.limited_y

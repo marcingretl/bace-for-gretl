@@ -164,7 +164,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     elif Options.do_joint < 0 || Options.do_joint > 7
         err += "Jointess type (do_joint) takes the integer values in the range [1; 7]"
     elif Options.Npredict < 0
-        err += "Number of out-of-sample forecasts (h_predict) takes the integer values"
+        err += "Number of out-of-sample forecasts (Npredict) takes the integer values"
     elif Options.Npredict >= round($nobs/2)
         printf("Number of out-of-sample forecasts is more than 50%s of sample length.\n", "%")
     elif Options.Nrep < 0
@@ -186,15 +186,6 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     M.ModelPriorTypes = ModelPriorTypes
     M.ConstTypes = ConstTypes
     M.DataTransTypes = DataTransTypes
-    # This must be fixed!!!
-    #M.acc_type = Options["model_prior"]
-    M.av_model_size = Options["avg_model_size"]
-    M.l_rank = Options["Nrank"]
-    M.h_predict = Options["Npredict"]
-    #delete M["model_prior"]
-    delete M["avg_model_size"]
-    delete M["Nrank"]
-    delete M["Npredict"]
 
     return err
 end function

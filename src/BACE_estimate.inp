@@ -65,13 +65,13 @@ function void BACE_estimate (bundle *M)
             M.bhat_tmp = $coeff
             M.bvar_tmp = $stderr.^2
         endif
-        if M.h_predict
+        if M.Npredict
             fcast --out-of-sample --quiet
             M.Yhat_predict = $fcast
             if !M.limited_y
                 M.Yhat_predict_var = $fcse.^2 + $fcast.^2
             else
-                M.Yhat_predict_var = ones(M.h_predict)*NA
+                M.Yhat_predict_var = ones(M.Npredict)*NA
             endif
         endif
         if M.limited_y

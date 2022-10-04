@@ -31,9 +31,9 @@ function void BACE_Plot (const bundle *MODEL)
     if MODEL.prior_name == "none" && MODEL.prior_based_bic
         avg_model_size = MODEL.avg_model_size_bic
     elif MODEL.prior_name != "none" && !MODEL.prior_based_bic
-        avg_model_size = MODEL.av_model_size
+        avg_model_size = MODEL.avg_model_size
     elif MODEL.prior_name != "none" && MODEL.prior_based_bic
-        avg_model_size = xmax(MODEL.av_model_size, MODEL.avg_model_size_bic)
+        avg_model_size = xmax(MODEL.avg_model_size, MODEL.avg_model_size_bic)
     endif
 
     # Heatmap for variable inclusion
@@ -91,11 +91,11 @@ function void BACE_Plot (const bundle *MODEL)
     end plot --output=@output
 
     # Predictive results
-    if MODEL.h_predict
+    if MODEL.Npredict
         plotmat = MODEL.prediction[,1:2]
         bars = MODEL.prediction[,2:3]
         if MODEL.limited_y
-            bars[,2] = zeros(MODEL.h_predict)
+            bars[,2] = zeros(MODEL.Npredict)
         endif
         cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
         output = basename
@@ -103,9 +103,9 @@ function void BACE_Plot (const bundle *MODEL)
             output = output ~ "-predict.plt"
         endif
         xtics = "("
-        loop i=1..MODEL.h_predict --quiet
+        loop i=1..MODEL.Npredict --quiet
             xtics += sprintf("\"%s\" %d", rnameget(MODEL.prediction)[i], i)
-            if i == MODEL.h_predict
+            if i == MODEL.Npredict
                 xtics += sprintf(")")
             else
                 xtics += sprintf(", ")

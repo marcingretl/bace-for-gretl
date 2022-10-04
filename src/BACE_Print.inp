@@ -31,7 +31,7 @@ function void BACE_Print (bundle *M)
     endif
 
     # We have to set sample
-    if M.h_predict > 0
+    if M.Npredict > 0
         smpl M.first_obs M.last_obs
     endif
 
@@ -48,7 +48,7 @@ function void BACE_Print (bundle *M)
     endif
     printf "Constant type: %s\n", M.const_type
     printf "Prior: %s\n", M.prior_name
-    printf "Prior average model size: %f\n", M.av_model_size
+    printf "Prior average model size: %f\n", M.avg_model_size
     printf "Significance level for the initial model: %f\n", M.alpha
     printf "Bayesian information criterion used: %s\n", M.bic_type_name
     printf "Data transformation: %s\n", M.data_trans_name
@@ -142,7 +142,7 @@ function void BACE_Print (bundle *M)
     endloop
     printf "\nBest models ranking:\n"
     ############ OLD #########################
-    loop i=1..M.l_rank --quiet
+    loop i=1..M.Nrank --quiet
         printf "Model %d:\t%f\n", i, M.Numerical_Likelihood[i]
     endloop
     printf "Total probability of the models in ranking (numerical): %f\n", sumc(M.Numerical_Likelihood)
@@ -161,7 +161,7 @@ function void BACE_Print (bundle *M)
     endif
 
     # Forecasts
-    if M.h_predict > 0
+    if M.Npredict > 0
         printf "\n"
         print "----------------------------------"
         printf "\n"
@@ -232,7 +232,7 @@ function void BACE_Print (bundle *M)
     if M.verbosity == 2
         strings Xnames # names of X-es
         printf "\n\nBest models estimates:"
-        loop i=1..M.l_rank --quiet
+        loop i=1..M.Nrank --quiet
             if M.mod_nume_prob[i]
                 printf "\n"
                 print "----------------------------------"

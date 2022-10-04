@@ -35,14 +35,14 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
 
     # We set general image options
     if MODE == "inclusions"
-        title = sprintf("Variables Inclusions Based on Best %d Models", M.l_rank)
+        title = sprintf("Variables Inclusions Based on Best %d Models", M.Nrank)
         xlabel = "Model number"
         ylabel = "Variable"
         colorbox = "unset colorbox"
         height = xmax(int(M.k/41*768), 480)
-        width = xmin(xmax(int(M.l_rank/20*1024), 640), 1024)
-        m = zeros(M.l_rank, M.k)
-        loop i=1..M.l_rank --quiet
+        width = xmin(xmax(int(M.Nrank/20*1024), 640), 1024)
+        m = zeros(M.Nrank, M.k)
+        loop i=1..M.Nrank --quiet
             m[i,] = M.mod_rank[i]
         endloop
         m = mreverse(m')
@@ -83,9 +83,9 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
     endloop
     xtics = "("
     if MODE == "inclusions"
-        loop i=1..M.l_rank --quiet
+        loop i=1..M.Nrank --quiet
             xtics += sprintf("\"%.d\" %d", i, i-1)
-            if i == M.l_rank
+            if i == M.Nrank
                 xtics += sprintf(")")
             else
                 xtics += sprintf(", ")

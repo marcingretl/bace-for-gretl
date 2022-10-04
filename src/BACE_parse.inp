@@ -78,7 +78,7 @@ function string BACE_parse (bundle *M,
     endif
 
     # We check if average model size is within 0 and K
-    if M.av_model_size <= 0 || M.av_model_size >= k
+    if M.avg_model_size <= 0 || M.avg_model_size >= k
         err = "Average model size should be greater than 0 and lower than K"
         return err
     endif
@@ -90,7 +90,7 @@ function string BACE_parse (bundle *M,
     endif
 
     # We check if number of models in ranking is not greater than 2^K (model space)
-    if M.l_rank > 2^(k+M.Y_AR_p)
+    if M.Nrank > 2^(k+M.Y_AR_p)
         err = "Number of the top ranked models cannot be greater than 2^K (space of parameters)"
         return err
     endif

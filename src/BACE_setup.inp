@@ -21,7 +21,6 @@ function void BACE_setup (bundle *M, int Norig)
     */
     printf "\n#############################################################################\n"
     printf "To do:"
-    printf "\n * Change old names of parameters to new ones (see bottom of BACE_bcheck())."
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
     printf "\n * EBIC - add option for gamma (hyperparameter)."
     printf "\n * Finally decide which xBIC are 'prior based."
@@ -128,17 +127,17 @@ function void BACE_setup (bundle *M, int Norig)
     strings M.PriorBasedBic = defarray("EBIC")
 
     # In case of "out-of-sample" prediction
-    if M.h_predict
+    if M.Npredict
         scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
-        scalar M.last_obs = $tmax-M.h_predict # the last observation for smpl command
-        matrix M.Y_mat_predict = M.Y_mat[end-M.h_predict+1:end] # "out-of-sample" matrix of the dependent variable
-        M.Y_mat = M.Y_mat[1:end-M.h_predict]
-        matrix M.Yhat_predict = zeros(M.h_predict) # vector of Y predictions in current draw
-        matrix M.Yhat_predict_var = zeros(M.h_predict) # vector of Y predictions in current draw (variances!!!)
-        matrix M.Yhat_predict_avg = zeros(M.h_predict,1) # vector of Y predictions - average
-        matrix M.Yhat_predict_var_avg = zeros(M.h_predict,1) # predicion variance
+        scalar M.last_obs = $tmax-M.Npredict # the last observation for smpl command
+        matrix M.Y_mat_predict = M.Y_mat[end-M.Npredict+1:end] # "out-of-sample" matrix of the dependent variable
+        M.Y_mat = M.Y_mat[1:end-M.Npredict]
+        matrix M.Yhat_predict = zeros(M.Npredict) # vector of Y predictions in current draw
+        matrix M.Yhat_predict_var = zeros(M.Npredict) # vector of Y predictions in current draw (variances!!!)
+        matrix M.Yhat_predict_avg = zeros(M.Npredict,1) # vector of Y predictions - average
+        matrix M.Yhat_predict_var_avg = zeros(M.Npredict,1) # predicion variance
         matrix M.prediction = {} # matrix with prediction results
-        strings M.predict_obs_names = obslabel(seq($nobs-M.h_predict+1,$nobs)) # obs labels for forecasts
+        strings M.predict_obs_names = obslabel(seq($nobs-M.Npredict+1,$nobs)) # obs labels for forecasts
         smpl M.first_obs M.last_obs #$nobs-h_predict-Y_AR_p #M.last_obs # setting sample
     else
         matrix M.Yhat_avg = {}
@@ -176,17 +175,17 @@ function void BACE_setup (bundle *M, int Norig)
     matrix M.models_probs_percents = {} # CDF-like matrix for accepted models
     matrix M.models_probs_cdf = {} # accepted models CDF
     matrix M.models_probs_cum = {} # accepted models cumulation
-    matrix M.mod_rank_prob = zeros(M.l_rank,1) # probability of the models in ranking (analytical)
-    matrix M.mod_nume_prob = zeros(M.l_rank,1) # probability of the models in ranking (numerical)
+    matrix M.mod_rank_prob = zeros(M.Nrank,1) # probability of the models in ranking (analytical)
+    matrix M.mod_nume_prob = zeros(M.Nrank,1) # probability of the models in ranking (numerical)
     matrix M.var_prob = zeros(1,M.k) # vector containing PIPs
-    matrices M.mod_rank_estimates = array(M.l_rank) # estimates of models in ranking
-    matrices M.mod_rank_bic = array(M.l_rank) # BICs of models in ranking
-    matrices M.mod_rank = array(M.l_rank) # structure of models in ranking
+    matrices M.mod_rank_estimates = array(M.Nrank) # estimates of models in ranking
+    matrices M.mod_rank_bic = array(M.Nrank) # BICs of models in ranking
+    matrices M.mod_rank = array(M.Nrank) # structure of models in ranking
     if M.limited_y && M.ordered
         matrix M.cutshat_avg = {}
         matrix M.cutsvar_avg = {}
         matrix M.cuts_avg = {}
-        matrices M.mod_rank_cuts_estimates = array(M.l_rank) # cuts estimates for models in ranking
+        matrices M.mod_rank_cuts_estimates = array(M.Nrank) # cuts estimates for models in ranking
     endif
 
     # BIC version
@@ -209,12 +208,12 @@ function void BACE_setup (bundle *M, int Norig)
     matrix M.model_prior_log = zeros(M.k+1)
     string M.prior_name = M.ModelPriorTypes[M.model_prior+1]
     if M.prior_name == "Binomial"
-        M.a = log(M.av_model_size/M.k)
-        M.b = log(1 - M.av_model_size/M.k)
+        M.a = log(M.avg_model_size/M.k)
+        M.b = log(1 - M.avg_model_size/M.k)
         if M.with_const == 1 || M.limited_y && M.ordered
-            tmp = M.av_model_size/M.k
+            tmp = M.avg_model_size/M.k
         else
-            tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, M.prior_name))
+            tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.avg_model_size, M.prior_name))
         endif
         loop i=0..M.k --quiet
             M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
@@ -222,10 +221,10 @@ function void BACE_setup (bundle *M, int Norig)
     elif M.prior_name == "Beta-Binomial"
         M.a = 1
         if M.with_const == 1 || M.limited_y && M.ordered
-            M.b = (M.k - M.av_model_size)/M.av_model_size
+            M.b = (M.k - M.avg_model_size)/M.avg_model_size
         else
             loop while M.toler > 0
-                catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, M.prior_name, M.a), {100, -.00001}, M.toler)
+                catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.avg_model_size, M.prior_name, M.a), {100, -.00001}, M.toler)
                 if $error
                     M.toler *= 10
                 else
@@ -238,7 +237,7 @@ function void BACE_setup (bundle *M, int Norig)
             M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
         endloop
     else
-        M.av_model_size = NA
+        M.avg_model_size = NA
         M.model_prior_log += 1
     endif
     if M.with_const != 1 && !(M.limited_y && M.ordered) && M.model_prior

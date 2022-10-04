@@ -65,7 +65,7 @@ if strlen(err) != 0
 else
   BACE_setup(&amp;MODEL, Norig)
   # Setting sample for forecasting
-  if MODEL.h_predict
+  if MODEL.Npredict
     smpl 1 MODEL.last_obs
   endif
   BACE_main(&amp;MODEL)
@@ -95,7 +95,7 @@ if M.Y_AR_p &gt; 0
   lags M.Y_AR_p ; @Y_name
 endif
 # We have to set sample
-if M.h_predict &gt; 0
+if M.Npredict &gt; 0
   smpl M.first_obs M.last_obs
 endif
 # We set up estimator command
@@ -110,7 +110,7 @@ else
 endif
 printf &quot;Constant type: %s\n&quot;, M.const_type
 printf &quot;Prior: %s\n&quot;, M.prior_name
-printf &quot;Prior average model size: %f\n&quot;, M.av_model_size
+printf &quot;Prior average model size: %f\n&quot;, M.avg_model_size
 printf &quot;Significance level for the initial model: %f\n&quot;, M.alpha
 printf &quot;Bayesian information criterion used: %s\n&quot;, M.bic_type_name
 printf &quot;Data transformation: %s\n&quot;, M.data_trans_name
@@ -203,7 +203,7 @@ loop i=1..rows(M.models_probs_percents) --quiet
 endloop
 printf &quot;\nBest models ranking:\n&quot;
 ############ OLD #########################
-loop i=1..M.l_rank --quiet
+loop i=1..M.Nrank --quiet
   printf &quot;Model %d:\t%f\n&quot;, i, M.Numerical_Likelihood[i]
 endloop
 printf &quot;Total probability of the models in ranking (numerical): %f\n&quot;, sumc(M.Numerical_Likelihood)
@@ -220,7 +220,7 @@ if M.limited_y
   printf &quot;Number of cases 'correctly predicted' = %d (%.1f%%)\n&quot;, M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
 endif
 # Forecasts
-if M.h_predict &gt; 0
+if M.Npredict &gt; 0
   printf &quot;\n&quot;
   print &quot;----------------------------------&quot;
   printf &quot;\n&quot;
@@ -289,7 +289,7 @@ endif
 if M.verbosity == 2
   strings Xnames # names of X-es
   printf &quot;\n\nBest models estimates:&quot;
-  loop i=1..M.l_rank --quiet
+  loop i=1..M.Nrank --quiet
     if M.mod_nume_prob[i]
       printf &quot;\n&quot;
       print &quot;----------------------------------&quot;
@@ -321,10 +321,18 @@ printf &quot;\n\n&quot;
 BACE result bundle plot function.
 */
 string legend, output, basename, xtics
+scalar avg_model_size = 0
 if $sysinfo.gui_mode
   basename = &quot;display&quot;
 else
   basename = strftime($now[1], &quot;%Y%m%d%H%M%S&quot;)
+endif
+if MODEL.prior_name == &quot;none&quot; &amp;&amp; MODEL.prior_based_bic
+  avg_model_size = MODEL.avg_model_size_bic
+elif MODEL.prior_name != &quot;none&quot; &amp;&amp; !MODEL.prior_based_bic
+  avg_model_size = MODEL.avg_model_size
+elif MODEL.prior_name != &quot;none&quot; &amp;&amp; MODEL.prior_based_bic
+  avg_model_size = xmax(MODEL.avg_model_size, MODEL.avg_model_size_bic)
 endif
 # Heatmap for variable inclusion
 BACE_heatmap(MODEL, &quot;inclusions&quot;, basename)
@@ -343,13 +351,14 @@ if rows(plotmat) &lt; 20
 else
   xtics = &quot;&quot;
 endif
-if MODEL.mod_size_av &gt; MODEL.av_model_size
+if MODEL.mod_size_av &gt; avg_model_size
   legend = &quot;left&quot;
 else
   legend = &quot;right&quot;
 endif
 plot plotmat
   options with-lp fit=none
+  literal set link y2 via y*10 inverse y/10
   printf &quot;%s&quot;, xtics
   printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Model Size Distribution&quot;
   printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
@@ -376,11 +385,11 @@ plot plotmat
   printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Posterior Probability Mass&quot;
 end plot --output=@output
 # Predictive results
-if MODEL.h_predict
+if MODEL.Npredict
   plotmat = MODEL.prediction[,1:2]
   bars = MODEL.prediction[,2:3]
   if MODEL.limited_y
-    bars[,2] = zeros(MODEL.h_predict)
+    bars[,2] = zeros(MODEL.Npredict)
   endif
   cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
   output = basename
@@ -388,9 +397,9 @@ if MODEL.h_predict
     output = output ~ &quot;-predict.plt&quot;
   endif
   xtics = &quot;(&quot;
-  loop i=1..MODEL.h_predict --quiet
+  loop i=1..MODEL.Npredict --quiet
     xtics += sprintf(&quot;\&quot;%s\&quot; %d&quot;, rnameget(MODEL.prediction)[i], i)
-    if i == MODEL.h_predict
+    if i == MODEL.Npredict
       xtics += sprintf(&quot;)&quot;)
     else
       xtics += sprintf(&quot;, &quot;)
@@ -558,7 +567,7 @@ if nelem(X_list) &gt; 0
   endif
 endif
 # We check if average model size is within 0 and K
-if M.av_model_size &lt;= 0 || M.av_model_size &gt;= k
+if M.avg_model_size &lt;= 0 || M.avg_model_size &gt;= k
   err = &quot;Average model size should be greater than 0 and lower than K&quot;
   return err
 endif
@@ -568,7 +577,7 @@ if M.alpha == 0 &amp;&amp; M.with_const == 0
   return err
 endif
 # We check if number of models in ranking is not greater than 2^K (model space)
-if M.l_rank &gt; 2^(k+M.Y_AR_p)
+if M.Nrank &gt; 2^(k+M.Y_AR_p)
   err = &quot;Number of the top ranked models cannot be greater than 2^K (space of parameters)&quot;
   return err
 endif
@@ -611,7 +620,7 @@ if M.limited_y
   cuts = M.cuts
 endif
 # Starting values of the local variables
-if M.h_predict
+if M.Npredict
   if M.Y_AR_p == 0
     smpl 1 M.N
   else
@@ -823,7 +832,7 @@ endloop
 if M.prior_name == &quot;none&quot;
   M.mod_size_sd_prior = NA
 else
-  M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.av_model_size) .^2 .* M.mod_sizes[,3]))
+  M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size) .^2 .* M.mod_sizes[,3]))
 endif
 if M.prior_based_bic
   tmpm = tmpm / sum(tmpm)
@@ -919,7 +928,7 @@ if M.limited_y
   M.correctly_predicted = sum(Y == Yhat)
 endif
 # Forecasts
-if M.h_predict
+if M.Npredict
   M.Yhat_predict_avg = M.Yhat_avg / NORM
   M.Yhat_predict_var_avg = M.Yhat_var_avg / NORM
   M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
@@ -976,7 +985,7 @@ delete M.BicTypes
 delete M.ModelPriorTypes
 delete M.ConstTypes
 delete M.DataTransTypes
-if M.h_predict
+if M.Npredict
   delete M.Y_mat_predict
   delete M.Yhat_predict_avg
   delete M.Yhat_predict_var_avg
@@ -1003,7 +1012,6 @@ This function creates BUNDLE holding all BACE information
 */
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
-printf &quot;\n * Change old names of parameters to new ones (see bottom of BACE_bcheck()).&quot;
 printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot;
 printf &quot;\n * EBIC - add option for gamma (hyperparameter).&quot;
 printf &quot;\n * Finally decide which xBIC are 'prior based.&quot;
@@ -1104,17 +1112,17 @@ if M.with_const == 1
 endif
 strings M.PriorBasedBic = defarray(&quot;EBIC&quot;)
 # In case of &quot;out-of-sample&quot; prediction
-if M.h_predict
+if M.Npredict
   scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
-  scalar M.last_obs = $tmax-M.h_predict # the last observation for smpl command
-  matrix M.Y_mat_predict = M.Y_mat[end-M.h_predict+1:end] # &quot;out-of-sample&quot; matrix of the dependent variable
-  M.Y_mat = M.Y_mat[1:end-M.h_predict]
-  matrix M.Yhat_predict = zeros(M.h_predict) # vector of Y predictions in current draw
-  matrix M.Yhat_predict_var = zeros(M.h_predict) # vector of Y predictions in current draw (variances!!!)
-  matrix M.Yhat_predict_avg = zeros(M.h_predict,1) # vector of Y predictions - average
-  matrix M.Yhat_predict_var_avg = zeros(M.h_predict,1) # predicion variance
+  scalar M.last_obs = $tmax-M.Npredict # the last observation for smpl command
+  matrix M.Y_mat_predict = M.Y_mat[end-M.Npredict+1:end] # &quot;out-of-sample&quot; matrix of the dependent variable
+  M.Y_mat = M.Y_mat[1:end-M.Npredict]
+  matrix M.Yhat_predict = zeros(M.Npredict) # vector of Y predictions in current draw
+  matrix M.Yhat_predict_var = zeros(M.Npredict) # vector of Y predictions in current draw (variances!!!)
+  matrix M.Yhat_predict_avg = zeros(M.Npredict,1) # vector of Y predictions - average
+  matrix M.Yhat_predict_var_avg = zeros(M.Npredict,1) # predicion variance
   matrix M.prediction = {} # matrix with prediction results
-  strings M.predict_obs_names = obslabel(seq($nobs-M.h_predict+1,$nobs)) # obs labels for forecasts
+  strings M.predict_obs_names = obslabel(seq($nobs-M.Npredict+1,$nobs)) # obs labels for forecasts
   smpl M.first_obs M.last_obs #$nobs-h_predict-Y_AR_p #M.last_obs # setting sample
 else
   matrix M.Yhat_avg = {}
@@ -1150,17 +1158,17 @@ matrix M.mod_sizes = {} # Vector with models size distribution
 matrix M.models_probs_percents = {} # CDF-like matrix for accepted models
 matrix M.models_probs_cdf = {} # accepted models CDF
 matrix M.models_probs_cum = {} # accepted models cumulation
-matrix M.mod_rank_prob = zeros(M.l_rank,1) # probability of the models in ranking (analytical)
-matrix M.mod_nume_prob = zeros(M.l_rank,1) # probability of the models in ranking (numerical)
+matrix M.mod_rank_prob = zeros(M.Nrank,1) # probability of the models in ranking (analytical)
+matrix M.mod_nume_prob = zeros(M.Nrank,1) # probability of the models in ranking (numerical)
 matrix M.var_prob = zeros(1,M.k) # vector containing PIPs
-matrices M.mod_rank_estimates = array(M.l_rank) # estimates of models in ranking
-matrices M.mod_rank_bic = array(M.l_rank) # BICs of models in ranking
-matrices M.mod_rank = array(M.l_rank) # structure of models in ranking
+matrices M.mod_rank_estimates = array(M.Nrank) # estimates of models in ranking
+matrices M.mod_rank_bic = array(M.Nrank) # BICs of models in ranking
+matrices M.mod_rank = array(M.Nrank) # structure of models in ranking
 if M.limited_y &amp;&amp; M.ordered
   matrix M.cutshat_avg = {}
   matrix M.cutsvar_avg = {}
   matrix M.cuts_avg = {}
-  matrices M.mod_rank_cuts_estimates = array(M.l_rank) # cuts estimates for models in ranking
+  matrices M.mod_rank_cuts_estimates = array(M.Nrank) # cuts estimates for models in ranking
 endif
 # BIC version
 M.bic_type_name = M.BicTypes[M.bic_type]
@@ -1181,12 +1189,12 @@ endif
 matrix M.model_prior_log = zeros(M.k+1)
 string M.prior_name = M.ModelPriorTypes[M.model_prior+1]
 if M.prior_name == &quot;Binomial&quot;
-  M.a = log(M.av_model_size/M.k)
-  M.b = log(1 - M.av_model_size/M.k)
+  M.a = log(M.avg_model_size/M.k)
+  M.b = log(1 - M.avg_model_size/M.k)
   if M.with_const == 1 || M.limited_y &amp;&amp; M.ordered
-    tmp = M.av_model_size/M.k
+    tmp = M.avg_model_size/M.k
   else
-    tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, M.prior_name))
+    tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.avg_model_size, M.prior_name))
   endif
   loop i=0..M.k --quiet
     M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
@@ -1194,10 +1202,10 @@ if M.prior_name == &quot;Binomial&quot;
 elif M.prior_name == &quot;Beta-Binomial&quot;
   M.a = 1
   if M.with_const == 1 || M.limited_y &amp;&amp; M.ordered
-    M.b = (M.k - M.av_model_size)/M.av_model_size
+    M.b = (M.k - M.avg_model_size)/M.avg_model_size
   else
     loop while M.toler &gt; 0
-      catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, M.prior_name, M.a), {100, -.00001}, M.toler)
+      catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.avg_model_size, M.prior_name, M.a), {100, -.00001}, M.toler)
       if $error
         M.toler *= 10
       else
@@ -1210,7 +1218,7 @@ elif M.prior_name == &quot;Beta-Binomial&quot;
     M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
   endloop
 else
-  M.av_model_size = NA
+  M.avg_model_size = NA
   M.model_prior_log += 1
 endif
 if M.with_const != 1 &amp;&amp; !(M.limited_y &amp;&amp; M.ordered) &amp;&amp; M.model_prior
@@ -1308,13 +1316,13 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     M.bhat_tmp = $coeff
     M.bvar_tmp = $stderr.^2
   endif
-  if M.h_predict
+  if M.Npredict
     fcast --out-of-sample --quiet
     M.Yhat_predict = $fcast
     if !M.limited_y
       M.Yhat_predict_var = $fcse.^2 + $fcast.^2
     else
-      M.Yhat_predict_var = ones(M.h_predict)*NA
+      M.Yhat_predict_var = ones(M.Npredict)*NA
     endif
   endif
   if M.limited_y
@@ -1379,9 +1387,9 @@ matrix var_prob = zeros(1,M.k)
 if M.do_joint
   matrix jointness_m = zeros(M.k,M.k)
 endif
-if M.h_predict
-  Yhat_avg = zeros(M.h_predict)
-  Yhat_var_avg = zeros(M.h_predict)
+if M.Npredict
+  Yhat_avg = zeros(M.Npredict)
+  Yhat_var_avg = zeros(M.Npredict)
 endif
 if M.limited_y
   Yhat = zeros($nobs)
@@ -1402,7 +1410,7 @@ M.post_n_models_accepted = nelem(idx)
 models_counter = models_counter[idx]
 models_estimates = models_estimates[idx]
 models_structure = models_structure[idx]
-if M.h_predict
+if M.Npredict
   models_forecasts = models_forecasts[idx]
 endif
 if M.limited_y
@@ -1423,8 +1431,8 @@ endif
 models_probs = mreverse(msortby(models_counter ~ idx ~ seq(1, M.post_n_models_accepted)', 1))
 M.models_probs_cum = cum(dsort(models_probs[,1]))
 # We build analytical and numerical rankings
-M.l_rank = xmin(M.l_rank, M.post_n_models_accepted)
-models_probs = models_probs[1:M.l_rank,]
+M.Nrank = xmin(M.Nrank, M.post_n_models_accepted)
+models_probs = models_probs[1:M.Nrank,]
 M.mod_nume_prob = models_probs[,1]
 M.mod_rank_prob = models_lprob[models_probs[,2]]
 models_structure_rank = models_structure[models_probs[,3]]
@@ -1433,7 +1441,7 @@ if M.limited_y &amp;&amp; M.ordered
   cuts_estimates_rank = cuts_estimates[models_probs[,3]]
 endif
 # We restore estimates for models in ranking
-loop i=1..M.l_rank --quiet
+loop i=1..M.Nrank --quiet
   var_idx = {}
   mod_struct = models_structure_rank[i]
   M.mod_rank[i] = mod_struct
@@ -1492,7 +1500,7 @@ loop i=1..nelem(models_counter) --quiet
   if M.do_joint
     jointness_m = upper(jointness_m .+ weight * ((mod_struct .* mod_struct') .&gt; 0))
   endif
-  if M.h_predict
+  if M.Npredict
     if nelem(models_forecasts[i]) &gt; 0
       Yhat_avg += weight * models_forecasts[i][,1]
       Yhat_var_avg += weight * models_forecasts[i][,2]
@@ -1530,7 +1538,7 @@ if M.do_joint
   M.jointness_m = jointness_m
 endif
 # Forecasts
-if M.h_predict
+if M.Npredict
   M.Yhat_avg = Yhat_avg
   M.Yhat_var_avg = Yhat_var_avg
 endif
@@ -1650,7 +1658,7 @@ matrix models_lprob = zeros(M.Nrep+1)
 matrices models_estimates = array(M.Nrep+1)
 matrices models_structure = array(M.Nrep+1)
 matrix mod_struct_draw
-if M.h_predict &gt; 0
+if M.Npredict &gt; 0
   matrices models_forecasts = array(M.Nrep+1)
 else
   matrices models_forecasts = null
@@ -1661,7 +1669,7 @@ else
   matrices models_yhat = null
 endif
 # Sample setting for prediction
-if M.h_predict &gt; 0
+if M.Npredict &gt; 0
   smpl M.first_obs M.last_obs
 endif
 set loop_maxiter M.loop_maxiter
@@ -1680,7 +1688,7 @@ known_models[model_id] = model_nr
 models_structure[model_nr] = M.mod_struct_new
 models_lprob[model_nr] = M.lprob_new
 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-if M.h_predict &amp;&amp; M.k_new
+if M.Npredict &amp;&amp; M.k_new
   models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
 endif
 if M.limited_y
@@ -1726,7 +1734,7 @@ loop while rep &lt;= M.Nrep --quiet
       models_structure[model_nr] = M.mod_struct_new
       models_lprob[model_nr] = M.lprob_new
       models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-      if M.h_predict &amp;&amp; M.k_new
+      if M.Npredict &amp;&amp; M.k_new
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
       endif
       if M.limited_y
@@ -1900,7 +1908,7 @@ elif Options.alpha &lt; 0 || Options.alpha &gt; 1
 elif Options.do_joint &lt; 0 || Options.do_joint &gt; 7
   err += &quot;Jointess type (do_joint) takes the integer values in the range [1; 7]&quot;
 elif Options.Npredict &lt; 0
-  err += &quot;Number of out-of-sample forecasts (h_predict) takes the integer values&quot;
+  err += &quot;Number of out-of-sample forecasts (Npredict) takes the integer values&quot;
 elif Options.Npredict &gt;= round($nobs/2)
   printf(&quot;Number of out-of-sample forecasts is more than 50%s of sample length.\n&quot;, &quot;%&quot;)
 elif Options.Nrep &lt; 0
@@ -1921,15 +1929,6 @@ M.BicTypes = BicTypes
 M.ModelPriorTypes = ModelPriorTypes
 M.ConstTypes = ConstTypes
 M.DataTransTypes = DataTransTypes
-# This must be fixed!!!
-#M.acc_type = Options[&quot;model_prior&quot;]
-M.av_model_size = Options[&quot;avg_model_size&quot;]
-M.l_rank = Options[&quot;Nrank&quot;]
-M.h_predict = Options[&quot;Npredict&quot;]
-#delete M[&quot;model_prior&quot;]
-delete M[&quot;avg_model_size&quot;]
-delete M[&quot;Nrank&quot;]
-delete M[&quot;Npredict&quot;]
 return err
 </code>
 </gretl-function>
@@ -1955,14 +1954,14 @@ else
 endif
 # We set general image options
 if MODE == &quot;inclusions&quot;
-  title = sprintf(&quot;Variables Inclusions Based on Best %d Models&quot;, M.l_rank)
+  title = sprintf(&quot;Variables Inclusions Based on Best %d Models&quot;, M.Nrank)
   xlabel = &quot;Model number&quot;
   ylabel = &quot;Variable&quot;
   colorbox = &quot;unset colorbox&quot;
   height = xmax(int(M.k/41*768), 480)
-  width = xmin(xmax(int(M.l_rank/20*1024), 640), 1024)
-  m = zeros(M.l_rank, M.k)
-  loop i=1..M.l_rank --quiet
+  width = xmin(xmax(int(M.Nrank/20*1024), 640), 1024)
+  m = zeros(M.Nrank, M.k)
+  loop i=1..M.Nrank --quiet
     m[i,] = M.mod_rank[i]
   endloop
   m = mreverse(m')
@@ -2002,9 +2001,9 @@ loop i=1..M.k --quiet
 endloop
 xtics = &quot;(&quot;
 if MODE == &quot;inclusions&quot;
-  loop i=1..M.l_rank --quiet
+  loop i=1..M.Nrank --quiet
     xtics += sprintf(&quot;\&quot;%.d\&quot; %d&quot;, i, i-1)
-    if i == M.l_rank
+    if i == M.Nrank
       xtics += sprintf(&quot;)&quot;)
     else
       xtics += sprintf(&quot;, &quot;)

@@ -36,7 +36,7 @@ function void BACE_initial_model (bundle *M)
     endif    
 
     # Starting values of the local variables
-    if M.h_predict
+    if M.Npredict
         if M.Y_AR_p == 0
             smpl 1 M.N
         else
