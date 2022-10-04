@@ -90,12 +90,11 @@ function void BACE_estimate (bundle *M)
                 vcv = $vcv
             endif
             M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction - 0.5*log(det(invpd(vcv)))
-        elif M.bic_type_name == "BICREG"
-            M.lprob_new = -.5*($nobs*log(1-$rsq) + ($ncoeff-1)*log($nobs))
+        elif M.bic_type_name == "EBIC"
+            M.lprob_new = -.5*$bic - M.model_prior_bic_log[M.k_new+1]
             /*
-               elif M.bic_type == 4
-               scalar gamma = 0.5
-               M.lprob_new = -.5*$bic - gamma*log(bincoeff(M.k2+1, $ncoeff))
+               BICREG
+               M.lprob_new = -.5*($nobs*log(1-$rsq) + ($ncoeff-1)*log($nobs))
             */
         endif
 

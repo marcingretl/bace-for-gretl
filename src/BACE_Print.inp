@@ -45,7 +45,7 @@ function void BACE_Print (bundle *M)
         printf "Model type: ordered %s\n", M.model_type
     else
         printf "Model type: %s\n", M.model_type
-    endif    
+    endif
     printf "Constant type: %s\n", M.const_type
     printf "Prior: %s\n", M.prior_name
     printf "Prior average model size: %f\n", M.av_model_size
@@ -76,7 +76,7 @@ function void BACE_Print (bundle *M)
                 printf "The initial model: ordered %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
             else
                 printf "The initial model: %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
-            endif            
+            endif
             loop i=1..nelem(M.StartModel_xnames) --quiet
                 if substr(M.StartModel_xnames[i], 1, 4) == "YyY_"
                     M.StartModel_xnames[i] = strsub(M.StartModel_xnames[i], "YyY", M.Y_name)
@@ -99,6 +99,11 @@ function void BACE_Print (bundle *M)
     printf "Prior:\n"
     printf "\taverage model size: %f\n", sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
     printf "\tstandard deviation: %f\n", M.mod_size_sd_prior
+    if M.prior_based_bic
+        printf "Effective Prior:\n"
+        printf "\taverage model size: %f\n", M.avg_model_size_bic
+        printf "\tstandard deviation: %f\n", M.mod_size_sd_prior_bic
+    endif
     printf "Posterior:\n"
     printf "\taverage model size: %f\n", M.mod_size_av
     printf "\tstandard deviation: %f\n", M.mod_size_sd
@@ -120,7 +125,7 @@ function void BACE_Print (bundle *M)
         printf "%15f", Post_Results
         if M.limited_y && M.ordered
             printf "\n%15f", M.cuts_avg
-        endif        
+        endif
     endif
     printf "\n"
     print "----------------------------------"
@@ -168,7 +173,7 @@ function void BACE_Print (bundle *M)
     # Jointess analysis
     if M.do_joint
         matrix jointess_measure = BACE_jointness_measure(&M)
-        string jointess_measure_name = M.jointess_measure_names[M.do_joint]        
+        string jointess_measure_name = M.jointess_measure_names[M.do_joint]
         print "----------------------------------"
         printf "\n"
         print "Posterior joint probability of variables:"
@@ -183,7 +188,7 @@ function void BACE_Print (bundle *M)
         matrix pairs = zeros(round(0.5*M.k^2), 3)
         scalar pair = 0
         loop i=1..M.k --quiet
-            loop j=i+1..M.k --quiet                
+            loop j=i+1..M.k --quiet
                 if !isnan(jointess_measure[i,j]) && abs(jointess_measure[i,j]) > 1
                     pair += 1
                     pairs[pair,1] = jointess_measure[i,j]
@@ -238,10 +243,10 @@ function void BACE_Print (bundle *M)
                 else
                     coeffmat = M.mod_rank_estimates[i][,1:2]
                     Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
-                    if M.limited_y && M.ordered                        
+                    if M.limited_y && M.ordered
                         coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
                         Xnames += M.cuts_names
-                    endif                    
+                    endif
                     modprint coeffmat Xnames
                 endif
             endif

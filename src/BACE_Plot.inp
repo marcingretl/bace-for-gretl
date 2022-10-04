@@ -20,6 +20,7 @@ function void BACE_Plot (const bundle *MODEL)
    BACE result bundle plot function.
     */
     string legend, output, basename, xtics
+    scalar avg_model_size = 0
 
     if $sysinfo.gui_mode
         basename = "display"
@@ -27,6 +28,13 @@ function void BACE_Plot (const bundle *MODEL)
         basename = strftime($now[1], "%Y%m%d%H%M%S")
     endif
 
+    if MODEL.prior_name == "none" && MODEL.prior_based_bic
+        avg_model_size = MODEL.avg_model_size_bic
+    elif MODEL.prior_name != "none" && !MODEL.prior_based_bic
+        avg_model_size = MODEL.av_model_size
+    elif MODEL.prior_name != "none" && MODEL.prior_based_bic
+        avg_model_size = xmax(MODEL.av_model_size, MODEL.avg_model_size_bic)
+    endif
 
     # Heatmap for variable inclusion
     BACE_heatmap(MODEL, "inclusions", basename)
@@ -47,13 +55,14 @@ function void BACE_Plot (const bundle *MODEL)
     else
         xtics = ""
     endif
-    if MODEL.mod_size_av > MODEL.av_model_size
+    if MODEL.mod_size_av > avg_model_size
         legend = "left"
     else
         legend = "right"
     endif
     plot plotmat
         options with-lp fit=none
+        literal set link y2 via y*10 inverse y/10
         printf "%s", xtics
         printf "set title \"%s\"", "Model Size Distribution"
         printf "set xlabel \"%s\"", "Model Size"
@@ -87,7 +96,7 @@ function void BACE_Plot (const bundle *MODEL)
         bars = MODEL.prediction[,2:3]
         if MODEL.limited_y
             bars[,2] = zeros(MODEL.h_predict)
-        endif        
+        endif
         cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
         output = basename
         if !$sysinfo.gui_mode
