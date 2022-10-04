@@ -35,8 +35,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("avg_model_size", "alpha")
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
-    strings BicTypes = defarray("BIC", "HBIC", "IBIC", "BICREG")
-    strings ModelPriorTypes = defarray("Binomial", "Beta-Binomial")
+    strings BicTypes = defarray("BIC", "HBIC", "IBIC", "EBIC")
+    strings ModelPriorTypes = defarray("none", "Binomial", "Beta-Binomial")
     strings ConstTypes = defarray("Never", "Always", "Can be dropped")
     strings DataTransTypes = defarray("none", "centering", "standarizing")
     strings OverloadableKeys
@@ -47,8 +47,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         do_plot_tmp = 0
         do_show_progress = 0
     endif
-    Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3, bicreg=4, valid=tolower(flatten(BicTypes, separator)))
-    Overloadable["model_prior"] = _(binomial=1, betabinomial=2, valid=tolower(flatten(ModelPriorTypes, separator)))
+    Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3, ebic=4, valid=tolower(flatten(BicTypes, separator)))
+    Overloadable["model_prior"] = _(none=0, binomial=1, betabinomial=2, valid=tolower(flatten(ModelPriorTypes, separator)))
     Overloadable["with_const"] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
     Overloadable["do_joint"] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="none, DW1, DW2, LS1, LS2, SM, YQ, MYQ")
     Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
@@ -157,8 +157,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         err += "Y lags (Y_AR_p) takes the integer values"
     elif Options.with_const < 0 || Options.with_const > 2
         err += "Constant in model takes the integer values in the range [0; 2]"
-    elif Options.model_prior < 1 || Options.model_prior > 2
-        err += "Model prior takes the integer values in the range [1; 2]"
+    elif Options.model_prior < 0 || Options.model_prior > 2
+        err += "Model prior takes the integer values in the range [0; 2]"
     elif Options.alpha < 0 || Options.alpha > 1
         err += "The significance level (alpha) takes the real values in the range [0; 1]"
     elif Options.do_joint < 0 || Options.do_joint > 7
@@ -187,11 +187,11 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     M.ConstTypes = ConstTypes
     M.DataTransTypes = DataTransTypes
     # This must be fixed!!!
-    M.acc_type = Options["model_prior"]
+    #M.acc_type = Options["model_prior"]
     M.av_model_size = Options["avg_model_size"]
     M.l_rank = Options["Nrank"]
     M.h_predict = Options["Npredict"]
-    delete M["model_prior"]
+    #delete M["model_prior"]
     delete M["avg_model_size"]
     delete M["Nrank"]
     delete M["Npredict"]

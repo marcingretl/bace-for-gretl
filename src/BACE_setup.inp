@@ -23,8 +23,9 @@ function void BACE_setup (bundle *M, int Norig)
     printf "To do:"
     printf "\n * Change old names of parameters to new ones (see bottom of BACE_bcheck())."
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
-    printf "\n * Add EBIC."
-    printf "\n * Add in PDF information data_trans and bic_type."
+    printf "\n * EBIC - add option for gamma (hyperparameter)."
+    printf "\n * Finally decide which xBIC are 'prior based."
+    printf "\n * Add in PDF information about data_trans and bic_type."
     printf "\n * Add in PDF information on dependecies."
     printf "\n * Work on speed."
     printf "\n#############################################################################\n"
@@ -46,7 +47,7 @@ function void BACE_setup (bundle *M, int Norig)
     ###############################################
     # Local variables - presets					  #
     ###############################################
-    strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable!
+    strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable!    
     if M.model_type == "linear"
         string M.estimator = "ols"
     else
@@ -109,6 +110,9 @@ function void BACE_setup (bundle *M, int Norig)
     scalar M.loop_maxiter = 3*M.Nrep
     scalar M.toler = 1.0e-20
     scalar M.CPU_num = 1
+    scalar M.a = NA
+    scalar M.b = NA
+    scalar M.prior_based_bic = NA
     matrix M.StartModel = {}
     matrix M.Y_mat = { Y }
     matrix M.var_numbers = Y || X_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
@@ -121,6 +125,7 @@ function void BACE_setup (bundle *M, int Norig)
         strings const_name = defarray("const")
         M.all_names_sp_m = const_name + M.all_names_sp_m
     endif
+    strings M.PriorBasedBic = defarray("EBIC")
 
     # In case of "out-of-sample" prediction
     if M.h_predict
@@ -184,28 +189,43 @@ function void BACE_setup (bundle *M, int Norig)
         matrices M.mod_rank_cuts_estimates = array(M.l_rank) # cuts estimates for models in ranking
     endif
 
+    # BIC version
+    M.bic_type_name = M.BicTypes[M.bic_type]
+    M.prior_based_bic = nelem(instrings(M.PriorBasedBic, M.bic_type_name)) > 0
+    if M.bic_type_name == "HBIC" || M.bic_type_name == "IBIC"
+        M.bic_correction = log(.5*M.N/$pi)
+    endif    
+    if M.prior_based_bic
+        scalar M.hyperparameter = 0.5 # gamma
+        scalar M.mod_size_sd_prior_bic = NA
+        scalar M.avg_model_size_bic = NA
+        matrix M.model_prior_bic_log = zeros(M.k+1)
+        loop i=0..M.k --quiet
+            M.model_prior_bic_log[i+1] = M.hyperparameter * log(bincoeff(M.k,i))
+        endloop
+    endif
+
     # Model prior
     matrix M.model_prior_log = zeros(M.k+1)
-    if M.acc_type == 1
-        string M.prior_name = M.ModelPriorTypes[1]
-        scalar M.a = log(M.av_model_size/M.k)
-        scalar M.b = log(1 - M.av_model_size/M.k)
+    string M.prior_name = M.ModelPriorTypes[M.model_prior+1]
+    if M.prior_name == "Binomial"
+        M.a = log(M.av_model_size/M.k)
+        M.b = log(1 - M.av_model_size/M.k)
         if M.with_const == 1 || M.limited_y && M.ordered
             tmp = M.av_model_size/M.k
         else
-            tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, "Binomial"))
+            tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, M.prior_name))
         endif
         loop i=0..M.k --quiet
             M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
         endloop
-    else
-        string M.prior_name = M.ModelPriorTypes[2]
-        scalar M.a = 1
+    elif M.prior_name == "Beta-Binomial"
+        M.a = 1
         if M.with_const == 1 || M.limited_y && M.ordered
-            scalar M.b = (M.k - M.av_model_size)/M.av_model_size
+            M.b = (M.k - M.av_model_size)/M.av_model_size
         else
             loop while M.toler > 0
-                catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, "Beta-Binomial", M.a), {100, -.00001}, M.toler)
+                catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.av_model_size, M.prior_name, M.a), {100, -.00001}, M.toler)
                 if $error
                     M.toler *= 10
                 else
@@ -217,8 +237,11 @@ function void BACE_setup (bundle *M, int Norig)
         loop i=0..M.k --quiet
             M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
         endloop
+    else
+        M.av_model_size = NA
+        M.model_prior_log += 1
     endif
-    if M.with_const != 1 && !(M.limited_y && M.ordered)
+    if M.with_const != 1 && !(M.limited_y && M.ordered) && M.model_prior
         M.model_prior_log[2:] /= (1 - M.model_prior_log[1])
     endif
     M.model_prior_log = log(M.model_prior_log)
@@ -232,16 +255,6 @@ function void BACE_setup (bundle *M, int Norig)
           "Modified Yule's Q Measure (MYQ)")
     else
         matrix M.jointness_m = {}
-    endif
-
-    # BIC version
-    M.bic_type_name = M.BicTypes[M.bic_type]
-    if M.bic_type_name == "HBIC" || M.bic_type_name == "IBIC"
-        M.bic_correction = log(.5*M.N/$pi)
-        /*
-           elif bic_type == 4
-           string M.bic_type_name = "EBIC"
-        */
     endif
 
     # Data transformation

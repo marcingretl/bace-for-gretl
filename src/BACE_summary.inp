@@ -31,6 +31,11 @@ function void BACE_summary (bundle *M)
     M.bhat_avg = transp(M.bhat_avg)
     M.bvar_avg = transp(M.bvar_avg)
 
+    # Restoring values of model_prior to 0 if we have 'none'
+    if M.prior_name == "none"
+        M.model_prior_log = log(exp(M.model_prior_log)-1)
+    endif
+
     # Normalisations
     M.mod_rank_prob = exp(M.mod_rank_prob) / sum(exp(M.mod_rank_prob))
     M.Numerical_Likelihood = M.mod_nume_prob / NORM
@@ -58,18 +63,43 @@ function void BACE_summary (bundle *M)
     M.mod_size_av = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
     M.mod_size_sd = sqrt(sum((M.mod_sizes[,1] - M.mod_size_av) .^2 .* M.mod_sizes[,2]))
     M.mod_sizes = M.mod_sizes ~ zeros(rows(M.mod_sizes),1)
+    tmpm = M.mod_sizes[,3]
     loop i=1..rows(M.mod_sizes) --quiet
         k = M.mod_sizes[i,1]
+        factor = bincoeff(M.k,k)
         if M.with_const != 1 && !(M.limited_y && M.ordered)
-            M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i+1])            
+            M.mod_sizes[i,3] = exp(M.model_prior_log[i+1])
+            if M.prior_based_bic
+                tmpm[i] = M.mod_sizes[i,3] + exp(M.model_prior_bic_log[i+1])
+            endif
         else
-            M.mod_sizes[i,3] = bincoeff(M.k,k) * exp(M.model_prior_log[i])
+            M.mod_sizes[i,3] = exp(M.model_prior_log[i])
+            if M.prior_based_bic
+                tmpm[i] = M.mod_sizes[i,3] + exp(M.model_prior_bic_log[i])
+            endif
+        endif
+        M.mod_sizes[i,3] = M.mod_sizes[i,3] * factor
+        if M.prior_based_bic
+            tmpm[i] = tmpm[i] * factor
         endif
     endloop
-    M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.av_model_size) .^2 .* M.mod_sizes[,3]))
+    if M.prior_name == "none"
+        M.mod_size_sd_prior = NA
+    else
+        M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.av_model_size) .^2 .* M.mod_sizes[,3]))
+    endif    
+    if M.prior_based_bic
+        tmpm = tmpm / sum(tmpm)
+        M.avg_model_size_bic = sum(M.mod_sizes[,1] .* tmpm)
+        M.mod_size_sd_prior_bic = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size_bic) .^2 .* tmpm))
+        M.mod_sizes = M.mod_sizes ~ tmpm
+    endif
 
     # Models size distribution
     title = defarray("Size", "Posterior", "Prior")
+    if M.prior_based_bic
+        title += defarray("Effective Prior")
+    endif
     cnameset(M.mod_sizes, title)
 
     # Models size CDF
