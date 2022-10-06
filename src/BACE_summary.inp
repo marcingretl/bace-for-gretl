@@ -70,12 +70,12 @@ function void BACE_summary (bundle *M)
         if M.with_const != 1 && !(M.limited_y && M.ordered)
             M.mod_sizes[i,3] = exp(M.model_prior_log[i+1])
             if M.prior_based_bic
-                tmpm[i] = M.mod_sizes[i,3] + exp(M.model_prior_bic_log[i+1])
+                tmpm[i] = M.mod_sizes[i,3] - exp(M.model_prior_bic_log[i+1])
             endif
         else
             M.mod_sizes[i,3] = exp(M.model_prior_log[i])
             if M.prior_based_bic
-                tmpm[i] = M.mod_sizes[i,3] + exp(M.model_prior_bic_log[i])
+                tmpm[i] = M.mod_sizes[i,3] - exp(M.model_prior_bic_log[i])
             endif
         endif
         M.mod_sizes[i,3] = M.mod_sizes[i,3] * factor
