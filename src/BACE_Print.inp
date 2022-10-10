@@ -19,6 +19,7 @@ function void BACE_Print (bundle *M)
 /*
    Function prints BACE results.
     */
+    scalar avg_model_size
     matrix coeffmat
 
     # We re-create Y process
@@ -37,6 +38,14 @@ function void BACE_Print (bundle *M)
 
     # We set up estimator command
     string ESTIMATOR = M.estimator
+
+    # We set up real prior avg_model_size
+    if M.prior_name == "none"
+        avg_model_size = NA
+    else
+        avg_model_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
+    endif
+
 
     # Additional information in summary
     printf "\n"
@@ -97,7 +106,7 @@ function void BACE_Print (bundle *M)
     print "----------------------------------"
     printf "\n"
     printf "Prior:\n"
-    printf "\taverage model size: %f\n", sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
+    printf "\taverage model size: %f\n", avg_model_size
     printf "\tstandard deviation: %f\n", M.mod_size_sd_prior
     if M.prior_based_bic
         printf "Effective Prior:\n"
