@@ -328,12 +328,16 @@ printf &quot;\n\n&quot;
 BACE result bundle plot function.
 */
 string legend, output, basename, xtics
+string yrange = &quot;&quot;
 scalar avg_model_size = 0
+scalar idx
+strings title
 if $sysinfo.gui_mode
   basename = &quot;display&quot;
 else
   basename = strftime($now[1], &quot;%Y%m%d%H%M%S&quot;)
 endif
+# We set up avg_model_size
 if MODEL.prior_name == &quot;none&quot; &amp;&amp; MODEL.prior_based_bic
   avg_model_size = MODEL.avg_model_size_bic
 elif MODEL.prior_name != &quot;none&quot; &amp;&amp; !MODEL.prior_based_bic
@@ -341,12 +345,18 @@ elif MODEL.prior_name != &quot;none&quot; &amp;&amp; !MODEL.prior_based_bic
 elif MODEL.prior_name != &quot;none&quot; &amp;&amp; MODEL.prior_based_bic
   avg_model_size = xmax(MODEL.avg_model_size, MODEL.avg_model_size_bic)
 endif
+#########################################################
+#						Heatmaps						#
+#########################################################
 # Heatmap for variable inclusion
 BACE_heatmap(MODEL, &quot;inclusions&quot;, basename)
 # Heatmap for jointness
 if MODEL.do_joint
   BACE_heatmap(MODEL, &quot;jointness&quot;, basename)
 endif
+#########################################################
+#						Distributions					#
+#########################################################
 # Models size distribution
 plotmat = mreverse(MODEL.mod_sizes, 1)
 output = basename
@@ -365,7 +375,7 @@ else
 endif
 plot plotmat
   options with-lp fit=none
-  literal set link y2 via y*10 inverse y/10
+  literal set link y2 via y inverse y
   printf &quot;%s&quot;, xtics
   printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Model Size Distribution&quot;
   printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
@@ -391,6 +401,39 @@ plot plotmat
   printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Number of Models&quot;
   printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Posterior Probability Mass&quot;
 end plot --output=@output
+# Model prior distribution
+idx = 1 + (MODEL.with_const != 1 &amp;&amp; !(MODEL.limited_y &amp;&amp; MODEL.ordered))
+title = defarray(MODEL.prior_name, &quot;Size&quot;)
+plotmat = exp(MODEL.model_prior_log)[idx:end] ~ MODEL.mod_sizes[,1]
+if MODEL.prior_based_bic
+  plotmat = (exp(MODEL.model_prior_bic_log) / sum(exp(MODEL.model_prior_bic_log)))[idx:end] ~ plotmat
+  plotmat = sumr(plotmat[,1:2]) ~ plotmat
+  yrange = sprintf(&quot;set yrange [0:%f]&quot;, 1.1*max(plotmat[,1:end-1]))
+  title = defarray(&quot;Effective&quot;, MODEL.bic_type_name) + title
+endif
+cnameset(plotmat, title)
+output = basename
+if !$sysinfo.gui_mode
+  output = output ~ &quot;-MPD.plt&quot;
+endif
+if rows(plotmat) &lt; 20
+  xtics = &quot;set xtics 1&quot;
+else
+  xtics = &quot;&quot;
+endif
+plot plotmat
+  options with-lp fit=none
+  literal set link y2 via y inverse y
+  printf &quot;%s&quot;, xtics
+  printf &quot;%s&quot;, yrange
+  printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Model Prior Distribution&quot;
+  printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
+  printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Density&quot;
+  printf &quot;set key %s top&quot;, legend
+end plot --output=@output
+#########################################################
+#						Forecasts						#
+#########################################################
 # Predictive results
 if MODEL.Npredict
   plotmat = MODEL.prediction[,1:2]
