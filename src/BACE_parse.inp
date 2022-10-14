@@ -30,8 +30,17 @@ function string BACE_parse (bundle *M,
     */
     # Local variables
     scalar k = nelem(X_list) + M.Y_AR_p + (M.with_const > 1)
-    string err = ""
+    matrix Y_uniq = uniq(Y)
+    string err = ""    
     string tmp_str
+    
+    strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable!
+    scalar M.limited_y = 0
+    
+    # We check if we have logit/probit model
+    if nelem(instrings(M.DiscreteModelTypes, M.model_type))
+        M.limited_y = 1
+    endif    
 
     # We check if given X_list does not include Y
     if inlist(X_list, Y_name) != 0
@@ -105,7 +114,14 @@ function string BACE_parse (bundle *M,
         elif $datatype == 3
             datatype = "panel data"
         endif        
-        err = sprintf("You try to estimate %s model for %s => you cannot have lagged %s", model_type, datatype, Y_name)
+        err = sprintf("You try to estimate %s model for %s => you cannot have lagged %s", M.model_type, datatype, Y_name)
+    endif
+    
+    # We check if Y variable "is discrete" or "count data" in case of non-OLS model
+    if M.limited_y && sum(Y_uniq - int(Y_uniq)) > 0
+        err = sprintf("The dependent variable is not discrete")
+    elif M.model_type == "poisson" && (sum(Y_uniq - int(Y_uniq)) > 0 || max(Y) <= 1)
+        err = sprintf("The dependent variable must be count data")
     endif
 
     series M.Y = Y

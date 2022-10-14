@@ -45,15 +45,13 @@ function void BACE_setup (bundle *M, int Norig)
 
     ###############################################
     # Local variables - presets					  #
-    ###############################################
-    strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable!    
+    ###############################################    
     if M.model_type == "linear"
         string M.estimator = "ols"
     else
         string M.estimator = M.model_type
     endif
-    if nelem(instrings(M.DiscreteModelTypes, M.model_type))
-        scalar M.limited_y = 1
+    if M.limited_y
         scalar M.ordered = 0
         scalar M.cuts = 0
         scalar M.correctly_predicted = NA
@@ -70,8 +68,6 @@ function void BACE_setup (bundle *M, int Norig)
             M.yvalues = values(Y)
             M.with_const = 0
         endif
-    else
-        scalar M.limited_y = 0
     endif
     if M.with_const == 1
         string M.const_type = M.ConstTypes[2]
