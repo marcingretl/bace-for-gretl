@@ -60,6 +60,9 @@ function void BACE_Print (bundle *M)
     printf "Prior average model size: %f\n", M.avg_model_size
     printf "Significance level for the initial model: %f\n", M.alpha
     printf "Bayesian information criterion used: %s\n", M.bic_type_name
+    if M.bic_type_name == "EBIC"
+        printf "Hyperparameter for EBIC (gamma): %f\n", M.hyperparameter
+    endif    
     printf "Data transformation: %s\n", M.data_trans_name
     printf "Total number of iterations: %d\n", M.Nrep + M.n_drop_draws
     if M.with_const != 1 && M.n_drop_draws

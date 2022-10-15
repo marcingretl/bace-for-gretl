@@ -22,7 +22,6 @@ function void BACE_setup (bundle *M, int Norig)
     printf "\n#############################################################################\n"
     printf "To do:"
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
-    printf "\n * EBIC - add option for gamma (hyperparameter)."
     printf "\n * Finally decide which xBIC are 'prior based."
     printf "\n * Add in PDF information about data_trans and bic_type."
     printf "\n * Add in PDF information on dependecies."
@@ -189,9 +188,8 @@ function void BACE_setup (bundle *M, int Norig)
     M.prior_based_bic = nelem(instrings(M.PriorBasedBic, M.bic_type_name)) > 0
     if M.bic_type_name == "HBIC" || M.bic_type_name == "IBIC"
         M.bic_correction = log(.5*M.N/$pi)
-    endif    
+    endif
     if M.prior_based_bic
-        scalar M.hyperparameter = 0.5 # gamma
         scalar M.mod_size_sd_prior_bic = NA
         scalar M.avg_model_size_bic = NA
         matrix M.model_prior_bic_log = zeros(M.k+1)

@@ -163,31 +163,36 @@ the equivalent call looks like this:
 \end{lstlisting} 
 The above example consists of three blocks.
 
-\begin{CodeChunk}
-	\begin{CodeInput}
-		open greene9_1.gdt
-		include BACE.gfn
-		set seed 1000000
-		
-		list greene = capital labor nfirm
-		
-		scalar y_lags = 0
-		scalar with_const = 1
-		scalar model_prior = 1
-		scalar prior_avg_model_size = 1.5
-		scalar alpha = 0.6
-		scalar top_ranked_model = 4
-		scalar joint = 1
-		scalar forecasts = 0
-		scalar Nrep = 2000
-		scalar Nburn = 10
-		scalar verbosity = 1
-		scalar progress = 1
-		
-		BACE_GUI(valadd, y_lags, greene, with_const, model_prior, prior_avg_model_size,
-		alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
-	\end{CodeInput}
-\end{CodeChunk}
+\begin{lstlisting}
+	open greene9_1.gdt
+	include BACE.gfn
+	set seed 1000000
+	
+	list greene = capital labor nfirm
+	
+	scalar model_type = 1
+	scalar y_lags = 0
+	scalar with_const = 1
+	scalar data_trans = 0
+	scalar model_prior = 1
+	scalar bic_type = 1
+	scalar hyperparameter = 0
+	scalar prior_avg_model_size = 1.5
+	scalar alpha = 0.6
+	scalar top_ranked_model = 4
+	scalar joint = 1
+	scalar forecasts = 0
+	scalar Nrep = 2000
+	scalar Nburn = 10
+	scalar verbosity = 1
+	scalar progress = 1
+	scalar plots = 1
+	
+	BACE_GUI(model_type, valadd, y_lags, greene, with_const,\
+	data_trans, model_prior, bic_type, hyperparameter,\
+	prior_avg_model_size, alpha, top_ranked_model, joint,\
+	forecasts, Nrep, Nburn, verbosity, progress, plots)
+\end{lstlisting}
 
 The above example consists of three blocks.
 The first block is just opening of the so called \cmd{greene9\_1}
@@ -242,6 +247,7 @@ results again. The code should be as follows:
 
 
 \subsection{Output}\label{sec:outputs}
+\textcolor{red}{\textbf{Outdated!!!}}\newline
 If you select the appropriate entries in the GUI \pkg{BACE} window,
 our package returns: Posterior Inclusion Probabilities (PIP), the
 averages of the posterior means and standard deviations of parameters
@@ -266,6 +272,7 @@ Tony Hall.  The variables used in the text are:
 Suppose we want to perform BACE analysis up to $ADL(2,2)$ specification,
 i.e. all possible combinations from $ADL(0,0)$ to $ADL(2,2)$.
 The example script would be as follows:
+
 \begin{CodeChunk}
 	\begin{CodeInput}
 		set verbose off

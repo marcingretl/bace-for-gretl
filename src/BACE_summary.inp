@@ -247,6 +247,9 @@ function void BACE_summary (bundle *M)
     delete M.ModelPriorTypes
     delete M.ConstTypes
     delete M.DataTransTypes
+    delete M.CPU_num
+    delete M["_gui"]
+    delete M.DiscreteModelTypes
     if M.Npredict
         delete M.Y_mat_predict
         delete M.Yhat_predict_avg

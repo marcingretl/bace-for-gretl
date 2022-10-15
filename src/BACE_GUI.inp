@@ -15,17 +15,19 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function bundle BACE_GUI (int model_type[1:4:1] "Model type" {"linear", "logit", "probit", "poisson"},
-                          series Y "Dependent variable",
-                          int Y_AR_p[0::0] "Y lags",
-                          list X_list[null] "List of independent variables (X)",
+function bundle BACE_GUI (
+    int model_type[1:4:1] "Model type" {"linear", "logit (including ordered)", "probit (including ordered)", "poisson"},
+      series Y "Dependent variable",
+      int Y_AR_p[0::0] "Y lags",
+      list X_list[null] "List of independent variables (X)",
       int with_const[0:2:1] "Constant in model" {"Never", "Always", "Can be dropped"},
       int data_trans[0:2:0] "Data transformation" {"none", "Centering", "Standarizing"},
       int model_prior[0:2:1] "Model prior" {"none", "Binomial", "Beta-Binomial"},
       int bic_type[1:4:1] "Bayesian information criterion" {"BIC", "HBIC", "IBIC", "EBIC"},
+      scalar hyperparameter[0:1:0.5] "Hyperparameter for EBIC (gamma)",
       scalar avg_model_size[0::1] "Prior average model size",
       scalar alpha[0:1:0.6] "Significance level for the initial model",
-      int Nrank[2::40] "Number of the top ranked models",
+      int Nrank[2::4] "Number of the top ranked models",
       int do_joint[0:7:0] "Jointness analysis" {"None", "Doppelhofer-Weeks Measure (DW1)",\
       "Doppelhofer-Weeks Measure (DW2)", "Ley-Steel Measure (LS1)", "Ley-Steel Measure (LS2)",\
       "Strachan Measure (SM)", "Yule's Q Measure (YQ)", "Modified Yule's Q Measure (MYQ)"},
@@ -42,8 +44,9 @@ function bundle BACE_GUI (int model_type[1:4:1] "Model type" {"linear", "logit",
     */
 
     # Basic parsing and checking
-    bundle Options
-    
+    bundle Options, RES
+    string err
+
     string Y_name = argname(Y)
     series @Y_name = Y
     scalar Options["Y_AR_p"] = Y_AR_p
@@ -62,6 +65,14 @@ function bundle BACE_GUI (int model_type[1:4:1] "Model type" {"linear", "logit",
     scalar Options["data_trans"] = data_trans
     scalar Options["bic_type"] = bic_type
     scalar Options["model_type"] = model_type
-    
-    return BACE(@Y_name, X_list, Options)
+    scalar Options["_gui"] = 1
+
+    RES = BACE(@Y_name, X_list, Options)
+
+    if inbundle(RES, "err")
+        err = RES["err"]
+        funcerr "@err !!!"
+    endif
+
+    return RES
 end function

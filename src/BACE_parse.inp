@@ -33,14 +33,6 @@ function string BACE_parse (bundle *M,
     matrix Y_uniq = uniq(Y)
     string err = ""    
     string tmp_str
-    
-    strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable!
-    scalar M.limited_y = 0
-    
-    # We check if we have logit/probit model
-    if nelem(instrings(M.DiscreteModelTypes, M.model_type))
-        M.limited_y = 1
-    endif    
 
     # We check if given X_list does not include Y
     if inlist(X_list, Y_name) != 0

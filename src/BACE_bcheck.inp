@@ -53,7 +53,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     Overloadable["do_joint"] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="none, DW1, DW2, LS1, LS2, SM, YQ, MYQ")
     Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
     Overloadable["model_type"] = _(linear=1, logit=2, probit=3, poisson=4, valid=tolower(flatten(ModelTypes, separator)))
-   
+
     # We look for overloaded parameters and we convert them into integers
     OverloadableKeys = getkeys(Overloadable)
     loop i=1..nelem(OverloadableKeys) --quiet
@@ -126,6 +126,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     string Options["model_type"] = "linear"
     scalar Options["data_trans"] = 0
     scalar Options["bic_type"] = 1
+    scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
+    scalar Options["_gui"] = 0
 
     # General checking, but still needs some manual work
     err2 = bcheck(&Options, UserOpts)
@@ -185,6 +187,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         err += "Parameter data_trans takes the integer values in the range [0; 2]"
     elif Options.bic_type < 1 || Options.bic_type > 4
         err += "BIC type takes the integer values in the range [1; 4]"
+    elif Options.hyperparameter < 0 || Options.hyperparameter > 1
+        err += "Hyperparameter for EBIC (gamma) takes the real values in the range [0; 1]"
     endif
 
     # We save options in M
@@ -194,6 +198,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     M.ModelPriorTypes = ModelPriorTypes
     M.ConstTypes = ConstTypes
     M.DataTransTypes = DataTransTypes
+    strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable only!
+    scalar M.limited_y = nelem(instrings(M.DiscreteModelTypes, M.model_type)) > 0 ? 1 : 0
 
     return err
 end function

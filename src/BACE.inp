@@ -61,7 +61,11 @@ function bundle BACE (series Y "Dependent variable",
     # Basic parsing and checking
     err = BACE_parse(&MODEL, Y, Y_name, X_list)
     if strlen(err) != 0
-        funcerr "@err !!!"
+        if MODEL["_gui"]
+            MODEL["err"] = err
+        else
+            funcerr "@err !!!"
+        endif
     else
         BACE_setup(&MODEL, Norig)
         # Setting sample for forecasting
