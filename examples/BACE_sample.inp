@@ -8,9 +8,13 @@ list greene = capital labor nfirm
 # We set the seed in order to exact reproduction of results
 set seed 1000000
 
+scalar model_type = 1
 scalar y_lags = 0
 scalar with_const = 1
+scalar data_trans = 0
 scalar model_prior = 1
+scalar bic_type = 1
+scalar hyperparameter = 0
 scalar prior_avg_model_size = 1.5
 scalar alpha = 0.6
 scalar top_ranked_model = 4
@@ -20,8 +24,11 @@ scalar Nrep = 2000
 scalar Nburn = 10
 scalar verbosity = 1
 scalar progress = 1
+scalar graphs = 1
 
-BACE_GUI(valadd, y_lags, greene, with_const, model_prior, prior_avg_model_size, alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
+BACE_GUI(model_type, valadd, y_lags, greene, with_const, data_trans, \
+  model_prior, bic_type, hyperparameter, prior_avg_model_size, alpha, \
+  top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress, graphs)
 
 /*
 The above example consists of three blocks.
@@ -49,25 +56,28 @@ and progress overall progress is printed.
 /*
 Suppose we want to run the same analysis but following
 Occam's razor principle. The simplest way is setting the prior
-average model size to 1. We also want to have ''random'' constant,
+average model size to 2. We also want to have ''random'' constant,
 i.e. intercept can be dropped in any model. We also want to save
 results of the BACE analysis in the bundle \cmd{results\_b},
 the code should be as follows:
 */
-prior_avg_model_size = 1
+prior_avg_model_size = 2
 with_const = 2
-results_b = BACE_GUI(valadd, y_lags, greene, with_const, model_prior, prior_avg_model_size, alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
+results_b = BACE_GUI(model_type, valadd, y_lags, greene, with_const, data_trans, \
+  model_prior, bic_type, hyperparameter, prior_avg_model_size, alpha, \
+  top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress, graphs)
 
 /*
 Suppose we want to compute forecasts for 3 observations and print
 additional information in results (verbosity set to 2) and we don't
 want to see any progress. The code would be as follows:
-*/
-/*
+
 forecasts = 3
 verbosity = 2
 progress = 0
-BACE_GUI(valadd, y_lags, greene, with_const, model_prior, prior_avg_model_size, alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
+BACE_GUI(model_type, valadd, y_lags, greene, with_const, data_trans, \
+  model_prior, bic_type, hyperparameter, prior_avg_model_size, alpha, \
+  top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress, graphs)
 */
 
 /*
