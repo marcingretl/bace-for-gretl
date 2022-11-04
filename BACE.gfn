@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2022-10-18</date>
+<date>2022-10-21</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -474,7 +474,7 @@ endif
 </code>
 </gretl-function>
 <gretl-function name="BACE_GUI" type="bundle" pkg-role="gui-main">
- <params count="19">
+ <params count="12">
   <param name="model_type" type="int" min="1" max="4" default="1">
 <description>Model type</description>
 <labels count="4">
@@ -484,7 +484,7 @@ endif
 <description>Dependent variable</description>
   </param>
   <param name="Y_AR_p" type="int" min="0" default="0">
-<description>Y lags</description>
+<description>Y lags (time-series only)</description>
   </param>
   <param name="X_list" type="list" optional="true">
 <description>List of independent variables (X)</description>
@@ -493,11 +493,6 @@ endif
 <description>Constant in model</description>
 <labels count="3">
 "Never" "Always" "Can be dropped" </labels>
-  </param>
-  <param name="data_trans" type="int" min="0" max="2" default="0">
-<description>Data transformation</description>
-<labels count="3">
-"none" "Centering" "Standarizing" </labels>
   </param>
   <param name="model_prior" type="int" min="0" max="2" default="1">
 <description>Model prior</description>
@@ -509,18 +504,6 @@ endif
 <labels count="4">
 "BIC" "HBIC" "IBIC" "EBIC" </labels>
   </param>
-  <param name="hyperparameter" type="scalar" min="0" max="1" default="0.5">
-<description>Hyperparameter for EBIC (gamma)</description>
-  </param>
-  <param name="avg_model_size" type="scalar" min="0" default="1">
-<description>Prior average model size</description>
-  </param>
-  <param name="alpha" type="scalar" min="0" max="1" default="0.6">
-<description>Significance level for the initial model</description>
-  </param>
-  <param name="Nrank" type="int" min="2" default="4">
-<description>Number of the top ranked models</description>
-  </param>
   <param name="do_joint" type="int" min="0" max="7" default="0">
 <description>Jointness analysis</description>
 <labels count="8">
@@ -528,12 +511,6 @@ endif
   </param>
   <param name="Npredict" type="int" min="0" default="0">
 <description>Number of out-of-sample forecasts</description>
-  </param>
-  <param name="Nrep" type="int" default="1e+06">
-<description>Total number of replications</description>
-  </param>
-  <param name="burn" type="int" min="0" max="99" default="10">
-<description>Percentage of burn-in draws</description>
   </param>
   <param name="verbosity" type="int" min="1" max="2" default="2">
 <description>Verbosity</description>
@@ -1724,7 +1701,7 @@ This is main BACE function with complete MC3 simulation procedure.
 */
 # Local variables
 BACE_print_status(&quot;MC3 setup&quot;)
-scalar percentage = M.progress # percentage of progress of MC3
+scalar percentage = 0 #M.progress # percentage of progress of MC3
 scalar rep = 1
 string model_id # string containing model id (0-1 'image')
 scalar model_nr	# iteration number under which model's data are stored in matrices/arrays
@@ -1777,6 +1754,7 @@ BACE_print_status(null, 1, 12)
 ############################################################
 if M.show_progress
   BACE_print_status(&quot;MC3 overall progress&quot;, 0, 0, 1)
+  BACE_show_progress(0, &amp;percentage, M.progress, M.Nrep)
 else
   BACE_print_status(&quot;MC3&quot;)
 endif
@@ -2234,84 +2212,47 @@ return Exp/(1-P0) - avg
 set verbose off
 
 # Usage:
-open greene9_1.gdt
+open wtp.gdt
 include BACE.gfn
-list greene = capital labor nfirm
+list X = 1 2 9 10 11
 
 # We set the seed in order to exact reproduction of results
 set seed 1000000
 
-scalar model_type = 1
-scalar y_lags = 0
-scalar with_const = 1
-scalar data_trans = 0
-scalar model_prior = 1
-scalar bic_type = 1
-scalar hyperparameter = 0
-scalar prior_avg_model_size = 1.5
-scalar alpha = 0.6
-scalar top_ranked_model = 4
-scalar joint = 1
-scalar forecasts = 0
-scalar Nrep = 2000
-scalar Nburn = 10
-scalar verbosity = 1
-scalar progress = 1
-scalar graphs = 1
-
-BACE_GUI(model_type, valadd, y_lags, greene, with_const, data_trans, \
-  model_prior, bic_type, hyperparameter, prior_avg_model_size, alpha, \
-  top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress, graphs)
-
+BACE(depvar, X)
 /*
 The above example consists of three blocks.
-The first block is just opening of the so called \cmd{greene9\_1}
-dataset, which is bundled in every standard gretl installation.
-This dataset contains cross-sectional data on manufacturing
-of transportation equipment presented as Table 9.1 in
-Greene, Econometric Analysis, 4e}.
+The first block is just opening of the so called \cmd{wtp}
+which contains 312 observations with survey results concerning
+willingness to pay for the preservation of the Alentejo Natural
+Park in Portugal. The survey was held in 1997. The original amounts
+in escudos were transformed into euros by dividing by 200.
 We also set the seed in order to exact reproduction of the results.
 
-The second block is the definition of the greene list which
-contains three independent variables available in the greene9_1 dataset.
+The second block is the definition of the X list which consists of
+five independent variables available in the wtd dataset.
 
-The third block contains the definition for Bayesian Averaging of Classical
-Estimates analysis: no lags for Y variable (not applicable since we have
-cross-sectional data), constant always included, binomial model prior,
-prior average model size set to 1.5 (which means that we have uniform model prior),
-significance level for the initial model set to 0.6, 4 top ranked models,
-jointness analysis with Ley-Steel Measure, without out-of-sample predictions,
-10000 replications with 10% burn-in draws, basic output (verbosity set to 1)
-and progress overall progress is printed.
+The third block contains the definition for Bayesian Averaging of
+Classical Estimates analysis in default setup: linear model, no lags
+for Y variable (not applicable since we have cross-sectional data),
+constant always included, beta-binomial model prior, prior average model
+size set to 2.5, significance level for the initial model set to 0.6,
+standard BIC, no data transformation, 14 top ranked models, no jointness
+analysis, no out-of-sample predictions, 1000 replications with 10% burn-in
+draws, full output (verbosity set to 2), printing overall progress and
+plotting graphs.
 */
 ####################################################################################
 
 /*
-Suppose we want to run the same analysis but following
-Occam's razor principle. The simplest way is setting the prior
-average model size to 2. We also want to have ''random'' constant,
-i.e. intercept can be dropped in any model. We also want to save
-results of the BACE analysis in the bundle \cmd{results\_b},
-the code should be as follows:
+Since 'depvar' is a count date, suppose we want to run ordered logit
+analysis. What's more, we want to use uniform model prior and perform
+jointness analysis using modified Yule's Q Measure (MYQ). W'd like to
+switch of ploting grahs. Finally, we also want to save results of the
+BACE analysis in the bundle \cmd{results\_b}, the code should be as follows:
 */
-prior_avg_model_size = 2
-with_const = 2
-results_b = BACE_GUI(model_type, valadd, y_lags, greene, with_const, data_trans, \
-  model_prior, bic_type, hyperparameter, prior_avg_model_size, alpha, \
-  top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress, graphs)
-
-/*
-Suppose we want to compute forecasts for 3 observations and print
-additional information in results (verbosity set to 2) and we don't
-want to see any progress. The code would be as follows:
-
-forecasts = 3
-verbosity = 2
-progress = 0
-BACE_GUI(model_type, valadd, y_lags, greene, with_const, data_trans, \
-  model_prior, bic_type, hyperparameter, prior_avg_model_size, alpha, \
-  top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress, graphs)
-*/
+results_b = BACE(depvar, X, _(model_type=&quot;logit&quot;, model_prior=&quot;binomial&quot;,\
+ do_joint=&quot;MYQ&quot;, do_plot=0))
 
 /*
 Suppose we want to calculate Doppelhofer-Weeks Measure instead of
@@ -2320,16 +2261,7 @@ is controlled by do_join field in the result bundle, the only thing
 we have to do is to set the value of do_join to 2 and print BACE
 results again. The code should be as follows:
 */
-results_b.do_joint = 2
-BACE_Print(&amp;results_b)
-
-results_b.do_joint = 3
-BACE_Print(&amp;results_b)
-
-results_b.do_joint = 4
-BACE_Print(&amp;results_b)
-
-results_b.do_joint = 7
+results_b.do_joint = 1
 BACE_Print(&amp;results_b)
 </sample-script>
 </gretl-function-package>

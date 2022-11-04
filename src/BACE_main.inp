@@ -23,7 +23,7 @@ function void BACE_main (bundle *M)
     # Local variables
     BACE_print_status("MC3 setup")
 
-    scalar percentage = M.progress # percentage of progress of MC3
+    scalar percentage = 0 #M.progress # percentage of progress of MC3
     scalar rep = 1
     string model_id # string containing model id (0-1 'image')
     scalar model_nr	# iteration number under which model's data are stored in matrices/arrays
@@ -80,6 +80,7 @@ function void BACE_main (bundle *M)
     ############################################################
     if M.show_progress
         BACE_print_status("MC3 overall progress", 0, 0, 1)
+        BACE_show_progress(0, &percentage, M.progress, M.Nrep)
     else
         BACE_print_status("MC3")
     endif
