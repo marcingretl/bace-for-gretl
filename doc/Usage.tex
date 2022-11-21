@@ -59,62 +59,28 @@ to the one shown in Figure~\ref{fig:Main window for BACE}:
 According to Figure~\ref{fig:Main window for BACE}, we can specify the following
 entries in the GUI \pkg{BACE} window\label{text:module_parameters}
 \begin{itemize}
+	\item \textbf{Model type} -- What kind of modeling should be
+		should be performed?
 	\item \textbf{Dependent variable} -- The dependent variable.
 	\item \textbf{Y lags} -- number of lags for dependent variable
-	(for time-series only).
+		(for time-series only).
 	\item \textbf{List of independent variables}
-	-- Loading variables from the database, which must have been
-	opened previously.  Note that by
-	default we assume that you want to estimate an intercept; therefore,
-	a constant is implicitly included in the list of the variables.
-	\item \textbf{Constant in model} -- Do we include intercept? It can be:
-	always, never or can be dropped.
-	\item \textbf{Model prior} -- Indicates the choice of model prior. One
-	can employ the binomial model prior or the binomial-beta model
-	prior. Note that the uniform model prior is a special case of the
-	binomial model prior. Therefore, in fact, our package allows for
-	three types of priors.
-	\item \textbf{Prior average model size} -- Specifies the prior
-	expected model size $\E(\Xi)$.  The expected model size may range
-	from 0 to \textit{K}. The default value equals 1.  It is the
-	smallest reasonable prior expected model size. It means that we
-	penalize large models and we assign high probability to small ones
-	following Occam's razor principle.
-	
-	Note that for the binomial model prior and with $\E(\Xi)=0.5K$ one
-	can define the uniform prior on the model space. For example, for
-	$K=10$ regressors we can define the uniform prior with
-	$\E(\Xi)=5$. For $\E(\Xi) < 5$ we assign high probability to small
-	models.  The smaller the prior expected model size $\E(\Xi)$, the
-	less probable are larger models.
-	\item \textbf{Significance level for the initial model} -- Defines the
-	significance level which is used to build the initial model. An
-	explanatory variable enters the initial model if its \textit{p}~value is
-	less than the significance level. If the significance level equals
-	1, the initial model will be randomly chosen (with equal
-	probability) from all available models. Note that if all available
-	explanatory variables enter the initial model, you will get the
-	following \pkg{gretl} error message ``No independent variables were
-	omitted''.
-	\item \textbf{Number of top ranked models} -- Specifies the number of
-	best models for which detailed information is stored.
+		-- List of all independent variables (including lagged series).
+	\item \textbf{Constant in model} -- Do we include intercept?
+		It can be: always, never or can be dropped.
+	\item \textbf{Bayesian information criterion} -- Version of BIC to
+		be used.
 	\item \textbf{Jointness analysis} -- If \cmd{None} (the default),
-	the jointness analysis is omitted. Alternatively, one can choose the
-	jointness measures of \cite{LeySteel2007} or \cite{DoppelhoferWeeks2009}.
-	\item \textbf{Number of out-of-sample forecasts} -- Defines the total
-	number of out-of-sample forecasts of the dependent variable.
-	\item \textbf{Total number of replications} -- Defines the total
-	number of iteration draws to be sampled.
-	\item \textbf{Percentage of burn-in draws} -- Specifies the number of
-	burn-in replications, calculated as the percentage of the total
-	number of iteration draws.
-	\item \textbf{Verbosity} -- An integer value of 1 or 2; the default is
-	1, which allows to see the basic Bayesian Averaging of Classical Estimates
-	results. If Verbosity equals 2, a more detailed description of the
-	analysis is provided (initial model, speed of convergence,
-	estimation results for top ranked models).
-	\item \textbf{Show overall progress} -- The output is flushed every 10\%
-	of MC$^3$ and the progress is printed. Note: this consumes a lot of CPU time.
+		the jointness analysis is omitted. Alternatively, one can
+		choose one of the 7 available jointness measures.
+	\item \textbf{Number of out-of-sample forecasts} -- Defines the
+		total number of out-of-sample forecasts of the dependent variable.
+	\item \textbf{Verbosity} -- An integer value of 1 or 2; the default
+		is 2, so a more detailed description of the	analysis is provided
+		(initial model, speed of convergence, estimation results for top
+		ranked models).
+	\item \textbf{Show overall progress} -- The progress bar is printed.
+	\item \textbf{Plot graphs?} -- Shall we produce graphs?
 \end{itemize}
 
 \subsection{The script way}

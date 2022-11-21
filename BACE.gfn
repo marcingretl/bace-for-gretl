@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2022-10-21</date>
+<date>2022-11-21</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -128,6 +128,9 @@ if M.bic_type_name == &quot;EBIC&quot;
   printf &quot;Hyperparameter for EBIC (gamma): %f\n&quot;, M.hyperparameter
 endif
 printf &quot;Data transformation: %s\n&quot;, M.data_trans_name
+if M.limited_y &amp;&amp; !M.ordered
+  printf &quot;Threshold for binary dependent variable: %f\n&quot;, M.binary_threshold
+endif
 printf &quot;Total number of iterations: %d\n&quot;, M.Nrep + M.n_drop_draws
 if M.with_const != 1 &amp;&amp; M.n_drop_draws
   printf &quot;   Number of rejected draws: %d\n&quot;, M.n_drop_draws
@@ -971,7 +974,7 @@ endif
 if M.limited_y
   if nelem(instrings(M.DiscreteModelTypes[1:2], M.model_type))
     if !M.ordered
-      M.Yhat = M.Yhat .&gt;= 0.5
+      M.Yhat = M.Yhat .&gt;= M.binary_threshold
     else
       Yhat = M.Yhat
       tmps = M.model_type == &quot;logit&quot; ? 1 : 0
@@ -993,7 +996,7 @@ if M.Npredict
   title = defarray(M.Y_name, &quot;Mean&quot;, &quot;Std.Dev&quot;)
   if M.limited_y
     M.prediction[,3] = M.prediction[,2]
-    M.prediction[,2] = M.prediction[,2] .&gt;= 0.5
+    M.prediction[,2] = M.prediction[,2] .&gt;= M.binary_threshold
     title[2] = &quot;Forecast&quot;
     title[3] = &quot;Mean&quot;
   endif
@@ -1842,7 +1845,7 @@ bundle Options, Overloadable
 string arg_name, parameter_value
 strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
-strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;)
+strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
 strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;)
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
 strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;)
@@ -1931,6 +1934,7 @@ string Options[&quot;model_type&quot;] = &quot;linear&quot;
 scalar Options[&quot;data_trans&quot;] = 0
 scalar Options[&quot;bic_type&quot;] = 1
 scalar Options[&quot;hyperparameter&quot;] = 0.5 # gamma for EBIC
+scalar Options[&quot;binary_threshold&quot;] = 0.5
 scalar Options[&quot;_gui&quot;] = 0
 # General checking, but still needs some manual work
 err2 = bcheck(&amp;Options, UserOpts)
@@ -1988,6 +1992,8 @@ elif Options.bic_type &lt; 1 || Options.bic_type &gt; 4
   err += &quot;BIC type takes the integer values in the range [1; 4]&quot;
 elif Options.hyperparameter &lt; 0 || Options.hyperparameter &gt; 1
   err += &quot;Hyperparameter for EBIC (gamma) takes the real values in the range [0; 1]&quot;
+elif Options.binary_threshold &lt;= 0 || Options.binary_threshold &gt;= 1
+  err += &quot;Threshold for binary dependent models (binary_threshold) takes the real values in the range (0; 1)&quot;
 endif
 # We save options in M
 M = Options

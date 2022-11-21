@@ -64,6 +64,9 @@ function void BACE_Print (bundle *M)
         printf "Hyperparameter for EBIC (gamma): %f\n", M.hyperparameter
     endif    
     printf "Data transformation: %s\n", M.data_trans_name
+    if M.limited_y && !M.ordered
+        printf "Threshold for binary dependent variable: %f\n", M.binary_threshold
+    endif    
     printf "Total number of iterations: %d\n", M.Nrep + M.n_drop_draws
     if M.with_const != 1 && M.n_drop_draws
         printf "   Number of rejected draws: %d\n", M.n_drop_draws

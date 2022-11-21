@@ -173,7 +173,7 @@ function void BACE_summary (bundle *M)
     if M.limited_y
         if nelem(instrings(M.DiscreteModelTypes[1:2], M.model_type))
             if !M.ordered
-                M.Yhat = M.Yhat .>= 0.5
+                M.Yhat = M.Yhat .>= M.binary_threshold
             else
                 Yhat = M.Yhat
                 tmps = M.model_type == "logit" ? 1 : 0
@@ -196,7 +196,7 @@ function void BACE_summary (bundle *M)
         title = defarray(M.Y_name, "Mean", "Std.Dev")
         if M.limited_y
             M.prediction[,3] = M.prediction[,2]
-            M.prediction[,2] = M.prediction[,2] .>= 0.5
+            M.prediction[,2] = M.prediction[,2] .>= M.binary_threshold
             title[2] = "Forecast"
             title[3] = "Mean"
         endif

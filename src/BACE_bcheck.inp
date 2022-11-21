@@ -33,7 +33,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
       "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
-    strings Scalars = defarray("avg_model_size", "alpha")
+    strings Scalars = defarray("avg_model_size", "alpha", "binary_threshold")
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
     strings BicTypes = defarray("BIC", "HBIC", "IBIC", "EBIC")
     strings ModelPriorTypes = defarray("none", "Binomial", "Beta-Binomial")
@@ -127,7 +127,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar Options["data_trans"] = 0
     scalar Options["bic_type"] = 1
     scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
-    scalar Options["_gui"] = 0
+    scalar Options["binary_threshold"] = 0.5
+    scalar Options["_gui"] = 0    
 
     # General checking, but still needs some manual work
     err2 = bcheck(&Options, UserOpts)
@@ -189,6 +190,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         err += "BIC type takes the integer values in the range [1; 4]"
     elif Options.hyperparameter < 0 || Options.hyperparameter > 1
         err += "Hyperparameter for EBIC (gamma) takes the real values in the range [0; 1]"
+    elif Options.binary_threshold <= 0 || Options.binary_threshold >= 1
+        err += "Threshold for binary dependent models (binary_threshold) takes the real values in the range (0; 1)"
     endif
 
     # We save options in M
@@ -200,6 +203,6 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     M.DataTransTypes = DataTransTypes
     strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable only!
     scalar M.limited_y = nelem(instrings(M.DiscreteModelTypes, M.model_type)) > 0 ? 1 : 0
-
+    
     return err
 end function
