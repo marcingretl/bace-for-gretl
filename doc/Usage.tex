@@ -1,7 +1,142 @@
-\subsection{BACE main function}
-The BACE package defines two public functions:
-\cmd{BACE\_GUI()} and \cmd{BACE\_Print()}.
-The \cmd{BACE\_GUI()} takes following parameters:
+\section{Implementation in \pkg{gretl}}\label{sec:BACE_implementation}
+In this section, we describe the code of the \pkg{BACE}
+package. First, we will characterize our code and the use
+of both: the command line and the GUI interfaces, then we
+will present some examples of using the \pkg{BACE}.
+Finally, we will show the outputs that are returned.
+
+\subsection{The core of the \pkg{BACE} code}
+The \pkg{BACE} package consists of 4 public and 14
+private functions. The name of each function starts
+with the \cmd{BACE\_} prefix. The public functions are:
+\begin{enumerate}
+	\item \cmd{BACE()}~see~\ref{sec:BACE()}
+	\item \cmd{BACE\_GUI()}~see~\ref{sec:BACE_GUI()}
+	\item \cmd{BACE\_Print()}~see~\ref{sec:BACE_Print()}
+	\item \cmd{BACE\_Plot()}~see~\ref{sec:BACE_Plot()}
+\end{enumerate}
+
+\subsubsection{\cmd{BACE()}}\label{sec:BACE()}
+This is a core package function which runs and controls
+the main loop. As a consequence, it is a prime interface
+to the \pkg{BACE} package. The \cmd{BACE()} function
+returns a bundle with all information needed to print
+and/or plot results anytime. One can print the results
+by calling \cmd{BACE\_Print()} or plot graphs by calling
+\cmd{BACE\_Plot()}. The signature of \cmd{BACE()}
+function is as follows:
+\begin{lstlisting}
+function bundle BACE (series Y "Dependent variable",
+ list X_list "List of indenpendent variables (X)",
+ bundle Options[null])	
+\end{lstlisting}
+The first two options are mandatory, while the last one
+is an optional collection of additional arguments. Those
+arguments are defined with the following default values:
+\begin{lstlisting}
+scalar Options["Y_AR_p"] = 0
+scalar Options["with_const"] = 1
+scalar Options["model_prior"] = 2
+scalar Options["avg_model_size"] = avg_model_size_tmp
+scalar Options["alpha"] = 0.6
+scalar Options["Nrank"] = xmin(2^(k+Y_AR_p_tmp-1), 40)
+scalar Options["do_joint"] = 0
+scalar Options["Npredict"] = 0
+scalar Options["Nrep"] = Nrep
+scalar Options["burn"] = 10
+scalar Options["verbosity"] = 2
+scalar Options["show_progress"] = do_show_progress
+scalar Options["do_plot"] = do_plot_tmp
+string Options["model_type"] = "linear"
+scalar Options["data_trans"] = 0
+scalar Options["bic_type"] = 1
+scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
+scalar Options["binary_threshold"] = 0.5
+scalar Options["_gui"] = 0	
+\end{lstlisting}
+where \textit{k} stands for the number of independent variables,
+\lstinline!scalar avg_model_size! is calculated according to
+the following formula:
+\begin{equation}
+	\texttt{\lstinline!avg\_model\_size!} = \left\{
+	\begin{array}{lll}
+		\textrm{\lstinline!(k + Y\_AR\_p\_tmp)/2!} & \mathrm{if} & \textrm{\lstinline!with_const \!= 2!},\\
+		\textrm{\lstinline!(k + Y\_AR\_p\_tmp + 1)/2!} & \mathrm{elsewhere}, &\\
+	\end{array}
+	\right.
+	\label{eq:avg_model_size_setup}
+\end{equation}
+\lstinline!scalar Nrep! takes the following values:
+\begin{equation}
+	\texttt{\lstinline!Nrep!} = \left\{
+	\begin{array}{ccl}
+		10^3 & \mathrm{if} & k \leq 10,\\
+		10^4 & \mathrm{if} & k \in [11;15],\\
+		10^5 & \mathrm{if} & k \in [16;19],\\
+		10^6 & \mathrm{if} & k \geq 20,\\
+	\end{array}
+	\right.
+	\label{eq:Nrep_setup}
+\end{equation}
+\lstinline!scalar show_progress! takes the following values:
+\begin{equation}
+	\texttt{\lstinline!show\_progress!} = \left\{
+	\begin{array}{cll}
+		1 & \mathrm{if} & \textrm{\lstinline!$sysinfo!\texttt{\small.gui\_mode}},\\
+		0 & \mathrm{elsewhere}, &\\
+	\end{array}
+	\right.
+	\label{eq:show_progress_setup}
+\end{equation}
+and \lstinline!scalar do_plot! takes the following values:
+\begin{equation}
+	\texttt{\lstinline!do\_plot!} = \left\{
+	\begin{array}{cll}
+		1 & \mathrm{if} & \textrm{\lstinline!$sysinfo!\texttt{\small.gui\_mode}},\\
+		0 & \mathrm{elsewhere}. &\\
+	\end{array}
+	\right.
+	\label{eq:do_plot_setup}
+\end{equation}
+Most of the optional parameters listed above are of
+numerical type and they may be gathered into following
+groups according to what kind of numbers they can take%
+\footnote{Note, that the \lstinline!scalar _gui! is
+	for internal use only and must not be modified
+	by user at any rate.}:
+\begin{enumerate}
+	\item Integers: \lstinline!Y_AR_p!, \lstinline!with_const!,
+		\lstinline!model_prior!, \lstinline!Nrank!, \lstinline!do_joint!,
+		\lstinline!Npredict!, \lstinline!Nrep!, \lstinline!burn!,
+		\lstinline!verbosity!, \lstinline!data_trans!, \lstinline!bic_type!.
+	\item Booleans: \lstinline!show_progress!, \lstinline!do_plot!.
+	\item Scalars: \lstinline!avg_model_size!, \lstinline!alpha!,
+		\lstinline!binary_threshold!.
+\end{enumerate}
+Optional parameters control the following package options:
+\begin{enumerate}
+	\item \textbf{Y\_AR\_p}: autoregression order of variable Y.
+	\item \textbf{with\_const}: whether we include constant term
+		in each estimated model?; possible values are: 0---without
+		constant, 1---constant is always included, 2---constant
+		may be dropped.
+	\item \textbf{model\_prior}: model prior distribution to use;
+		possible values are: 0---none, 1---Binomial, 2---Beta-Binomial.
+	\item \textbf{avg\_model\_size}: expected average model size
+		for model prior.
+	\item \textbf{alpha}: significance level for the initial model.
+	\item \textbf{Nrank}: number of top ranked models.
+	\item \textbf{do\_joint}: do we perform jointness analysis?;
+		possible values are: 0---none, 1---Doppelhofer-Weeks
+		Measure (DW1), 2---Doppelhofer-Weeks Measure (DW2),
+		3---Ley-Steel Measure (LS1), 4---Ley-Steel Measure (LS2),
+		5---Strachan Measure, 6---Yule's Q Measure (YQ),
+		7---Modified Yule's Q Measure (YQM).
+\end{enumerate}
+
+\subsubsection{\pkg{BACE\_GUI()}}\label{sec:BACE_GUI()}
+The \cmd{BACE\_GUI()} is a wrapper to \cmd{BACE()}
+interface and takes the following parameters:
 \begin{itemize}
 	\item \textbf{Dependent variable} as series [required].
 	\item \textbf{Y lags} as integer with zero (only for time-series).
@@ -35,16 +170,12 @@ The \cmd{BACE\_GUI()} takes following parameters:
 	\item \textbf{Show overall progress} as Boolean.
 \end{itemize}
 
-The \cmd{BACE\_GUI()} function returns a bundle with all information
-needed to print results anytime. One can print the results by calling
-\cmd{BACE\_Print(\&RES)}, where \texttt{RES} is the bundle returned by the
-\cmd{BACE\_GUI()} function.
 
 \subsection{The GUI way}
-Once you start \pkg{gretl}, you must open a data file and then you can
-load the relevant \pkg{BACE} package from the \pkg{gretl} server. In the main
+Once you start \cmd{gretl}, you must open a data file and then you can
+load the relevant \cmd{BACE} package from the \cmd{gretl} server. In the main
 window, go to File $\rightarrow$ Function packages $\rightarrow$ On server
-heading. By selecting \pkg{BACE}, you will download the package on your
+heading. By selecting \cmd{BACE}, you will download the package on your
 local machine. Next, go to File $\rightarrow$ Function packages $\rightarrow$
 On local machine and by selecting BACE from the list open a window similar
 to the one shown in Figure~\ref{fig:Main window for BACE}:
@@ -52,12 +183,12 @@ to the one shown in Figure~\ref{fig:Main window for BACE}:
 \begin{figure}[h!]
 	\centering
 	\includegraphics[width=0.7\columnwidth, keepaspectratio]{PNG/BACE_main_window}
-	\caption{Main window for \pkg{BACE}.}
+	\caption{Main window for \cmd{BACE}.}
 	\label{fig:Main window for BACE}
 \end{figure}
 
 According to Figure~\ref{fig:Main window for BACE}, we can specify the following
-entries in the GUI \pkg{BACE} window\label{text:module_parameters}
+entries in the GUI \cmd{BACE} window\label{text:module_parameters}
 \begin{itemize}
 	\item \textbf{Model type} -- What kind of modeling should be
 		should be performed?
@@ -85,29 +216,29 @@ entries in the GUI \pkg{BACE} window\label{text:module_parameters}
 
 \subsection{The script way}
 \subsubsection{Script}
-The \pkg{BACE} package can also be used inside \proglang{Hansl} scripts.
+The \cmd{BACE} package can also be used inside \proglang{Hansl} scripts.
 A very minimal code could be as follows:
 %
 \begin{lstlisting}
-	open greene9_1.gdt
-	include BACE.gfn
-	
-	list greene = capital labor nfirm
-	
-	BACE(valadd, greene)
+open greene9_1.gdt
+include BACE.gfn
+
+list greene = capital labor nfirm
+
+BACE(valadd, greene)
 \end{lstlisting}
 The above code triggers BACE analysis with default option
 described on page~\pageref{sec:default_option_bundle}.
 On contrary, the corresponding ''big call'', i.e. with
 setting all possible parameters, would be as follows:
 \begin{lstlisting}
-	bundle opts = defbundle("model_prior", 2, "avg_model_size", 1.5, \
-	"alpha", 0.6, "Nrank", 4, "do_joint", 0, "Npredict", 0, \
-	"Nrep", 1000, "burn", 10, "verbosity", 2, "show_progress", 1, \
-	"do_plot", 1, "model_type", "linear", "const_type", 1, \
-	"bic_type", 1, "data_trans", 0)
-	
-	BACE(valadd, greene, opts)
+bundle opts = defbundle("model_prior", 2, "avg_model_size", 1.5, \
+  "alpha", 0.6, "Nrank", 4, "do_joint", 0, "Npredict", 0, \
+  "Nrep", 1000, "burn", 10, "verbosity", 2, "show_progress", 1, \
+  "do_plot", 1, "model_type", "linear", "const_type", 1, \
+  "bic_type", 1, "data_trans", 0)
+
+BACE(valadd, greene, opts)
 \end{lstlisting}
 
 or alternatively with the new syntax for creating a bundle
@@ -214,7 +345,7 @@ results again. The code should be as follows:
 
 \subsection{Output}\label{sec:outputs}
 \textcolor{red}{\textbf{Outdated!!!}}\newline
-If you select the appropriate entries in the GUI \pkg{BACE} window,
+If you select the appropriate entries in the GUI \cmd{BACE} window,
 our package returns: Posterior Inclusion Probabilities (PIP), the
 averages of the posterior means and standard deviations of parameters
 (``Mean'' and ``Std.Dev.'', respectively) and the posterior mean and
@@ -325,15 +456,15 @@ are lagged by 2 periods. Additionally we compute 4 forecasts:
 	\end{CodeOutput}
 \end{CodeChunk}
 
-% The \pkg{BMA} estimate function accepts a scalar, which sets the verbosity
+% The \cmd{BMA} estimate function accepts a scalar, which sets the verbosity
 % of the output. Its default value is 1, which causes the estimation
-% output to be printed out. A value of 2 forces the \pkg{BMA} function to
+% output to be printed out. A value of 2 forces the \cmd{BMA} function to
 % print out all the details of the estimation. You can print out the
 % above-mentioned results and additionally the following information:
 % the total CPU time, type of model prior, prior average model size,
 % significance level for the initial model, type of g-prior, total
 % number of iterations and, finally, the number of burn-in
-% draws. Moreover, the \pkg{BMA} estimate function produces the estimation
+% draws. Moreover, the \cmd{BMA} estimate function produces the estimation
 % results for the initial and top ranked models. The jointness analysis
 % is inactive by default. If it is active, you will get: posterior joint
 % probability of explanatory variables, jointness statistic as given in

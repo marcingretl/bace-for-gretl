@@ -54,7 +54,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
     Overloadable["model_type"] = _(linear=1, logit=2, probit=3, poisson=4, valid=tolower(flatten(ModelTypes, separator)))
 
-    # We look for overloaded parameters and we convert them into integers
+    # We look for overloaded parameters and convert them into integers
     OverloadableKeys = getkeys(Overloadable)
     loop i=1..nelem(OverloadableKeys) --quiet
         arg_name = OverloadableKeys[i]
@@ -128,9 +128,9 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar Options["bic_type"] = 1
     scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
     scalar Options["binary_threshold"] = 0.5
-    scalar Options["_gui"] = 0    
+    scalar Options["_gui"] = 0
 
-    # General checking, but still needs some manual work
+    # General checking, but still needs some manual work later
     err2 = bcheck(&Options, UserOpts)
     if err2
         err = sprintf("Valid options are:\n")
