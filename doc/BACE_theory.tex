@@ -20,8 +20,6 @@ where  $SSE_j$ and $SSE_i$ are the OLS sum of squared errors, $2^K$ denotes the 
 \end{equation}
 Note that the Binomial distribution implies that we only need to specify a prior expected model size  $\E(\Xi)=K\theta$ where $\E(\Xi) \in (0, K]$. If we define the value of $\E(\Xi)$ our BACE package will automatically produce a value of prior inclusion probability for all competitive models.  In case of  $\theta = 0.5$ prior expected model size  is equal to the average of number of potential regressors,  model prior distribution is uniform $\left( \Pr(M_i) = 2^{-K} \right)$ and reflects a lack of previous knowledge about models.
 
-\emph{Add Beta-Binomial distribution (including truncated \cite{Atwood1980,TripathiGuptaGurland-Estimation-1994})}
-
 Using BACE we can also easily evaluate the mean and variance of
 the posterior distribution of regression parameters $\beta$ across the whole model space (see \cite{Leamer1978}):
 \begin{equation}
@@ -47,41 +45,165 @@ In many cases,  despite of the interest of posterior characteristics it is valua
 In BACE approach we can carry out predictive inference across the whole model space. 
 Given the matrix $X_j^*$ containing explanatory variables for each of the out-of-sample data points we can predict inference on unobserved values of dependent variable as a weighted average of the individual model forecasts. 
 
-%Doppelhofer-Weeks Measure (DW1)
+\subsection{XXX}
+\emph{Add Beta-Binomial distribution (including truncated \cite{Atwood1980,TripathiGuptaGurland-Estimation-1994})}
+
+
+\subsection{Jointness measures}\label{sec:jointness_measures}
+The main implementations of Bayesian model averaging are concerned
+with the selection of variables when model uncertainty is
+present. Another relevant issue which arises in this framework is to
+identify whether different sets of two variables $x_i$ and $x_j$ are
+substitutes, complements or neither over the model space. For that
+reason, \cite{LeySteel2007} and \cite{DoppelhoferWeeks2009} define
+ex-post jointness measures of dependence between different sets of
+explanatory variables. Following \cite{Hofmarcher2018},
+let's define \nameref{tab:GeneralContingencyTable}:
+\begin{table}[h!tb]
+	\centering
+	\caption{General contingency table for two binary variables.}
+	\begin{tabular}{l|ccc}\hline
+		&\textit{B}	&	$\overline{B}$	&Total	\\\hline
+		\textit{A}		&	a		&	b			& $a+b$		\\
+		$\overline{A}$	&	c		&	d			& $c+d$		\\
+		Total			&	$a+c$	&	$b+d$		& $a+b+c+d=N$\\\hline
+	\end{tabular}
+	\label{tab:GeneralContingencyTable}
+\end{table}
+
+\label{sec:jointess_numbers}\begin{enumerate}
+	\item The jointness measure was proposed for the first
+	time in \cite{DoppelhoferWeeks2005} as
+	(\lstinline!"Doppelhofer-Weeks Measure (DW1)"!
+	in our package):
+	\begin{equation}
+		J_{\mathit{DW1}}(A,B) = \ln\left(\frac{\Prob(AB\mid y)}
+		{\Prob(A\mid y) \Prob(B\mid y)}\right)\sim
+		J_{\mathit{DW1}} = \ln\left(\frac{aN}{(a+b)(a+c)}\right).
+		\label{DW_jointness1}
+	\end{equation}
+	\item An alternative jointness measure was proposed by
+	\cite{DoppelhoferWeeks2009} as
+	(\lstinline!"Doppelhofer-Weeks Measure (DW2)"!
+	in our package):
+	\begin{equation}
+		J_{\mathit{DW2}}(A,B) =
+		\ln\left(\frac {\Prob(AB \mid y)\Prob(\overline{A}\overline{B} \mid y)}
+		{\Prob(A\overline{B}\mid y)\Prob(\overline{A}B\mid y)}\right)\sim
+		J_{\mathit{DW2}} = \ln\left(\frac{ad}{bc}\right).
+		\label{DW_jointness2}
+	\end{equation}
+	%where $\Prob(\tilde{i} \cap \tilde{j}\mid y)$ denotes the sum of the
+	%posterior probabilities of the regression models in which neither
+	%$x_i$ and $x_j$ are included, $\Prob(i \cap \tilde{j}\mid y)$
+	%corresponds to the sum of the posterior probabilities of all models in
+	%which $x_i$ is included and $x_j$ is excluded. The last probability
+	%$\Prob(\tilde{i} \cap j\mid y)$ is defined analogously.
+	%$J_{\mathit{DW}}$ corresponds to the posterior odds of including $i$,
+	%given that $j$ is included, divided by the posterior odds of including
+	%$i$ given that $j$ is not included (see %\citealt{DoppelhoferWeeks2009}).,
+	\item Two jointness statistics were proposed
+	in \cite{LeySteel2007} as
+	(\lstinline!"Ley-Steel Measure (LS1)"! in our package):
+	\begin{equation}
+		J_{\mathit{LS1}}(A,B) =
+		\frac{\Prob(AB\mid y)}{\Prob(A\mid y)+\Prob(B\mid y)-\Prob(AB\mid y)}
+		\sim J_{\mathit{LS1}} = \frac{a}{a+b+c},
+		\label{LS_jointness1}
+	\end{equation}
+	\item and (\lstinline!"Ley-Steel Measure (LS2)"! in our package):
+	\begin{equation}
+		J_{\mathit{LS2}}(A,B) =
+		\frac{\Prob(AB\mid y)}{\Prob(A\overline{B}\mid y)+\Prob(\overline{A}B\mid y)}
+		\sim J_{\mathit{LS2}} = \frac{a}{b+c}.
+		\label{LS_jointness2}
+	\end{equation}
+	%	where $\Prob(i \cap j\mid y)$ represents the sum of the posterior
+	%	probabilities of those models that contain both variables $x_i$ and
+	%	$x_j$, $\Prob(i\mid y)$ and $\Prob(j\mid y)$ are the PIPs of $x_i$ and
+	%	$x_j$.  $J_{\mathit{LS}}$ can be interpreted as the posterior odds
+	%	ratio of the models including both \textit{i} and \textit{j} vs the
+	%	models that include them only individually (see
+	%	\citealt{LeySteel2007}).
+	\item Another jointness measure was proposed in
+	\cite{Strachan-JAE-2009} as
+	(\lstinline!"Strachan Measure"! in our package):
+	\begin{equation}
+		J_{\mathit{St}}(A,B) = \Prob(A\mid y)\Prob(B\mid y)\ln\left(
+		\frac{\Prob(AB\mid y)}{\Prob(A\overline{B}\mid y)\Prob(\overline{A}B\mid y)}\right)
+		\sim J_{\mathit{ST}} = \frac{a+b}{N}\frac{a+c}{N}\ln\left(\frac{aN}{bc}\right).
+		\label{St_jointness}
+	\end{equation}
+	\item Next jointness measure is Yule's Q defined as
+	(\lstinline!"Yule's Q Measure (YQ)"! in our package):
+	\begin{equation}
+		J_{\mathit{YQ}}(A,B) = 
+		\frac{\Prob(AB)\Prob(\overline{AB})-\Prob(A\overline{B})\Prob(\overline{A}B)}
+		{\Prob(AB)\Prob(\overline{AB})+\Prob(A\overline{B})\Prob(\overline{A}B)}
+		\sim J_{\mathit{YQ}} = \frac{ad - bc}{ad + bc}.
+		\label{Yq_jointness}
+	\end{equation}
+	\item The last jointness measure (the default) is
+	modified Yule's Q defined as
+	(\lstinline!"Modified Yule's Q Measure (YQM)"! in our package):
+	\begin{equation}		
+		J_{\mathit{YQ}} = \frac
+		{\left(a+\frac{1}{2}\right)\left(d+\frac{1}{2}\right) -
+			\left(b+\frac{1}{2}\right)\left(c+\frac{1}{2}\right)} 
+		{\left(a+\frac{1}{2}\right)\left(d+\frac{1}{2}\right) +
+			\left(b+\frac{1}{2}\right)\left(c+\frac{1}{2}\right) - \frac{1}{2}}.
+		\label{YqM_jointness}
+	\end{equation}
+\end{enumerate}
+
+According to \cite{DoppelhoferWeeks2009}, we use the classification
+of jointness among the variables given in Table~\ref{tab1}.
+
+\begin{table}[hbt!]
+	\centering
+	\caption{Classification of strength of jointness measures.}\label{tab1}	
+	\begin{tabular}{lc}\hline
+		Evidence & Jointness statistics \\ \hline
+		strong substitutes & $J_{\mathit{LS}}, J_{\mathit{DW}} \le -2 $ \\
+		significant substitutes & $-2 <J_{\mathit{LS}}, J_{\mathit{DW}} \le-1 $ \\
+		not significantly related & $-1< J_{\mathit{LS}}, J_{\mathit{DW}} <1 $ \\
+		significant complements & $ 1\ge J_{\mathit{LS}}, J_{\mathit{DW}} <2 $ \\
+		strong complements & $ J_{\mathit{LS}}, J_{\mathit{DW}} \ge 2 $ \\ \hline
+	\end{tabular}	
+\end{table} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% OLD %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\cite{DoppelhoferWeeks2009}(DW2)
 %\begin{equation}
-%J_{DW1}(A,B)=\ln \left( \frac{p(A \cap B|y)}{p(A|y)p(B|y)} \right)
+%J_{DW2}(i,j)=\ln \left( \frac{p(i\cap j|y)p(\overline i \cap \overline j|y)}{p (i \cap \overline j|y) p(\overline i \cap j|y)} \right)
 %\end{equation}
-
-\cite{DoppelhoferWeeks2009}(DW2)
-\begin{equation}
-J_{DW2}(i,j)=\ln \left( \frac{p(i\cap j|y)p(\overline i \cap \overline j|y)}{p (i \cap \overline j|y) p(\overline i \cap j|y)} \right)
-\end{equation}
-
-
-\cite{LeySteel2007}(LS2)
-\begin{equation}
-J_{LS1}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i|y)+p(j|y) - 2p(i \cap j|y)} \right)
-\end{equation}
 %
-%\cite{LeySteel2007} (LS2)
+%
+%\cite{LeySteel2007}(LS2)
 %\begin{equation}
-%J_{LS2}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)+p(\overline i \cap j|y)} \right)
+%J_{LS1}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i|y)+p(j|y) - 2p(i \cap j|y)} \right)
 %\end{equation}
-
-Strachan Measure \cite{Strachan2009}
-\begin{equation}
-J_{St}(i,j)=\ p(i|y)p(j|y) \ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)p(\overline i \cap j|y)} \right)
-\end{equation}
-
-%Yule's Q Measure (YQ) \cite{}
+%%
+%%\cite{LeySteel2007} (LS2)
+%%\begin{equation}
+%%J_{LS2}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)+p(\overline i \cap j|y)} \right)
+%%\end{equation}
+%
+%Strachan Measure \cite{Strachan2009}
 %\begin{equation}
-%J_{YQ}(A,B)=\ln \left( \frac{p(A \cap B|y)p(\overline A \cap \overline B|y) - p(A \cap \overline B|y)p(\overline A \cap  B|y)}{p(A \cap %B|y)p(\overline A \cap \overline B|y) + p(A \cap \overline B|y)p(\overline A \cap  B|y)} \right)
+%J_{St}(i,j)=\ p(i|y)p(j|y) \ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)p(\overline i \cap j|y)} \right)
 %\end{equation}
-
-Modified Yule's Q Measure (YQM) \cite{Hofmarcher2018}
-\begin{equation}
-J_{YQ}(i,j)=\ln \left( \frac{\left(p(i \cap j|y)+ \frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) - \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right)}
-{\left(p(i \cap j|y)+\frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) + \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right) -\frac{1}{2}} \right)
-\end{equation}
-
-A (B ) indicates that event A (B) did not occur.
+%
+%%Yule's Q Measure (YQ) \cite{}
+%%\begin{equation}
+%%J_{YQ}(A,B)=\ln \left( \frac{p(A \cap B|y)p(\overline A \cap \overline B|y) - p(A \cap \overline B|y)p(\overline A \cap  B|y)}{p(A \cap %B|y)p(\overline A \cap \overline B|y) + p(A \cap \overline B|y)p(\overline A \cap  B|y)} \right)
+%%\end{equation}
+%
+%Modified Yule's Q Measure (YQM) \cite{Hofmarcher2018}
+%\begin{equation}
+%J_{YQ}(i,j)=\ln \left( \frac{\left(p(i \cap j|y)+ \frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) - \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right)}
+%{\left(p(i \cap j|y)+\frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) + \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right) -\frac{1}{2}} \right)
+%\end{equation}
+%
+%A (B ) indicates that event A (B) did not occur.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

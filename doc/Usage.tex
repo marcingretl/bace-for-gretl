@@ -1,218 +1,3 @@
-\section{Implementation in \pkg{gretl}}\label{sec:BACE_implementation}
-In this section, we describe the code of the \pkg{BACE}
-package. First, we will characterize our code and the use
-of both: the command line and the GUI interfaces, then we
-will present some examples of using the \pkg{BACE}.
-Finally, we will show the outputs that are returned.
-
-\subsection{The core of the \pkg{BACE} code}
-The \pkg{BACE} package consists of 4 public and 14
-private functions. The name of each function starts
-with the \cmd{BACE\_} prefix. The public functions are:
-\begin{enumerate}
-	\item \cmd{BACE()}~see~\ref{sec:BACE()}
-	\item \cmd{BACE\_GUI()}~see~\ref{sec:BACE_GUI()}
-	\item \cmd{BACE\_Print()}~see~\ref{sec:BACE_Print()}
-	\item \cmd{BACE\_Plot()}~see~\ref{sec:BACE_Plot()}
-\end{enumerate}
-
-\subsubsection{\cmd{BACE()}}\label{sec:BACE()}
-This is a core package function which runs and controls
-the main loop. As a consequence, it is a prime interface
-to the \pkg{BACE} package. The \cmd{BACE()} function
-returns a bundle with all information needed to print
-and/or plot results anytime. One can print the results
-by calling \cmd{BACE\_Print()} or plot graphs by calling
-\cmd{BACE\_Plot()}. The signature of \cmd{BACE()}
-function is as follows:
-\begin{lstlisting}
-function bundle BACE (series Y "Dependent variable",
- list X_list "List of indenpendent variables (X)",
- bundle Options[null])	
-\end{lstlisting}
-The first two options are mandatory, while the last one
-is an optional collection of additional arguments. Those
-arguments are defined with the following default values:
-\begin{lstlisting}
-scalar Options["Y_AR_p"] = 0
-scalar Options["with_const"] = 1
-scalar Options["model_prior"] = 2
-scalar Options["avg_model_size"] = avg_model_size_tmp
-scalar Options["alpha"] = 0.6
-scalar Options["Nrank"] = xmin(2^(k+Y_AR_p_tmp-1), 40)
-scalar Options["do_joint"] = 0
-scalar Options["Npredict"] = 0
-scalar Options["Nrep"] = Nrep
-scalar Options["burn"] = 10
-scalar Options["verbosity"] = 2
-scalar Options["show_progress"] = do_show_progress
-scalar Options["do_plot"] = do_plot_tmp
-string Options["model_type"] = "linear"
-scalar Options["data_trans"] = 0
-scalar Options["bic_type"] = 1
-scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
-scalar Options["binary_threshold"] = 0.5
-scalar Options["_gui"] = 0	
-\end{lstlisting}
-where \textit{k} stands for the number of independent variables,
-\lstinline!scalar avg_model_size! is calculated according to
-the following formula:
-\begin{equation}
-	\texttt{\lstinline!avg\_model\_size!} = \left\{
-	\begin{array}{lll}
-		\textrm{\lstinline!(k + Y\_AR\_p\_tmp)/2!} & \mathrm{if} & \textrm{\lstinline!with_const \!= 2!},\\
-		\textrm{\lstinline!(k + Y\_AR\_p\_tmp + 1)/2!} & \mathrm{elsewhere}, &\\
-	\end{array}
-	\right.
-	\label{eq:avg_model_size_setup}
-\end{equation}
-\lstinline!scalar Nrep! takes the following values:
-\begin{equation}
-	\texttt{\lstinline!Nrep!} = \left\{
-	\begin{array}{ccl}
-		10^3 & \mathrm{if} & k \leq 10,\\
-		10^4 & \mathrm{if} & k \in [11;15],\\
-		10^5 & \mathrm{if} & k \in [16;19],\\
-		10^6 & \mathrm{if} & k \geq 20,\\
-	\end{array}
-	\right.
-	\label{eq:Nrep_setup}
-\end{equation}
-\lstinline!scalar show_progress! takes the following values:
-\begin{equation}
-	\texttt{\lstinline!show\_progress!} = \left\{
-	\begin{array}{cll}
-		1 & \mathrm{if} & \textrm{\lstinline!$sysinfo!\texttt{\small.gui\_mode}},\\
-		0 & \mathrm{elsewhere}, &\\
-	\end{array}
-	\right.
-	\label{eq:show_progress_setup}
-\end{equation}
-and \lstinline!scalar do_plot! takes the following values:
-\begin{equation}
-	\texttt{\lstinline!do\_plot!} = \left\{
-	\begin{array}{cll}
-		1 & \mathrm{if} & \textrm{\lstinline!$sysinfo!\texttt{\small.gui\_mode}},\\
-		0 & \mathrm{elsewhere}. &\\
-	\end{array}
-	\right.
-	\label{eq:do_plot_setup}
-\end{equation}
-Most of the optional parameters listed above are of
-numerical type and they may be gathered into following
-groups according to what kind of numbers they can take%
-\footnote{Note, that the \lstinline!scalar _gui! is
-	for internal use only and must not be modified
-	by user at any rate.}:
-\begin{enumerate}
-	\item Integers: \lstinline!Y_AR_p!, \lstinline!with_const!,
-		\lstinline!model_prior!, \lstinline!Nrank!, \lstinline!do_joint!,
-		\lstinline!Npredict!, \lstinline!Nrep!, \lstinline!burn!,
-		\lstinline!verbosity!, \lstinline!data_trans!, \lstinline!bic_type!.
-	\item Booleans: \lstinline!show_progress!, \lstinline!do_plot!.
-	\item Scalars: \lstinline!avg_model_size!, \lstinline!alpha!,
-		\lstinline!binary_threshold!.
-\end{enumerate}
-Optional parameters control the following package options:
-\begin{enumerate}
-	\item \textbf{Y\_AR\_p}: autoregression order of variable Y.
-	\item \textbf{with\_const}: whether we include constant term
-		in each estimated model?; possible values are: 0---without
-		constant, 1---constant is always included, 2---constant
-		may be dropped.
-	\item \textbf{model\_prior}: model prior distribution to use;
-		possible values are: 0---none, 1---Binomial, 2---Beta-Binomial.
-	\item \textbf{avg\_model\_size}: expected average model size
-		for model prior.
-	\item \textbf{alpha}: significance level for the initial model.
-	\item \textbf{Nrank}: number of top ranked models.
-	\item \textbf{do\_joint}: do we perform jointness analysis?;
-		possible values are: 0---none, 1---Doppelhofer-Weeks
-		Measure (DW1), 2---Doppelhofer-Weeks Measure (DW2),
-		3---Ley-Steel Measure (LS1), 4---Ley-Steel Measure (LS2),
-		5---Strachan Measure, 6---Yule's Q Measure (YQ),
-		7---Modified Yule's Q Measure (YQM).
-	\item \textbf{Npredict}: number of out-of-sample forecasts.
-		Note, that using this option makes \pkg{BACE} to perform
-		an analysis on subsample.
-	\item \textbf{Nrep}: total number of Monte Carlo iterations
-		(model draws).
-	\item \textbf{burn}: percentage of burn-in draws in \MCcube.
-	\item \textbf{verbosity}: verbosity of the output: 1---basic
-		results, 2---full results.
-	\item \textbf{show\_progress}: do we show overall progress?
-	\item \textbf{do\_plot}: do we produce graphs?
-	\item \textbf{model\_type}: model type we should apply to
-		the data; possible options are: 1---linear, 2---logit,
-		3---probit, 4---poisson.
-	\item \textbf{data\_trans}: shall the \pkg{BACE} transform
-		data before analysis?; possible options are: 0---none,
-		1---centering, 2---standarizing.
-	\item \textbf{bic\_type}: Bayesian information criterion
-		version which should be used; possible values are:
-		1---bic, 2---hbic, 3---ibic, 4---ebic.
-	\item \textbf{hyperparameter}: hyperparameter for prior
-		setup; for now it is interpreted as $\gamma$ for
-		ebic.
-	\item \textbf{binary\_threshold}: applicable only for
-		binary-dependent models; this value indicates the
-		lowest probability for which $\hat{y}_i$ should take 1.
-\end{enumerate}
-Some of the above-mentioned parameters are overloadable, which
-means that their value may be passed either via an integer or
-via string (case insensitive). Those parameters (together with
-value-string mappings) are:
-\begin{description}
-	\item[\textbf{bic\_type}]: 'bic'=1, 'hbic'=2, 'ibic'=3, 'ebic'=4;
-	\item[\textbf{model\_prior}]: 'none'=0, 'binomial'=1,
-		'betabinomial'=2 (or 'beta-binomial'=2);
-	\item[\textbf{with\_const}]: 'never'=0, 'always'=1,
-		'canbedropped'=2 (or 'can be dropped'=2);
-	\item[\textbf{do\_joint}]: 'none'=0, 'dw1'=1, 'dw2'=2,
-		'ls1'=3, 'ls2'=4, 'sm'=5, 'yq'=6, 'myq'=7;
-	\item[\textbf{data\_trans}]: 'none'=0, 'centering'=1,
-		'standarizing'=2;
-	\item[\textbf{model\_type}]: 'linear'=1, 'logit'=2,
-		'probit'=3, 'poisson'=4;
-\end{description}
-
-\subsubsection{\pkg{BACE\_GUI()}}\label{sec:BACE_GUI()}
-The \cmd{BACE\_GUI()} is a wrapper to \cmd{BACE()}
-interface and takes the following parameters:
-\begin{itemize}
-	\item \textbf{Dependent variable} as series [required].
-	\item \textbf{Y lags} as integer with zero (only for time-series).
-	\item \textbf{List of independent variables (X)} as list [may be null].
-	\item \textbf{Constant in model} as integer [required]:
-	\begin{enumerate}
-		\item Never -- all models without constant,
-		\item Always -- all models with constant,
-		\item Can be dropped -- constant may be removed from or added to any model.
-	\end{enumerate}
-	\item \textbf{Model prior} as integer [required]:
-	\begin{enumerate}
-		\item Binomial -- binomial distribution,
-		\item Beta-Binomial -- beta-binomial distribution.
-	\end{enumerate}
-	\item \textbf{Prior average model size} as scalar with zero [required].
-	\item \textbf{Significance level for the initial model} as scalar from $(0,1)$
-	[required].
-	\item \textbf{Number of the top ranked models} as integer [required].
-	\item \textbf{Jointness analysis} as integer with zero [required]%
-	\footnote{Values $\pm 999.000000$ should be interpreted as $\pm \infty$.}:
-	\begin{enumerate}
-		\item None -- we do not perform any jointness analysis,
-		\item Ley-Steel Measure -- we perform jointness analysis with Ley-Steel measure,
-		\item Doppelhofer-Weeks Measure -- we perform jointness analysis with Doppelhofer-Weeks measure.
-	\end{enumerate}
-	\item \textbf{Number of out-of-sample forecasts} as integer with zero [required].
-	\item \textbf{Total number of replications} as integer [required].
-	\item \textbf{Percentage of burn-in draws} as integer from (0, 99) [required].
-	\item \textbf{Verbosity} as integer [required].
-	\item \textbf{Show overall progress} as Boolean.
-\end{itemize}
-
-
 \subsection{The GUI way}
 Once you start \cmd{gretl}, you must open a data file and then you can
 load the relevant \cmd{BACE} package from the \cmd{gretl} server. In the main
@@ -229,20 +14,41 @@ to the one shown in Figure~\ref{fig:Main window for BACE}:
 	\label{fig:Main window for BACE}
 \end{figure}
 
-According to Figure~\ref{fig:Main window for BACE}, we can specify the following
-entries in the GUI \cmd{BACE} window\label{text:module_parameters}
+According to Figure~\ref{fig:Main window for BACE}, we can specify
+the following entries in the GUI \cmd{BACE} window\label{text:module_parameters}
 \begin{itemize}
 	\item \textbf{Model type} -- What kind of modeling should be
-		should be performed?
-	\item \textbf{Dependent variable} -- The dependent variable.
+		should be performed? [required]
+	\item \textbf{Dependent variable} -- The dependent variable
+		as series [required].
 	\item \textbf{Y lags} -- number of lags for dependent variable
-		(for time-series only).
-	\item \textbf{List of independent variables}
-		-- List of all independent variables (including lagged series).
+		as integer (for time-series only).
+	\item \textbf{List of independent variables} -- List of all
+		independent variables (including lagged series) as list
+		[may be null].
 	\item \textbf{Constant in model} -- Do we include intercept?
-		It can be: always, never or can be dropped.
-	\item \textbf{Bayesian information criterion} -- Version of BIC to
-		be used.
+		[required]
+		\begin{enumerate}
+			\item Never -- all models without constant,
+			\item Always -- all models with constant,
+			\item Can be dropped -- constant may be removed
+				from or added to any model.
+		\end{enumerate}
+	\item \textbf{Model prior} -- Do we impose a prior on
+		model space? [required]:
+		\begin{enumerate}
+			\item none,
+			\item Binomial -- binomial distribution,
+			\item Beta-Binomial -- beta-binomial distribution.
+		\end{enumerate}
+	\item \textbf{Bayesian information criterion} -- Version of
+		BIC to be used [required].
+		\begin{enumerate}
+			\item BIC, 
+			\item HBIC,
+			\item IBIC,
+			\item EBIC.
+		\end{enumerate}
 	\item \textbf{Jointness analysis} -- If \cmd{None} (the default),
 		the jointness analysis is omitted. Alternatively, one can
 		choose one of the 7 available jointness measures.
@@ -255,6 +61,7 @@ entries in the GUI \cmd{BACE} window\label{text:module_parameters}
 	\item \textbf{Show overall progress} -- The progress bar is printed.
 	\item \textbf{Plot graphs?} -- Shall we produce graphs?
 \end{itemize}
+
 
 \subsection{The script way}
 \subsubsection{Script}
@@ -286,52 +93,51 @@ BACE(valadd, greene, opts)
 or alternatively with the new syntax for creating a bundle
 on-the-fly:
 \begin{lstlisting}
-	BACE(valadd, greene, _(model_prior=2, avg_model_size=1.5, \
-	alpha=0.6, Nrank=4, do_joint=0, Npredict=0, Nrep=1000, \
-	burn=10, verbosity=2, show_progress=1, do_plot=1, \
-	model_type="linear", const_type=1, bic_type=1, data_trans=0))
+BACE(valadd, greene, _(model_prior=2, avg_model_size=1.5,\
+  alpha=0.6, Nrank=4, do_joint=0, Npredict=0, Nrep=1000,\
+  burn=10, verbosity=2, show_progress=1, do_plot=1,\
+  model_type="linear", const_type=1, bic_type=1, data_trans=0))
 \end{lstlisting}
-Since some parameters in option bundle are over-loadable,
-the equivalent call looks like this:
+Since some parameters in option bundle are over-loadable
+(see~\ref{sec:over-loadable_options}), the equivalent
+call looks like this:
 \begin{lstlisting}
-	BACE(valadd, greene, _(model_prior="beta-binomial", \
-	avg_model_size=1.5, alpha=0.6, Nrank=4, do_joint="none", \
-	Npredict=0, Nrep=1000, burn=10, verbosity=2, show_progress=1, \
-	do_plot=1, model_type="linear", const_type="always", \
-	bic_type="bic", data_trans="none"))
+BACE(valadd, greene, _(model_prior="beta-binomial",\
+  avg_model_size=1.5, alpha=0.6, Nrank=4, do_joint="none",\
+  Npredict=0, Nrep=1000, burn=10, verbosity=2, show_progress=1,\
+  do_plot=1, model_type="linear", const_type="always",\
+  bic_type="bic", data_trans="none"))
 \end{lstlisting} 
-The above example consists of three blocks.
-
-\begin{lstlisting}
-	open greene9_1.gdt
-	include BACE.gfn
-	set seed 1000000
-	
-	list greene = capital labor nfirm
-	
-	scalar model_type = 1
-	scalar y_lags = 0
-	scalar with_const = 1
-	scalar data_trans = 0
-	scalar model_prior = 1
-	scalar bic_type = 1
-	scalar hyperparameter = 0
-	scalar prior_avg_model_size = 1.5
-	scalar alpha = 0.6
-	scalar top_ranked_model = 4
-	scalar joint = 1
-	scalar forecasts = 0
-	scalar Nrep = 2000
-	scalar Nburn = 10
-	scalar verbosity = 1
-	scalar progress = 1
-	scalar plots = 1
-	
-	BACE_GUI(model_type, valadd, y_lags, greene, with_const,\
-	data_trans, model_prior, bic_type, hyperparameter,\
-	prior_avg_model_size, alpha, top_ranked_model, joint,\
-	forecasts, Nrep, Nburn, verbosity, progress, plots)
-\end{lstlisting}
+%\begin{lstlisting}
+%	open greene9_1.gdt
+%	include BACE.gfn
+%	set seed 1000000
+%	
+%	list greene = capital labor nfirm
+%	
+%	scalar model_type = 1
+%	scalar y_lags = 0
+%	scalar with_const = 1
+%	scalar data_trans = 0
+%	scalar model_prior = 1
+%	scalar bic_type = 1
+%	scalar hyperparameter = 0
+%	scalar prior_avg_model_size = 1.5
+%	scalar alpha = 0.6
+%	scalar top_ranked_model = 4
+%	scalar joint = 1
+%	scalar forecasts = 0
+%	scalar Nrep = 2000
+%	scalar Nburn = 10
+%	scalar verbosity = 1
+%	scalar progress = 1
+%	scalar plots = 1
+%	
+%	BACE_GUI(model_type, valadd, y_lags, greene, with_const,\
+%	data_trans, model_prior, bic_type, hyperparameter,\
+%	prior_avg_model_size, alpha, top_ranked_model, joint,\
+%	forecasts, Nrep, Nburn, verbosity, progress, plots)
+%\end{lstlisting}
 
 The above example consists of three blocks.
 The first block is just opening of the so called \cmd{greene9\_1}
@@ -359,30 +165,22 @@ Suppose we want to run the same analysis but following
 Occam's razor principle. The simplest way is setting the prior
 average model size to 1. We also want to have ''random'' constant,
 i.e. intercept can be dropped in any model. We also want to save
-results of the BACE analysis in the bundle \cmd{results\_b},
+results of the BACE analysis in the bundle \cmd{res},
 the code should be as follows:
-\begin{CodeChunk}
-	\begin{CodeInput}
-		prior_avg_model_size = 1
-		with_const = 2
-		
-		results_b = BACE_GUI(valadd, y_lags, greene, with_const, model_prior, 
-		prior_avg_model_size, alpha, top_ranked_model, joint, forecasts,
-		Nrep, Nburn, verbosity, progress)
-	\end{CodeInput}
-\end{CodeChunk}
+\begin{lstlisting}
+res = BACE(valadd, greene, _(avg_model_size=1.1, with_const=2))
+\end{lstlisting}
 
-Suppose we want to calculate Doppelhofer-Weeks Measure instead of
-already computed Ley-Steel Measure. Since the type of jointness measure
-is controlled by \cmd{do\_join} field in the result bundle, the only thing
-we have to do is to set the value of \cmd{do\_join} to 2 and print BACE
-results again. The code should be as follows:
-\begin{CodeChunk}
-	\begin{CodeInput}
-		results_b.do_joint = 2
-		BACE_Print(&results_b)
-	\end{CodeInput}
-\end{CodeChunk}
+Suppose we want to calculate Doppelhofer-Weeks Measure (DW1)
+instead of already computed Modified Yule's Q Measure (MYQ).
+Since the type of jointness measure is controlled by
+\lstinline!do_join! field in the result bundle, the only
+thing we have to do is to set the value of \lstinline!do_join!
+to 2 and print BACE results again. The code should be as follows:
+\begin{lstlisting}
+res.do_joint = 2
+BACE_Print(&res)
+\end{lstlisting}
 
 
 \subsection{Output}\label{sec:outputs}
