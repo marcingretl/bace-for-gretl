@@ -28,6 +28,7 @@
 \newcommand{\COV}{\mathsf{COV}}
 \newcommand{\Prob}{\mathsf{P}}
 \newcommand{\Code}[1]{\texttt{#1}}
+\newcommand{\MCcube}{MC$^3$}
 
 \newenvironment{CodeChunk}{}{}
 

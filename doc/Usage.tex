@@ -132,7 +132,49 @@ Optional parameters control the following package options:
 		3---Ley-Steel Measure (LS1), 4---Ley-Steel Measure (LS2),
 		5---Strachan Measure, 6---Yule's Q Measure (YQ),
 		7---Modified Yule's Q Measure (YQM).
+	\item \textbf{Npredict}: number of out-of-sample forecasts.
+		Note, that using this option makes \pkg{BACE} to perform
+		an analysis on subsample.
+	\item \textbf{Nrep}: total number of Monte Carlo iterations
+		(model draws).
+	\item \textbf{burn}: percentage of burn-in draws in \MCcube.
+	\item \textbf{verbosity}: verbosity of the output: 1---basic
+		results, 2---full results.
+	\item \textbf{show\_progress}: do we show overall progress?
+	\item \textbf{do\_plot}: do we produce graphs?
+	\item \textbf{model\_type}: model type we should apply to
+		the data; possible options are: 1---linear, 2---logit,
+		3---probit, 4---poisson.
+	\item \textbf{data\_trans}: shall the \pkg{BACE} transform
+		data before analysis?; possible options are: 0---none,
+		1---centering, 2---standarizing.
+	\item \textbf{bic\_type}: Bayesian information criterion
+		version which should be used; possible values are:
+		1---bic, 2---hbic, 3---ibic, 4---ebic.
+	\item \textbf{hyperparameter}: hyperparameter for prior
+		setup; for now it is interpreted as $\gamma$ for
+		ebic.
+	\item \textbf{binary\_threshold}: applicable only for
+		binary-dependent models; this value indicates the
+		lowest probability for which $\hat{y}_i$ should take 1.
 \end{enumerate}
+Some of the above-mentioned parameters are overloadable, which
+means that their value may be passed either via an integer or
+via string (case insensitive). Those parameters (together with
+value-string mappings) are:
+\begin{description}
+	\item[\textbf{bic\_type}]: 'bic'=1, 'hbic'=2, 'ibic'=3, 'ebic'=4;
+	\item[\textbf{model\_prior}]: 'none'=0, 'binomial'=1,
+		'betabinomial'=2 (or 'beta-binomial'=2);
+	\item[\textbf{with\_const}]: 'never'=0, 'always'=1,
+		'canbedropped'=2 (or 'can be dropped'=2);
+	\item[\textbf{do\_joint}]: 'none'=0, 'dw1'=1, 'dw2'=2,
+		'ls1'=3, 'ls2'=4, 'sm'=5, 'yq'=6, 'myq'=7;
+	\item[\textbf{data\_trans}]: 'none'=0, 'centering'=1,
+		'standarizing'=2;
+	\item[\textbf{model\_type}]: 'linear'=1, 'logit'=2,
+		'probit'=3, 'poisson'=4;
+\end{description}
 
 \subsubsection{\pkg{BACE\_GUI()}}\label{sec:BACE_GUI()}
 The \cmd{BACE\_GUI()} is a wrapper to \cmd{BACE()}
