@@ -76,21 +76,35 @@ list greene = capital labor nfirm
 
 BACE(valadd, greene)
 \end{lstlisting}
-The above code triggers BACE analysis with default option
-described on page~\pageref{sec:default_option_bundle}.
-On contrary, the corresponding ''big call'', i.e. with
-setting all possible parameters, would be as follows:
+The above example consists of three blocks. The first block
+is just opening of the so called \cmd{greene9\_1} dataset,
+which is bundled in every standard \pkg{gretl} installation.
+This dataset contains cross-sectional data on manufacturing
+of transportation equipment presented as Table 9.1 in
+\cite{greene_Econometric_A}%
+\footnote{This dataset is also available at
+	\url{http://people.stern.nyu.edu/wgreene/Text/Edition7/TableF7-2.txt}.}.
+We also set the seed in order to have exact reproduction
+of the results.
+
+The second block is the definition of the \cmd{greene}
+list which contains three independent variables available
+in the \cmd{greene9\_1} dataset.
+
+The third block contains the definition for Bayesian
+Averaging of Classical Estimates analysis with default
+settings described on page~\pageref{sec:default_option_bundle}.
+On contrary, the corresponding ''big call'', i.e. setting
+all possible parameters manually, would be as follows:
 \begin{lstlisting}
 bundle opts = defbundle("model_prior", 2, "avg_model_size", 1.5, \
   "alpha", 0.6, "Nrank", 4, "do_joint", 0, "Npredict", 0, \
   "Nrep", 1000, "burn", 10, "verbosity", 2, "show_progress", 1, \
   "do_plot", 1, "model_type", "linear", "const_type", 1, \
   "bic_type", 1, "data_trans", 0)
-
 BACE(valadd, greene, opts)
 \end{lstlisting}
-
-or alternatively with the new syntax for creating a bundle
+or alternatively with the new syntax for creating bundle
 on-the-fly:
 \begin{lstlisting}
 BACE(valadd, greene, _(model_prior=2, avg_model_size=1.5,\
@@ -138,28 +152,6 @@ BACE(valadd, greene, _(model_prior="beta-binomial",\
 %	prior_avg_model_size, alpha, top_ranked_model, joint,\
 %	forecasts, Nrep, Nburn, verbosity, progress, plots)
 %\end{lstlisting}
-
-The above example consists of three blocks.
-The first block is just opening of the so called \cmd{greene9\_1}
-dataset, which is bundled in every standard gretl installation.
-This dataset contains cross-sectional data on manufacturing
-of transportation equipment presented as Table 9.1 in
-\cite{greene_Econometric_A}%
-\footnote{This dataset is also available at link
-	\url{http://people.stern.nyu.edu/wgreene/Text/Edition7/TableF7-2.txt}.}.
-We also set the seed in order to exact reproduction of the results.
-
-The second block is the definition of the \cmd{greene} list which
-contains three independent variables available in the \cmd{greene9\_1} dataset.
-
-The third block contains the definition for Bayesian Averaging of Classical
-Estimates analysis: no lags for Y variable (not applicable since we have
-cross-sectional data), constant always included, binomial model prior,
-prior average model size set to 1.5 (which means that we have uniform model prior),
-significance level for the initial model set to 0.6, 4 top ranked models,
-jointness analysis with Ley-Steel Measure, without out-of-sample predictions,
-10000 replications with 10\% burn-in draws, basic output (verbosity set to 1)
-and progress overall progress is printed.
 
 Suppose we want to run the same analysis but following
 Occam's razor principle. The simplest way is setting the prior

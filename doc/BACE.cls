@@ -3,7 +3,7 @@
 \DeclareOption*{
 	\PassOptionsToClass{\CurrentOption}{article}}
 \ProcessOptions
-\LoadClass[a4paper,11pt,twoside]{article}
+\LoadClass[a4paper,11pt,oneside]{article}
 \RequirePackage[]{graphicx}
 \RequirePackage[utf8]{inputenc}
 \RequirePackage{enumitem}
@@ -13,6 +13,8 @@
 \RequirePackage{amsmath,amssymb,amsfonts,textcomp}
 \RequirePackage{listings}
 \RequirePackage{color,ae,fancyvrb}
+%\RequirePackage{rotating}
+\RequirePackage{pdflscape,longtable-2020-01-07}
 
 \usepackage{gretlwp}
 
