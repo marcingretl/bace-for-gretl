@@ -15,6 +15,7 @@
 \RequirePackage{color,ae,fancyvrb}
 %\RequirePackage{rotating}
 \RequirePackage{pdflscape,longtable-2020-01-07}
+	\setlength{\LTcapwidth}{\paperheight}
 
 \usepackage{gretlwp}
 
