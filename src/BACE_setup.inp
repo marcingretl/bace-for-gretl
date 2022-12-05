@@ -44,12 +44,7 @@ function void BACE_setup (bundle *M, int Norig)
 
     ###############################################
     # Local variables - presets					  #
-    ###############################################    
-    if M.model_type == "linear"
-        string M.estimator = "ols"
-    else
-        string M.estimator = M.model_type
-    endif
+    ###############################################
     if M.limited_y
         scalar M.ordered = 0
         scalar M.cuts = 0

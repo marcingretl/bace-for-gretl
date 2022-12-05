@@ -27,11 +27,18 @@ function string BACE_parse (bundle *M,
        X_list			- list of given independent variables
        #
        Returns: string err holding the first error found in given dataset or parameters
-    */
+       */
+    # We setup estimator
+    if M.model_type == "linear"
+        string M.estimator = "ols"
+    else
+        string M.estimator = M.model_type
+    endif
     # Local variables
     scalar k = nelem(X_list) + M.Y_AR_p + (M.with_const > 1)
     matrix Y_uniq = uniq(Y)
-    string err = ""    
+    string err = ""
+    string ESTIMATOR = M.estimator
     string tmp_str
 
     # We check if given X_list does not include Y
@@ -63,9 +70,9 @@ function string BACE_parse (bundle *M,
     # We check if given variables are not co-linear
     if nelem(X_list) > 0
         if M.Y_AR_p > 0
-            ols Y Y(-1 to -M.Y_AR_p) X_list const --quiet
+            @ESTIMATOR Y Y(-1 to -M.Y_AR_p) X_list const --quiet
         else
-            ols Y X_list const --quiet
+            @ESTIMATOR Y X_list const --quiet
         endif
         if $ncoeff < k + 1
             X_list = $xlist - const
@@ -105,10 +112,10 @@ function string BACE_parse (bundle *M,
             datatype = "time-series data"
         elif $datatype == 3
             datatype = "panel data"
-        endif        
+        endif
         err = sprintf("You try to estimate %s model for %s => you cannot have lagged %s", M.model_type, datatype, Y_name)
     endif
-    
+
     # We check if Y variable "is discrete" or "count data" in case of non-OLS model
     if M.limited_y && sum(Y_uniq - int(Y_uniq)) > 0
         err = sprintf("The dependent variable is not discrete")
