@@ -20,8 +20,8 @@ function matrix BACE_jointness_measure (bundle *M)
    Function computes jointness measure based on given jointness matrix.
    Local variables:
    var_prob - vector with posterior probability of indenpendent variables
-   a, b, c, d	 - scalars according to Paul Hofmarcher, Jesus Crespo Cuaresma, Bettina Grün, Stefan Humer, Mathias Moser, Bivariate jointness measures in Bayesian Model Averaging: Solving the conundrum, Journal of Macroeconomics, Volume 57, 2018, Pages 150-165, ISSN 0164-0704, DOI: 10.1016/j.jmacro.2018.05.005.
-   #
+   a, b, c, d - scalars according to Hofmarcher,Crespo Cuaresma,Grün,Humer,Moser, Bivariate jointness measures in Bayesian Model Averaging: Solving the conundrum, Journal of Macroeconomics, Volume 57, 2018, Pages 150-165, ISSN 0164-0704, DOI: 10.1016/j.jmacro.2018.05.005.
+   
    Returns: matrix with computed jointness measure
     */
     scalar a,b,c,d,N
@@ -36,7 +36,6 @@ function matrix BACE_jointness_measure (bundle *M)
 
     loop i=1..M.k --quiet
         loop j=i+1..M.k --quiet
-            # We compute a,b,c,d
             a = M.jointness_m[i,j] # p(i & j)
             b = var_prob[i] - a	   # p(i & ~j)
             c = var_prob[j] - a	   # p(~i & j)

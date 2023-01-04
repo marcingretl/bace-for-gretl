@@ -49,7 +49,6 @@ function void BACE_Print (bundle *MODEL)
         avg_model_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
     endif
 
-
     # Additional information in summary
     printf "\n"
     print "----------------------------------"
@@ -159,12 +158,10 @@ function void BACE_Print (bundle *MODEL)
         endif
     endloop
     printf "\nBest models ranking:\n"
-    ############ OLD #########################
     loop i=1..M.Nrank --quiet
         printf "Model %d:\t%f\n", i, M.Numerical_Likelihood[i]
     endloop
-    printf "Total probability of the models in ranking (numerical): %f\n", sumc(M.Numerical_Likelihood)
-    printf "\n"
+    printf "Total probability of the models in ranking (numerical): %f\n\n", sumc(M.Numerical_Likelihood)
     printf "Correlation coefficient between the analytical\n"
     printf "and numerical probabilities of the above models: %f\n", corr(M.Numerical_Likelihood, M.mod_rank_prob)
 
@@ -196,8 +193,7 @@ function void BACE_Print (bundle *MODEL)
         printf "\n"
         print "Posterior joint probability of variables:"
         printf "%15f", M.jointness_m
-        printf "\n"
-        printf "Jointness statistics (%s):\n", jointess_measure_name
+        printf "\nJointness statistics (%s):\n", jointess_measure_name
         printf "%15f", jointess_measure
         scalar strong_sub = 0
         scalar significant_sub = 0

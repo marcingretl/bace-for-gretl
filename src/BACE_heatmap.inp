@@ -134,7 +134,6 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
         literal set decimalsign '.'
         literal set nokey
         literal set datafile missing ""
-        #literal set datafile separator "\t"
         literal set x2tics 1 format '' scale 0,0.001
         literal set y2tics 1 format '' scale 0,0.001
         literal set mx2tics 2

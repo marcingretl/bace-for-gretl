@@ -30,7 +30,6 @@ function void BACE_estimate (bundle *M)
 
     # We create list with lagged Y if needed
     if M.Y_AR_p > 0
-        #lags M.Y_AR_p ; Y # to wystarczało niby, ale nie było dynamicznej prognozy
         mod_struct_new_Y_lags = M.mod_struct_new[1:M.Y_AR_p]
         if sum(mod_struct_new_Y_lags) > 0
             Y_lags = lags(selifc(seq(1,M.Y_AR_p), mod_struct_new_Y_lags), Y)
@@ -92,10 +91,6 @@ function void BACE_estimate (bundle *M)
             M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction - 0.5*log(det(invpd(vcv)))
         elif M.bic_type_name == "EBIC"
             M.lprob_new = -.5*$bic - M.model_prior_bic_log[M.k_new+1]
-            /*
-               BICREG
-               M.lprob_new = -.5*($nobs*log(1-$rsq) + ($ncoeff-1)*log($nobs))
-            */
         endif
 
         # We calculate log of model probability

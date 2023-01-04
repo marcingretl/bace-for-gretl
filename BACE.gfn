@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2022-12-05</date>
+<date>2023-01-04</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -221,12 +221,10 @@ loop i=1..rows(M.models_probs_percents) --quiet
   endif
 endloop
 printf &quot;\nBest models ranking:\n&quot;
-############ OLD #########################
 loop i=1..M.Nrank --quiet
   printf &quot;Model %d:\t%f\n&quot;, i, M.Numerical_Likelihood[i]
 endloop
-printf &quot;Total probability of the models in ranking (numerical): %f\n&quot;, sumc(M.Numerical_Likelihood)
-printf &quot;\n&quot;
+printf &quot;Total probability of the models in ranking (numerical): %f\n\n&quot;, sumc(M.Numerical_Likelihood)
 printf &quot;Correlation coefficient between the analytical\n&quot;
 printf &quot;and numerical probabilities of the above models: %f\n&quot;, corr(M.Numerical_Likelihood, M.mod_rank_prob)
 # Contingency table
@@ -255,8 +253,7 @@ if M.do_joint
   printf &quot;\n&quot;
   print &quot;Posterior joint probability of variables:&quot;
   printf &quot;%15f&quot;, M.jointness_m
-  printf &quot;\n&quot;
-  printf &quot;Jointness statistics (%s):\n&quot;, jointess_measure_name
+  printf &quot;\nJointness statistics (%s):\n&quot;, jointess_measure_name
   printf &quot;%15f&quot;, jointess_measure
   scalar strong_sub = 0
   scalar significant_sub = 0
@@ -1346,7 +1343,6 @@ string ESTIMATOR = M.estimator
 series Y = M.Y
 # We create list with lagged Y if needed
 if M.Y_AR_p &gt; 0
-  #lags M.Y_AR_p ; Y # to wystarczało niby, ale nie było dynamicznej prognozy
   mod_struct_new_Y_lags = M.mod_struct_new[1:M.Y_AR_p]
   if sum(mod_struct_new_Y_lags) &gt; 0
     Y_lags = lags(selifc(seq(1,M.Y_AR_p), mod_struct_new_Y_lags), Y)
@@ -1403,10 +1399,6 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction - 0.5*log(det(invpd(vcv)))
   elif M.bic_type_name == &quot;EBIC&quot;
     M.lprob_new = -.5*$bic - M.model_prior_bic_log[M.k_new+1]
-    /*
-    BICREG
-    M.lprob_new = -.5*($nobs*log(1-$rsq) + ($ncoeff-1)*log($nobs))
-    */
   endif
   # We calculate log of model probability
   M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
@@ -1628,8 +1620,7 @@ endif
 Function computes jointness measure based on given jointness matrix.
 Local variables:
 var_prob - vector with posterior probability of indenpendent variables
-a, b, c, d	 - scalars according to Paul Hofmarcher, Jesus Crespo Cuaresma, Bettina Grün, Stefan Humer, Mathias Moser, Bivariate jointness measures in Bayesian Model Averaging: Solving the conundrum, Journal of Macroeconomics, Volume 57, 2018, Pages 150-165, ISSN 0164-0704, DOI: 10.1016/j.jmacro.2018.05.005.
-#
+a, b, c, d - scalars according to Hofmarcher,Crespo Cuaresma,Grün,Humer,Moser, Bivariate jointness measures in Bayesian Model Averaging: Solving the conundrum, Journal of Macroeconomics, Volume 57, 2018, Pages 150-165, ISSN 0164-0704, DOI: 10.1016/j.jmacro.2018.05.005.
 Returns: matrix with computed jointness measure
 */
 scalar a,b,c,d,N
@@ -1643,7 +1634,6 @@ endif
 matrix jointness_measure = zeros(rows(M.jointness_m), cols(M.jointness_m))
 loop i=1..M.k --quiet
   loop j=i+1..M.k --quiet
-    # We compute a,b,c,d
     a = M.jointness_m[i,j] # p(i &amp; j)
     b = var_prob[i] - a	   # p(i &amp; ~j)
     c = var_prob[j] - a	   # p(~i &amp; j)
@@ -1777,12 +1767,6 @@ loop while rep &lt;= M.Nrep --quiet
       M.n_drop_draws += 1
       continue
     endif
-    /*
-    if M.limited_y &amp;&amp; M.ordered &amp;&amp; !M.k_new
-      printf &quot;\n####### jestem ########\n&quot;
-      catch eval known_models[sprintf(&quot;%d&quot;, mod_struct_draw)[1:end-1]]
-    endif
-    */
     M.mod_struct_new = mod_struct_draw
     model_id = sprintf(&quot;%d&quot;, mod_struct_draw)[1:end-1]
     if inbundle(known_models, model_id)
@@ -2128,7 +2112,6 @@ plot
   literal set decimalsign '.'
   literal set nokey
   literal set datafile missing &quot;&quot;
-  #literal set datafile separator &quot;\t&quot;
   literal set x2tics 1 format '' scale 0,0.001
   literal set y2tics 1 format '' scale 0,0.001
   literal set mx2tics 2
