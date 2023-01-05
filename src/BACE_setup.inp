@@ -23,6 +23,7 @@ function void BACE_setup (bundle *M, int Norig)
     printf "To do:"
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
     printf "\n * Finally decide which xBIC are 'prior based."
+    printf "\n * Add checking if Y is discreate if logit/probit/poisson selected."
     printf "\n * Add in PDF information about data_trans and bic_type."
     printf "\n * Add in PDF information on dependecies."
     printf "\n * Work on speed."

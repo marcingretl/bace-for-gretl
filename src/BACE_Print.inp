@@ -21,6 +21,7 @@ function void BACE_Print (bundle *MODEL)
     */
     scalar avg_model_size
     matrix coeffmat
+    string model_type
 
     # We make a copy of MODEL
     bundle M = MODEL
@@ -48,14 +49,21 @@ function void BACE_Print (bundle *MODEL)
     else
         avg_model_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
     endif
+    
+    # Setting up string with model type
+    if M.limited_y && M.ordered
+        model_type = sprintf("ordered %s", M.model_type)
+    else
+        model_type = sprintf("%s", M.model_type)
+    endif
 
     # Additional information in summary
     printf "\n"
     print "----------------------------------"
     if M.limited_y && M.ordered
-        printf "Model type: ordered %s\n", M.model_type
+        printf "Model type: %s\n", model_type
     else
-        printf "Model type: %s\n", M.model_type
+        printf "Model type: %s\n", model_type
     endif
     printf "Constant type: %s\n", M.const_type
     printf "Prior: %s\n", M.prior_name
@@ -245,12 +253,12 @@ function void BACE_Print (bundle *MODEL)
     # Printing models in ranking
     if M.verbosity == 2
         strings Xnames # names of X-es
-        printf "\n\nBest models estimates:"
+        printf "\n\nBest specifications (MLE estimates for %s model):", model_type
         loop i=1..M.Nrank --quiet
             if M.mod_nume_prob[i]
                 printf "\n"
                 print "----------------------------------"
-                printf "\nModel: %d, %s: %f, posterior probability: %f", i, M.bic_type_name, M.mod_rank_bic[i], M.Numerical_Likelihood[i]
+                printf "\nModel %d: %s: %.6f, posterior probability: %f", i, M.bic_type_name, M.mod_rank_bic[i], M.Numerical_Likelihood[i]
                 if sumr(M.mod_rank[i]) == 0 && M.with_const != 1
                     printf "\n\n  %s\n", "None of the variables were significant."
                     printf "  %s\n", "Model includes only the intercept term which is simply the average of the dependent variable."
