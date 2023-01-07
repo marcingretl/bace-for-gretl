@@ -34,7 +34,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
       "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("avg_model_size", "alpha", "binary_threshold")
-    strings ModelTypes = defarray("linear", "logit", "probit", "poisson")
+    strings ModelTypes = defarray("linear", "logit", "probit", "poisson", "tobit")
     strings BicTypes = defarray("BIC", "HBIC", "IBIC", "EBIC")
     strings ModelPriorTypes = defarray("none", "Binomial", "Beta-Binomial")
     strings ConstTypes = defarray("Never", "Always", "Can be dropped")
@@ -52,7 +52,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     Overloadable["with_const"] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
     Overloadable["do_joint"] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="none, DW1, DW2, LS1, LS2, SM, YQ, MYQ")
     Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
-    Overloadable["model_type"] = _(linear=1, logit=2, probit=3, poisson=4, valid=tolower(flatten(ModelTypes, separator)))
+    Overloadable["model_type"] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, valid=tolower(flatten(ModelTypes, separator)))
 
     # We look for overloaded parameters and convert them into integers
     OverloadableKeys = getkeys(Overloadable)
@@ -128,6 +128,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar Options["bic_type"] = 1
     scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
     scalar Options["binary_threshold"] = 0.5
+    scalar Options["low"] = 0
+    scalar Options["high"] = NA
     scalar Options["_gui"] = 0
 
     # General checking, but still needs some manual work later

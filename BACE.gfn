@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-01-05</date>
+<date>2023-01-07</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -1089,7 +1089,8 @@ This function creates BUNDLE holding all BACE information
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
 printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot;
-printf &quot;\n * Finally decide which xBIC are 'prior based.&quot;
+printf &quot;\n * Add correction to fcast errors for linear model.&quot;
+printf &quot;\n * Fix forecasts for tobit model.&quot;
 printf &quot;\n * Add checking if Y is discreate if logit/probit/poisson selected.&quot;
 printf &quot;\n * Add in PDF information about data_trans and bic_type.&quot;
 printf &quot;\n * Add in PDF information on dependecies.&quot;
@@ -1178,6 +1179,8 @@ if M.with_const == 1
   M.all_names_sp_m = const_name + M.all_names_sp_m
 endif
 strings M.PriorBasedBic = defarray(&quot;EBIC&quot;)
+scalar M.Y_censoring = 0
+string M.estimator_opts = &quot;&quot;
 # In case of &quot;out-of-sample&quot; prediction
 if M.Npredict
   scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
@@ -1300,6 +1303,17 @@ else
 endif
 # Data transformation
 M.data_trans_name = M.DataTransTypes[M.data_trans+1]
+# Tobit model
+if M.low != 0 || !isnan(M.high)
+  if !isnan(M.low)
+    M.estimator_opts = sprintf(&quot;--llimit=%f &quot;, M.low)
+  endif
+  if !isnan(M.high)
+    M.estimator_opts = sprintf(&quot;%s--rlimit=%f&quot;, M.estimator_opts, M.high)
+  endif
+  M.Y_censoring = 1
+endif
+# Verbosity setting
 if M.verbosity == 1
   set warnings off
 endif
@@ -1345,6 +1359,8 @@ This function estimates and forecasts drawn models.
 */
 matrix mod_struct_new, mod_struct_new_Y_lags, vcv
 list Y_lags
+scalar ols_to_mle_correct
+string ESTIMATOR_OPTS
 # We set up estimator command
 string ESTIMATOR = M.estimator
 # We re-create Y series
@@ -1373,13 +1389,22 @@ endif
 # We estimate current model
 if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
   # We estimate model
-  @ESTIMATOR Y X --quiet
+  if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
+    ESTIMATOR_OPTS = M.estimator_opts
+    @ESTIMATOR Y X @ESTIMATOR_OPTS --quiet
+  else
+    @ESTIMATOR Y X --quiet
+  endif
   if M.with_const == 2 &amp;&amp; $ncoeff &gt; 1 &amp;&amp; $model.parnames[1] == &quot;const&quot;
     M.bhat_tmp = $coeff[2:] | $coeff[1]
     M.bvar_tmp = ($stderr[2:] | $stderr[1]).^2
   else
     M.bhat_tmp = $coeff
     M.bvar_tmp = $stderr.^2
+  endif
+  if ESTIMATOR == &quot;ols&quot;
+    ols_to_mle_correct = $df/$nobs
+    M.bvar_tmp *= ols_to_mle_correct
   endif
   if M.Npredict
     fcast --out-of-sample --quiet
@@ -1400,7 +1425,7 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction
   elif M.bic_type_name == &quot;IBIC&quot;
     if ESTIMATOR == &quot;ols&quot;
-      vcv = $vcv*$df/$nobs
+      vcv = $vcv*ols_to_mle_correct
     else
       vcv = $vcv
     endif
@@ -1842,7 +1867,7 @@ string arg_name, parameter_value
 strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
-strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;)
+strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;)
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
 strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;)
 strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
@@ -1860,7 +1885,7 @@ Overloadable[&quot;model_prior&quot;] = _(none=0, binomial=1, betabinomial=2, va
 Overloadable[&quot;with_const&quot;] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
 Overloadable[&quot;do_joint&quot;] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid=&quot;none, DW1, DW2, LS1, LS2, SM, YQ, MYQ&quot;)
 Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
-Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, valid=tolower(flatten(ModelTypes, separator)))
+Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, valid=tolower(flatten(ModelTypes, separator)))
 # We look for overloaded parameters and convert them into integers
 OverloadableKeys = getkeys(Overloadable)
 loop i=1..nelem(OverloadableKeys) --quiet
@@ -1931,6 +1956,8 @@ scalar Options[&quot;data_trans&quot;] = 0
 scalar Options[&quot;bic_type&quot;] = 1
 scalar Options[&quot;hyperparameter&quot;] = 0.5 # gamma for EBIC
 scalar Options[&quot;binary_threshold&quot;] = 0.5
+scalar Options[&quot;low&quot;] = 0
+scalar Options[&quot;high&quot;] = NA
 scalar Options[&quot;_gui&quot;] = 0
 # General checking, but still needs some manual work later
 err2 = bcheck(&amp;Options, UserOpts)

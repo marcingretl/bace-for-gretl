@@ -21,6 +21,8 @@ function void BACE_estimate (bundle *M)
     */
     matrix mod_struct_new, mod_struct_new_Y_lags, vcv
     list Y_lags
+    scalar ols_to_mle_correct
+    string ESTIMATOR_OPTS
 
     # We set up estimator command
     string ESTIMATOR = M.estimator
@@ -55,7 +57,12 @@ function void BACE_estimate (bundle *M)
     # We estimate current model
     if nelem(X) > 0 || M.limited_y && M.ordered
         # We estimate model
-        @ESTIMATOR Y X --quiet
+        if M.Y_censoring && ESTIMATOR == "tobit"
+            ESTIMATOR_OPTS = M.estimator_opts
+            @ESTIMATOR Y X @ESTIMATOR_OPTS --quiet
+        else
+            @ESTIMATOR Y X --quiet
+        endif        
 
         if M.with_const == 2 && $ncoeff > 1 && $model.parnames[1] == "const"
             M.bhat_tmp = $coeff[2:] | $coeff[1]
@@ -63,6 +70,10 @@ function void BACE_estimate (bundle *M)
         else
             M.bhat_tmp = $coeff
             M.bvar_tmp = $stderr.^2
+        endif
+        if ESTIMATOR == "ols"
+            ols_to_mle_correct = $df/$nobs
+            M.bvar_tmp *= ols_to_mle_correct
         endif
         if M.Npredict
             fcast --out-of-sample --quiet
@@ -84,7 +95,7 @@ function void BACE_estimate (bundle *M)
             M.lprob_new = $lnl - .5*$ncoeff*M.bic_correction
         elif M.bic_type_name == "IBIC"
             if ESTIMATOR == "ols"
-                vcv = $vcv*$df/$nobs
+                vcv = $vcv*ols_to_mle_correct
             else
                 vcv = $vcv
             endif

@@ -22,7 +22,8 @@ function void BACE_setup (bundle *M, int Norig)
     printf "\n#############################################################################\n"
     printf "To do:"
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
-    printf "\n * Finally decide which xBIC are 'prior based."
+    printf "\n * Add correction to fcast errors for linear model."
+    printf "\n * Fix forecasts for tobit model."
     printf "\n * Add checking if Y is discreate if logit/probit/poisson selected."
     printf "\n * Add in PDF information about data_trans and bic_type."
     printf "\n * Add in PDF information on dependecies."
@@ -116,6 +117,8 @@ function void BACE_setup (bundle *M, int Norig)
         M.all_names_sp_m = const_name + M.all_names_sp_m
     endif
     strings M.PriorBasedBic = defarray("EBIC")
+    scalar M.Y_censoring = 0
+    string M.estimator_opts = ""
 
     # In case of "out-of-sample" prediction
     if M.Npredict
@@ -248,7 +251,19 @@ function void BACE_setup (bundle *M, int Norig)
 
     # Data transformation
     M.data_trans_name = M.DataTransTypes[M.data_trans+1]
+    
+    # Tobit model
+    if M.low != 0 || !isnan(M.high)
+        if !isnan(M.low)
+            M.estimator_opts = sprintf("--llimit=%f ", M.low)
+        endif        
+        if !isnan(M.high)
+            M.estimator_opts = sprintf("%s--rlimit=%f", M.estimator_opts, M.high)
+        endif        
+        M.Y_censoring = 1
+    endif
 
+    # Verbosity setting
     if M.verbosity == 1
         set warnings off
     endif
