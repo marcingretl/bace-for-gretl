@@ -87,7 +87,7 @@ function void BACE_summary (bundle *M)
         M.mod_size_sd_prior = NA
     else
         M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size) .^2 .* M.mod_sizes[,3]))
-    endif    
+    endif
     if M.prior_based_bic
         tmpm = tmpm / sum(tmpm)
         M.avg_model_size_bic = sum(M.mod_sizes[,1] .* tmpm)
@@ -160,7 +160,7 @@ function void BACE_summary (bundle *M)
     M.Post_Results = M.Post_Results ~ tmp
     tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
     M.Post_Results = M.Post_Results ~ tmp
-    title = defarray("PIP", "Mean", "Std.Dev.", "Cond.Mean", "Cond.Std.Dev")
+    title = defarray("PIP", "Mean", "Std.Dev.", "Cond.Mean", "Cond.Std.Dev.")
     cnameset(M.Post_Results, title)
     rnameset(M.Post_Results, M.all_names_sp_m)
     if M.limited_y && M.ordered
@@ -217,7 +217,7 @@ function void BACE_summary (bundle *M)
             cnameset(M.jointness_m, M.all_names_sp_m)
             rnameset(M.jointness_m, M.all_names_sp_m)
         endif
-    endif
+    endif    
 
     # Cleaning up the bundle
     delete M.show_progress

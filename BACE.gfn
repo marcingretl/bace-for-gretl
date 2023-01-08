@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-01-07</date>
+<date>2023-01-08</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -92,7 +92,7 @@ Function prints BACE results.
 */
 scalar avg_model_size
 matrix coeffmat
-string model_type
+string model_type, tmpstr
 # We make a copy of MODEL
 bundle M = MODEL
 # We re-create Y process
@@ -127,6 +127,12 @@ if M.limited_y &amp;&amp; M.ordered
   printf &quot;Model type: %s\n&quot;, model_type
 else
   printf &quot;Model type: %s\n&quot;, model_type
+endif
+if ESTIMATOR == &quot;tobit&quot;
+  printf &quot;   left bound: %f\n&quot;, M.low
+  printf &quot;   right bound: %f\n&quot;, M.high
+  #M.tobit_n_censored = { $model.n_left ; $model.n_right }
+  #M.tobit_normality_test = $model.normality_test
 endif
 printf &quot;Constant type: %s\n&quot;, M.const_type
 printf &quot;Prior: %s\n&quot;, M.prior_name
@@ -178,6 +184,24 @@ if M.verbosity == 2
     modprint coeffmat coeffmat_xnames
   else
     printf(&quot;The initial model was empty.\n&quot;)
+  endif
+  if ESTIMATOR == &quot;tobit&quot;
+    tmpstr = sprintf(&quot;Left-censored observations: %d&quot;, M.tobit_n_censored[1])
+    if M.Y_censoring &amp;&amp; !isnan(M.low)
+      tmpstr = sprintf(&quot;%s (%s &lt;= %f)&quot;, tmpstr, M.Y_name, M.low)
+    endif
+    printf &quot;%s\n&quot;, tmpstr
+    tmpstr = sprintf(&quot;Right-censored observations: %d&quot;, M.tobit_n_censored[2])
+    if M.Y_censoring &amp;&amp; !isnan(M.high)
+      tmpstr = sprintf(&quot;%s (%s &gt;= %f)&quot;, tmpstr, M.Y_name, M.high)
+    endif
+    printf &quot;%s\n&quot;, tmpstr
+    if nelem(M.tobit_normality_test)
+      printf &quot;\nTest for normality of residual -\n&quot;
+      printf &quot;  Null hypothesis: error is normally distributed\n&quot;
+      printf &quot;  Test statistic: Chi-square(%d) = %f\n&quot;, M.tobit_normality_test[&quot;dfn&quot;], M.tobit_normality_test[&quot;test&quot;]
+      printf &quot;  with p-value = %f\n&quot;, M.tobit_normality_test[&quot;pvalue&quot;]
+    endif
   endif
 endif
 # Standard information (PIPs, Means and so on)
@@ -685,12 +709,18 @@ Y		- dependent variable
 max_k	- number of given indenpendent variables
 X_list2	- M.X_list in a form of list (not matrix)
 */
+# Local variables
+string ESTIMATOR_OPTS = &quot;--quiet&quot;
 # We set up estimator command
 string ESTIMATOR = M.estimator
 # If we have ordered logit/probit we have to correct $ncoeff
 scalar cuts = 0
 if M.limited_y
   cuts = M.cuts
+endif
+# Do we have additional OPTS for estimator
+if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
+  ESTIMATOR_OPTS = sprintf(&quot;%s %s&quot;, M.estimator_opts, ESTIMATOR_OPTS)
 endif
 # Starting values of the local variables
 if M.Npredict
@@ -750,9 +780,9 @@ elif M.alpha == 1	# Trully random model
       last_mat = transp(msortby(transp(last_mat),2))
       last = last_mat[1,]
       if M.with_const == 1
-        @ESTIMATOR YyY const last --quiet
+        @ESTIMATOR YyY const last @ESTIMATOR_OPTS
       else
-        @ESTIMATOR YyY last --quiet
+        @ESTIMATOR YyY last @ESTIMATOR_OPTS
       endif
       last = $xlist
       if M.with_const == 1
@@ -763,14 +793,20 @@ elif M.alpha == 1	# Trully random model
       endif
       M.StartModel_b = $model
       strings M.StartModel_xnames = varnames($xlist)
+      if ESTIMATOR == &quot;tobit&quot;
+        M.tobit_n_censored = { $model.n_left ; $model.n_right }
+        if inbundle($model, &quot;normality_test&quot;)
+          M.tobit_normality_test = $model.normality_test
+        endif
+      endif
     endif
   endif
 else
   # Model reduced at given alpha
   if M.with_const == 1
-    @ESTIMATOR YyY const X_list2 --quiet
+    @ESTIMATOR YyY const X_list2 @ESTIMATOR_OPTS
   else
-    @ESTIMATOR YyY X_list2 --quiet
+    @ESTIMATOR YyY X_list2 @ESTIMATOR_OPTS
   endif
   if nelem($xlist) &gt; 1
     omit --auto=M.alpha --silent
@@ -784,6 +820,12 @@ else
   endif
   M.StartModel_b = $model
   strings M.StartModel_xnames = varnames($xlist)
+  if ESTIMATOR == &quot;tobit&quot;
+    M.tobit_n_censored = { $model.n_left ; $model.n_right }
+    if inbundle($model, &quot;normality_test&quot;)
+      M.tobit_normality_test = $model.normality_test
+    endif
+  endif
 endif
 # Starting values
 matrix M.StartModel = last
@@ -974,7 +1016,7 @@ tmp = M.Post_Results[,2] ./ M.Post_Results[,1]
 M.Post_Results = M.Post_Results ~ tmp
 tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
 M.Post_Results = M.Post_Results ~ tmp
-title = defarray(&quot;PIP&quot;, &quot;Mean&quot;, &quot;Std.Dev.&quot;, &quot;Cond.Mean&quot;, &quot;Cond.Std.Dev&quot;)
+title = defarray(&quot;PIP&quot;, &quot;Mean&quot;, &quot;Std.Dev.&quot;, &quot;Cond.Mean&quot;, &quot;Cond.Std.Dev.&quot;)
 cnameset(M.Post_Results, title)
 rnameset(M.Post_Results, M.all_names_sp_m)
 if M.limited_y &amp;&amp; M.ordered
@@ -1089,8 +1131,7 @@ This function creates BUNDLE holding all BACE information
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
 printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot;
-printf &quot;\n * Add correction to fcast errors for linear model.&quot;
-printf &quot;\n * Fix forecasts for tobit model.&quot;
+printf &quot;\n * Fix initial model for tobit model when alpha=0.&quot;
 printf &quot;\n * Add checking if Y is discreate if logit/probit/poisson selected.&quot;
 printf &quot;\n * Add in PDF information about data_trans and bic_type.&quot;
 printf &quot;\n * Add in PDF information on dependecies.&quot;
@@ -1179,8 +1220,10 @@ if M.with_const == 1
   M.all_names_sp_m = const_name + M.all_names_sp_m
 endif
 strings M.PriorBasedBic = defarray(&quot;EBIC&quot;)
-scalar M.Y_censoring = 0
-string M.estimator_opts = &quot;&quot;
+scalar M.Y_censoring = 0 # do we censore Y?
+string M.estimator_opts = &quot;&quot; # options for estimator (command line)
+matrix M.tobit_n_censored = {}
+bundle M.tobit_normality_test = null
 # In case of &quot;out-of-sample&quot; prediction
 if M.Npredict
   scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
@@ -1304,7 +1347,7 @@ endif
 # Data transformation
 M.data_trans_name = M.DataTransTypes[M.data_trans+1]
 # Tobit model
-if M.low != 0 || !isnan(M.high)
+if !(M.low == 0 &amp;&amp; isnan(M.high))
   if !isnan(M.low)
     M.estimator_opts = sprintf(&quot;--llimit=%f &quot;, M.low)
   endif
@@ -1359,8 +1402,8 @@ This function estimates and forecasts drawn models.
 */
 matrix mod_struct_new, mod_struct_new_Y_lags, vcv
 list Y_lags
-scalar ols_to_mle_correct
 string ESTIMATOR_OPTS
+scalar ols_to_mle_correct = 1
 # We set up estimator command
 string ESTIMATOR = M.estimator
 # We re-create Y series
@@ -1402,6 +1445,7 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     M.bhat_tmp = $coeff
     M.bvar_tmp = $stderr.^2
   endif
+  # OLS to MLE correction
   if ESTIMATOR == &quot;ols&quot;
     ols_to_mle_correct = $df/$nobs
     M.bvar_tmp *= ols_to_mle_correct
@@ -1409,9 +1453,10 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
   if M.Npredict
     fcast --out-of-sample --quiet
     M.Yhat_predict = $fcast
-    if !M.limited_y
-      M.Yhat_predict_var = $fcse.^2 + $fcast.^2
+    if !M.limited_y &amp;&amp; ESTIMATOR != &quot;tobit&quot;
+      M.Yhat_predict_var = ($fcse*ols_to_mle_correct).^2 + $fcast.^2
     else
+      eval M.Yhat_predict
       M.Yhat_predict_var = ones(M.Npredict)*NA
     endif
   endif

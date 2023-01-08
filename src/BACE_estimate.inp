@@ -20,9 +20,9 @@ function void BACE_estimate (bundle *M)
    This function estimates and forecasts drawn models.
     */
     matrix mod_struct_new, mod_struct_new_Y_lags, vcv
-    list Y_lags
-    scalar ols_to_mle_correct
+    list Y_lags    
     string ESTIMATOR_OPTS
+    scalar ols_to_mle_correct = 1
 
     # We set up estimator command
     string ESTIMATOR = M.estimator
@@ -62,7 +62,7 @@ function void BACE_estimate (bundle *M)
             @ESTIMATOR Y X @ESTIMATOR_OPTS --quiet
         else
             @ESTIMATOR Y X --quiet
-        endif        
+        endif
 
         if M.with_const == 2 && $ncoeff > 1 && $model.parnames[1] == "const"
             M.bhat_tmp = $coeff[2:] | $coeff[1]
@@ -71,6 +71,7 @@ function void BACE_estimate (bundle *M)
             M.bhat_tmp = $coeff
             M.bvar_tmp = $stderr.^2
         endif
+        # OLS to MLE correction
         if ESTIMATOR == "ols"
             ols_to_mle_correct = $df/$nobs
             M.bvar_tmp *= ols_to_mle_correct
@@ -78,9 +79,10 @@ function void BACE_estimate (bundle *M)
         if M.Npredict
             fcast --out-of-sample --quiet
             M.Yhat_predict = $fcast
-            if !M.limited_y
-                M.Yhat_predict_var = $fcse.^2 + $fcast.^2
+            if !M.limited_y && ESTIMATOR != "tobit"
+                M.Yhat_predict_var = ($fcse*ols_to_mle_correct).^2 + $fcast.^2
             else
+                eval M.Yhat_predict
                 M.Yhat_predict_var = ones(M.Npredict)*NA
             endif
         endif

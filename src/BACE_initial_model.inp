@@ -16,24 +16,31 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_initial_model (bundle *M)
-    /*
-    Function creates list of variables in the initial model.
-    *M - pointer to the main bundle
-    #
-    Local variables:
-    Y		- dependent variable
-    max_k	- number of given indenpendent variables
-    X_list2	- M.X_list in a form of list (not matrix)
+/*
+   Function creates list of variables in the initial model.
+   *M - pointer to the main bundle
+   #
+   Local variables:
+   Y		- dependent variable
+   max_k	- number of given indenpendent variables
+   X_list2	- M.X_list in a form of list (not matrix)
     */
-    
+    # Local variables
+    string ESTIMATOR_OPTS = "--quiet"
+
     # We set up estimator command
     string ESTIMATOR = M.estimator
-    
+
     # If we have ordered logit/probit we have to correct $ncoeff
     scalar cuts = 0
     if M.limited_y
         cuts = M.cuts
-    endif    
+    endif
+
+    # Do we have additional OPTS for estimator
+    if M.Y_censoring && ESTIMATOR == "tobit"
+        ESTIMATOR_OPTS = sprintf("%s %s", M.estimator_opts, ESTIMATOR_OPTS)
+    endif
 
     # Starting values of the local variables
     if M.Npredict
@@ -55,7 +62,7 @@ function void BACE_initial_model (bundle *M)
     list X_list2 = M.X_list
     list last = {}
     scalar max_k = cols(M.var_numbers2)
-    
+
     if M.alpha == 0 # Empty model (const only)
         if M.with_const == 2
             last += const
@@ -94,9 +101,9 @@ function void BACE_initial_model (bundle *M)
                 last_mat = transp(msortby(transp(last_mat),2))
                 last = last_mat[1,]
                 if M.with_const == 1
-                    @ESTIMATOR YyY const last --quiet
+                    @ESTIMATOR YyY const last @ESTIMATOR_OPTS
                 else
-                    @ESTIMATOR YyY last --quiet
+                    @ESTIMATOR YyY last @ESTIMATOR_OPTS
                 endif
                 last = $xlist
                 if M.with_const == 1
@@ -107,14 +114,20 @@ function void BACE_initial_model (bundle *M)
                 endif
                 M.StartModel_b = $model
                 strings M.StartModel_xnames = varnames($xlist)
+                if ESTIMATOR == "tobit"
+                    M.tobit_n_censored = { $model.n_left ; $model.n_right }
+                    if inbundle($model, "normality_test")
+                        M.tobit_normality_test = $model.normality_test
+                    endif
+                endif
             endif
         endif
     else
         # Model reduced at given alpha
         if M.with_const == 1
-            @ESTIMATOR YyY const X_list2 --quiet
+            @ESTIMATOR YyY const X_list2 @ESTIMATOR_OPTS
         else
-            @ESTIMATOR YyY X_list2 --quiet
+            @ESTIMATOR YyY X_list2 @ESTIMATOR_OPTS
         endif
         if nelem($xlist) > 1
             omit --auto=M.alpha --silent
@@ -128,12 +141,18 @@ function void BACE_initial_model (bundle *M)
         endif
         M.StartModel_b = $model
         strings M.StartModel_xnames = varnames($xlist)
+        if ESTIMATOR == "tobit"
+            M.tobit_n_censored = { $model.n_left ; $model.n_right }
+            if inbundle($model, "normality_test")
+                M.tobit_normality_test = $model.normality_test
+            endif
+        endif
     endif
 
     # Starting values
     matrix M.StartModel = last
     matrix M.mod_struct_new = zeros(1,M.k)
-    
+
     # Setting 1 for variables in current draw
     loop i=1..cols(M.StartModel) --quiet
         loop j=1..M.k --quiet

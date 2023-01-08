@@ -21,7 +21,7 @@ function void BACE_Print (bundle *MODEL)
     */
     scalar avg_model_size
     matrix coeffmat
-    string model_type
+    string model_type, tmpstr
 
     # We make a copy of MODEL
     bundle M = MODEL
@@ -49,7 +49,7 @@ function void BACE_Print (bundle *MODEL)
     else
         avg_model_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
     endif
-    
+
     # Setting up string with model type
     if M.limited_y && M.ordered
         model_type = sprintf("ordered %s", M.model_type)
@@ -64,6 +64,12 @@ function void BACE_Print (bundle *MODEL)
         printf "Model type: %s\n", model_type
     else
         printf "Model type: %s\n", model_type
+    endif
+    if ESTIMATOR == "tobit"
+        printf "   left bound: %f\n", M.low
+        printf "   right bound: %f\n", M.high
+        #M.tobit_n_censored = { $model.n_left ; $model.n_right }
+        #M.tobit_normality_test = $model.normality_test
     endif
     printf "Constant type: %s\n", M.const_type
     printf "Prior: %s\n", M.prior_name
@@ -115,6 +121,24 @@ function void BACE_Print (bundle *MODEL)
             modprint coeffmat coeffmat_xnames
         else
             printf("The initial model was empty.\n")
+        endif
+        if ESTIMATOR == "tobit"
+            tmpstr = sprintf("Left-censored observations: %d", M.tobit_n_censored[1])
+            if M.Y_censoring && !isnan(M.low)
+                tmpstr = sprintf("%s (%s <= %f)", tmpstr, M.Y_name, M.low)
+            endif
+            printf "%s\n", tmpstr
+            tmpstr = sprintf("Right-censored observations: %d", M.tobit_n_censored[2])
+            if M.Y_censoring && !isnan(M.high)
+                tmpstr = sprintf("%s (%s >= %f)", tmpstr, M.Y_name, M.high)
+            endif
+            printf "%s\n", tmpstr
+            if nelem(M.tobit_normality_test)
+                printf "\nTest for normality of residual -\n"
+                printf "  Null hypothesis: error is normally distributed\n"
+                printf "  Test statistic: Chi-square(%d) = %f\n", M.tobit_normality_test["dfn"], M.tobit_normality_test["test"]
+                printf "  with p-value = %f\n", M.tobit_normality_test["pvalue"]
+            endif            
         endif
     endif
 
