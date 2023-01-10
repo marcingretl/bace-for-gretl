@@ -16,7 +16,7 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function bundle BACE_GUI (
-    int model_type[1:4:1] "Model type" {"linear", "logit (including ordered)", "probit (including ordered)", "poisson"},
+    int model_type[1:5:1] "Model type" {"logit (including ordered)", "probit (including ordered)", "poisson", "tobit", "linear"},
       series Y "Dependent variable",
       int Y_AR_p[0::0] "Y lags (time-series only)",
       list X_list[null] "List of independent variables (X)",
@@ -40,24 +40,21 @@ function bundle BACE_GUI (
     bundle Options, RES
     string err
 
+    # Mapping GUI model_types indexes to strings
+    strings ModelTypes = defarray("logit", "probit", "poisson", "tobit", "linear")
+
     string Y_name = argname(Y)
     series @Y_name = Y
     scalar Options["Y_AR_p"] = Y_AR_p
     scalar Options["with_const"] = with_const
     scalar Options["model_prior"] = model_prior
-    scalar Options["avg_model_size"] = avg_model_size
-    scalar Options["alpha"] = alpha
-    scalar Options["Nrank"] = Nrank
     scalar Options["do_joint"] = do_joint
     scalar Options["Npredict"] = Npredict
-    scalar Options["Nrep"] = Nrep
-    scalar Options["burn"] = burn
     scalar Options["verbosity"] = verbosity
     scalar Options["show_progress"] = show_progress
     scalar Options["do_plot"] = do_plot
-    scalar Options["data_trans"] = data_trans
     scalar Options["bic_type"] = bic_type
-    scalar Options["model_type"] = model_type
+    string Options["model_type"] = ModelTypes[model_type]
     scalar Options["_gui"] = 1
 
     RES = BACE(@Y_name, X_list, Options)
