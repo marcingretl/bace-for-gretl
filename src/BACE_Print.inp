@@ -21,14 +21,21 @@ function void BACE_Print (bundle *MODEL)
     */
     scalar avg_model_size
     matrix coeffmat
-    string model_type, tmpstr
+    string model_type, tmpstr, tmpstr2
 
     # We make a copy of MODEL
     bundle M = MODEL
+    
+    # We set up estimator command
+    string ESTIMATOR = M.estimator
 
     # We re-create Y process
     string Y_name = M.Y_name
     series @Y_name = M.Y
+    if ESTIMATOR == "intreg"
+        string Y_name2 = M.Y_name2
+        series @Y_name2 = M.Y2
+    endif    
 
     # Do we have Y lags?
     if M.Y_AR_p > 0
@@ -39,9 +46,6 @@ function void BACE_Print (bundle *MODEL)
     if M.Npredict > 0
         smpl M.first_obs M.last_obs
     endif
-
-    # We set up estimator command
-    string ESTIMATOR = M.estimator
 
     # We set up real prior avg_model_size
     if M.prior_name == "none"
@@ -68,8 +72,6 @@ function void BACE_Print (bundle *MODEL)
     if ESTIMATOR == "tobit"
         printf "   left bound: %f\n", M.low
         printf "   right bound: %f\n", M.high
-        #M.tobit_n_censored = { $model.n_left ; $model.n_right }
-        #M.tobit_normality_test = $model.normality_test
     endif
     printf "Constant type: %s\n", M.const_type
     printf "Prior: %s\n", M.prior_name
@@ -102,9 +104,11 @@ function void BACE_Print (bundle *MODEL)
     if M.verbosity == 2
         printf "\n"
         print "----------------------------------"
-        if nelem(M.StartModel_b) != 0
+        if nelem(M.StartModel_b)
             if M.limited_y && M.ordered
                 printf "The initial model: ordered %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
+            elif ESTIMATOR == "intreg"
+                printf "The initial model: %s, Lower limit: %s, Upper limit: %s\n", ESTIMATOR, M.Y_name, M.Y_name2
             else
                 printf "The initial model: %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
             endif
@@ -122,22 +126,31 @@ function void BACE_Print (bundle *MODEL)
         else
             printf("The initial model was empty.\n")
         endif
-        if ESTIMATOR == "tobit"
-            tmpstr = sprintf("Left-censored observations: %d", M.tobit_n_censored[1])
+        if M.censored_y
+            if ESTIMATOR == "tobit"
+                tmpstr2 = "censored"
+            elif ESTIMATOR == "intreg"
+                tmpstr2 = "unbounded"
+            endif
+            tmpstr = sprintf("Left-%s observations: %d", tmpstr2, M.n_censored[1])
             if M.Y_censoring && !isnan(M.low)
                 tmpstr = sprintf("%s (%s <= %f)", tmpstr, M.Y_name, M.low)
             endif
             printf "%s\n", tmpstr
-            tmpstr = sprintf("Right-censored observations: %d", M.tobit_n_censored[2])
+            tmpstr = sprintf("Right-%s observations: %d", tmpstr2, M.n_censored[2])
             if M.Y_censoring && !isnan(M.high)
                 tmpstr = sprintf("%s (%s >= %f)", tmpstr, M.Y_name, M.high)
             endif
             printf "%s\n", tmpstr
-            if nelem(M.tobit_normality_test)
+            if ESTIMATOR == "intreg"
+                printf "Bounded observations: %d\n", M.n_censored[3]
+                printf "Point observations: %d\n", M.n_censored[4]
+            endif            
+            if nelem(M.normality_test)
                 printf "\nTest for normality of residual -\n"
                 printf "  Null hypothesis: error is normally distributed\n"
-                printf "  Test statistic: Chi-square(%d) = %f\n", M.tobit_normality_test["dfn"], M.tobit_normality_test["test"]
-                printf "  with p-value = %f\n", M.tobit_normality_test["pvalue"]
+                printf "  Test statistic: Chi-square(%d) = %f\n", M.normality_test["dfn"], M.normality_test["test"]
+                printf "  with p-value = %f\n", M.normality_test["pvalue"]
             endif            
         endif
     endif
@@ -208,7 +221,7 @@ function void BACE_Print (bundle *MODEL)
     endif
 
     # Forecasts
-    if M.Npredict > 0
+    if M.Npredict
         printf "\n"
         print "----------------------------------"
         printf "\n"

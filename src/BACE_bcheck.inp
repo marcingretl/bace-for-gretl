@@ -27,14 +27,14 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     string err = ""
     string separator = ", "
     scalar avg_model_size_tmp = 0
-    scalar err2, arg_val, do_plot_tmp, do_show_progress
+    scalar err2, arg_val, do_plot_tmp, do_show_progress, alpha_tmp
     bundle Options, Overloadable
     string arg_name, parameter_value
     strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
       "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("avg_model_size", "alpha", "binary_threshold")
-    strings ModelTypes = defarray("linear", "logit", "probit", "poisson", "tobit")
+    strings ModelTypes = defarray("linear", "logit", "probit", "poisson", "tobit", "intreg")
     strings BicTypes = defarray("BIC", "HBIC", "IBIC", "EBIC")
     strings ModelPriorTypes = defarray("none", "Binomial", "Beta-Binomial")
     strings ConstTypes = defarray("Never", "Always", "Can be dropped")
@@ -52,7 +52,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     Overloadable["with_const"] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
     Overloadable["do_joint"] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="none, DW1, DW2, LS1, LS2, SM, YQ, MYQ")
     Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
-    Overloadable["model_type"] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, valid=tolower(flatten(ModelTypes, separator)))
+    Overloadable["model_type"] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, valid=tolower(flatten(ModelTypes, separator)))
 
     # We look for overloaded parameters and convert them into integers
     OverloadableKeys = getkeys(Overloadable)
@@ -108,13 +108,20 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         with_const_tmp = UserOpts["with_const"]
         avg_model_size_tmp = (k + Y_AR_p_tmp + (with_const_tmp == 2)) / 2
     endif
+    
+    # We set default alpha
+    if inbundle(UserOpts, "model_type") && UserOpts["model_type"] == "intreg"
+        alpha_tmp = 1.0
+    else
+        alpha_tmp = 0.6
+    endif    
 
     # Template bundle with default values
     scalar Options["Y_AR_p"] = 0
     scalar Options["with_const"] = 1
     scalar Options["model_prior"] = 2
     scalar Options["avg_model_size"] = avg_model_size_tmp
-    scalar Options["alpha"] = 0.6
+    scalar Options["alpha"] = alpha_tmp
     scalar Options["Nrank"] = xmin(2^(k+Y_AR_p_tmp-1), 40)
     scalar Options["do_joint"] = 0
     scalar Options["Npredict"] = 0
@@ -204,7 +211,9 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     M.ConstTypes = ConstTypes
     M.DataTransTypes = DataTransTypes
     strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable only!
+    strings M.CensoredModelTypes = M.ModelTypes[5:6]
     scalar M.limited_y = nelem(instrings(M.DiscreteModelTypes, M.model_type)) > 0 ? 1 : 0
+    scalar M.censored_y = nelem(instrings(M.CensoredModelTypes, M.model_type)) > 0 ? 1 : 0
     
     return err
 end function

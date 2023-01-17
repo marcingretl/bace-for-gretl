@@ -17,8 +17,10 @@
 */
 function string BACE_parse (bundle *M,
                             series Y,
-                            string Y_name,
-                            list X_list)
+                            strings Y_names,
+                            list X_list,
+                            int nY[1],
+                            series Y2[null])
     /*
        Function parses given parameters end checks several conditions:
        M				- pointer to the bundle
@@ -27,16 +29,23 @@ function string BACE_parse (bundle *M,
        X_list			- list of given independent variables
        #
        Returns: string err holding the first error found in given dataset or parameters
-       */
+    */
+
     # We setup estimator
     if M.model_type == "linear"
         string M.estimator = "ols"
     else
         string M.estimator = M.model_type
     endif
+
     # Local variables
     scalar k = nelem(X_list) + M.Y_AR_p + (M.with_const > 1)
-    matrix Y_uniq = uniq(Y)
+    if nY == 1
+        matrix Y_uniq = uniq(Y)
+    else
+        matrix Y_uniq = uniq(Y + Y2)
+    endif
+    string Y_name = Y_names[1]
     string err = ""
     string ESTIMATOR = M.estimator
     string tmp_str
@@ -47,6 +56,15 @@ function string BACE_parse (bundle *M,
         k -= 1
         print "Dependent variable was removed from the X list."
     endif
+
+    # We check impossible options for models
+    if ESTIMATOR == "intreg" && M.with_const != 1
+        err = "Interval regression model must include const term"
+        return err
+    elif ESTIMATOR == "intreg" && M.Y_AR_p
+        err = "Interval regression model must not include lagged dependend variable"
+        return err
+    endif    
 
     # We check if given X_list does not include lagged Y
     if M.Y_AR_p > 0
@@ -72,7 +90,11 @@ function string BACE_parse (bundle *M,
         if M.Y_AR_p > 0
             @ESTIMATOR Y Y(-1 to -M.Y_AR_p) X_list const --quiet
         else
-            @ESTIMATOR Y X_list const --quiet
+            if ESTIMATOR == "intreg"
+                intreg Y Y2 X_list const --quiet
+            else
+                @ESTIMATOR Y X_list const --quiet
+            endif            
         endif
         if $ncoeff < k + 1
             X_list = $xlist - const
@@ -91,9 +113,12 @@ function string BACE_parse (bundle *M,
         return err
     endif
 
-    # We check if aplha then 0 in we don't have const (we can't have empty model)
+    # We check if aplha values
     if M.alpha == 0 && M.with_const == 0
-        err = "We cannot have empty initial model (alpha = 0) when we don't have constant"
+        err = "We cannot have empty initial model (alpha=0) when we don't have constant"
+        return err
+    elif M.model_type == "intreg" && M.alpha != 1
+        err = "For interval regression model we must have alpha=1"
         return err
     endif
 
@@ -118,14 +143,23 @@ function string BACE_parse (bundle *M,
 
     # We check if Y variable "is discrete" or "count data" in case of non-OLS model
     if M.limited_y && sum(Y_uniq - int(Y_uniq)) > 0
-        err = sprintf("The dependent variable is not discrete")
+        err = "The dependent variable is not discrete"
     elif M.model_type == "poisson" && (sum(Y_uniq - int(Y_uniq)) > 0 || max(Y) <= 1)
-        err = sprintf("The dependent variable must be count data")
+        err = "The dependent variable must be count data"
+    endif
+
+    # We check if we have more than 1 Y only for intreg
+    if nY > 1 && M.model_type != "intreg"
+        err = sprintf("You cannot specify %d Y variables for %s model", nY, M.model_type)
     endif
 
     series M.Y = Y
     string M.Y_name = Y_name
     matrix M.X_list = X_list
+    if nY == 2
+        series M.Y2 = Y2
+        string M.Y_name2 = Y_names[2]
+    endif
 
     return err
 end function
