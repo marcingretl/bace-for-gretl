@@ -204,7 +204,7 @@ function void BACE_Print (bundle *MODEL)
         printf "\n"
         print "Contingency table (actual in rows, predicted in columns):"
         eval M.contingency
-        printf "Number of cases 'correctly predicted' = %d (%.1f%%)\n", M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
+        printf "Number of cases 'correctly predicted' = %d (accuracy %.1f%%)\n", M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
     endif
 
     # Forecasts
