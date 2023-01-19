@@ -294,7 +294,7 @@ if M.limited_y
   printf &quot;\n&quot;
   print &quot;Contingency table (actual in rows, predicted in columns):&quot;
   eval M.contingency
-  printf &quot;Number of cases 'correctly predicted' = %d (%.1f%%)\n&quot;, M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
+  printf &quot;Number of cases 'correctly predicted' = %d (accuracy %.1f%%)\n&quot;, M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
 endif
 # Forecasts
 if M.Npredict
@@ -1204,6 +1204,7 @@ This function creates BUNDLE holding all BACE information
 */
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
+printf &quot;\n * Modify/correct correlation coeff in case of (E?)BIC.&quot;
 printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot;
 printf &quot;\n * Fix initial model for tobit model when alpha=0.&quot;
 printf &quot;\n * Add checking if Y is discreate if logit/probit/poisson selected.&quot;
@@ -2039,9 +2040,7 @@ loop i=1..nelem(OverloadableKeys) --quiet
   endif
 endloop
 # We set the default Nrep conditional on k
-if k &lt;= 10
-  Nrep = 1000
-elif k &lt;= 15
+if k &lt;= 15
   Nrep = 10000
 elif k &lt;= 19
   Nrep = 100000

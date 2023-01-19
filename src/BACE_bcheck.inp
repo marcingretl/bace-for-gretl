@@ -83,9 +83,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     endloop
 
     # We set the default Nrep conditional on k
-    if k <= 10
-        Nrep = 1000
-    elif k <= 15
+    if k <= 15
         Nrep = 10000
     elif k <= 19
         Nrep = 100000

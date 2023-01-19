@@ -52,6 +52,8 @@ scalar Options["data_trans"] = 0
 scalar Options["bic_type"] = 1
 scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
 scalar Options["binary_threshold"] = 0.5
+scalar Options["low"] = 0
+scalar Options["high"] = NA
 scalar Options["_gui"] = 0	
 \end{lstlisting}
 where \textit{k} stands for the number of independent variables,
@@ -70,8 +72,7 @@ the following formula:
 \begin{equation}
 	\texttt{\lstinline!Nrep!} = \left\{
 	\begin{array}{ccl}
-		10^3 & \mathrm{if} & k \leq 10,\\
-		10^4 & \mathrm{if} & k \in [11;15],\\
+		10^4 & \mathrm{if} & k \leq 15,\\
 		10^5 & \mathrm{if} & k \in [16;19],\\
 		10^6 & \mathrm{if} & k \geq 20,\\
 	\end{array}
