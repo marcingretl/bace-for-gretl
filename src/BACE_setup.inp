@@ -25,6 +25,8 @@ function void BACE_setup (bundle *M, int Norig)
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
     printf "\n * Fix initial model for tobit model when alpha=0."
     printf "\n * Add checking if Y is discreate if logit/probit/poisson selected."
+    printf "\n * Add all possible test/checks/whatever in the case of intreg model."
+    printf "\n * Simplify BACE_initial_model()."
     printf "\n * Add in PDF information about data_trans and bic_type."
     printf "\n * Add in PDF information on dependecies."
     printf "\n * Work on speed."
@@ -119,8 +121,8 @@ function void BACE_setup (bundle *M, int Norig)
     strings M.PriorBasedBic = defarray("EBIC")
     scalar M.Y_censoring = 0 # do we censore Y?
     string M.estimator_opts = "" # options for estimator (command line)
-    matrix M.tobit_n_censored = {}
-    bundle M.tobit_normality_test = null
+    matrix M.n_censored = {}
+    bundle M.normality_test = null
 
     # In case of "out-of-sample" prediction
     if M.Npredict

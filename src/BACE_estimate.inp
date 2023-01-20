@@ -29,6 +29,9 @@ function void BACE_estimate (bundle *M)
 
     # We re-create Y series
     series Y = M.Y
+    if ESTIMATOR == "intreg"
+        series Y2 = M.Y2
+    endif    
 
     # We create list with lagged Y if needed
     if M.Y_AR_p > 0
@@ -59,7 +62,9 @@ function void BACE_estimate (bundle *M)
         # We estimate model
         if M.Y_censoring && ESTIMATOR == "tobit"
             ESTIMATOR_OPTS = M.estimator_opts
-            @ESTIMATOR Y X @ESTIMATOR_OPTS --quiet
+            tobit Y X @ESTIMATOR_OPTS --quiet
+        elif ESTIMATOR == "intreg"
+            intreg Y Y2 X --quiet
         else
             @ESTIMATOR Y X --quiet
         endif
@@ -79,10 +84,9 @@ function void BACE_estimate (bundle *M)
         if M.Npredict
             fcast --out-of-sample --quiet
             M.Yhat_predict = $fcast
-            if !M.limited_y && ESTIMATOR != "tobit"
+            if !M.limited_y && !M.censored_y
                 M.Yhat_predict_var = ($fcse*ols_to_mle_correct).^2 + $fcast.^2
             else
-                eval M.Yhat_predict
                 M.Yhat_predict_var = ones(M.Npredict)*NA
             endif
         endif

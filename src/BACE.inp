@@ -15,17 +15,32 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function bundle BACE (series Y "Dependent variable",
-                      list X_list "List of indenpendent variables (X)",
-                      bundle Options[null])
+function bundle BACE (list Y "Dependent variable(s)",
+      list X_list "List of indenpendent variables (X)",
+      bundle Options[null])
     /*
        Bundle-based to carry out BMA analysis.
        Function returns bundle MODEL with (formatted) results.
     */
     bundle MODEL
-    string Y_name = argname(Y)
-    series @Y_name = Y
     string err
+    series Y1, Y2
+    scalar nY = nelem(Y)
+    scalar Norig = NA
+    
+    if nY == 1
+        string Y_name = varnames(Y)[1]
+        series @Y_name = Y[1]
+        series Y1 = Y[1]
+    elif nY == 2
+        loop i=1..2 --quiet
+            string Y_name = varnames(Y)[i]
+            series @Y_name = Y[i]
+            series Y$i = Y[i]
+        endloop
+    else
+        err = "Too many Y variables (should be either 1 or 2)"
+    endif
 
     if !exists(Options)
         bundle Options
@@ -37,29 +52,31 @@ function bundle BACE (series Y "Dependent variable",
         funcerr "@err !!!"
         return MODEL
     endif
-    
+
     # Data transformation (if needed)
-    if MODEL.data_trans == 1
+    if MODEL["data_trans"] == 1
         X_list = stdize(X_list, -1)
-    elif MODEL.data_trans == 2
+    elif MODEL["data_trans"] == 2
         X_list = stdize(X_list, 0)
     endif
-    
-    # Handling missing values
-    Norig = $nobs
-    if $datatype == 2
-        smpl Y X_list --no-all-missing
-    else
-        smpl Y X_list --no-missing
-    endif    
-    if Norig != $nobs
-        printf "\nThere are missing values in dataset!\n"
-    else
-        Norig = NA
+
+    # Handling missing values    
+    if MODEL["model_type"] != "intreg"
+        Norig = $nobs
+        if $datatype == 2
+            smpl Y X_list --no-all-missing
+        else
+            smpl Y X_list --no-missing
+        endif
+        if Norig != $nobs
+            printf "\nThere are missing values in dataset!\n"
+        else
+            Norig = NA
+        endif
     endif
 
     # Basic parsing and checking
-    err = BACE_parse(&MODEL, Y, Y_name, X_list)
+    err = BACE_parse(&MODEL, Y1, varnames(Y), X_list, nY, Y2)
     if strlen(err) != 0
         if MODEL["_gui"]
             MODEL["err"] = err
@@ -68,16 +85,16 @@ function bundle BACE (series Y "Dependent variable",
         endif
     else
         BACE_setup(&MODEL, Norig)
-        # Setting sample for forecasting
-        if MODEL.Npredict
-            smpl 1 MODEL.last_obs
+        # Setting up sample for forecasting
+        if MODEL["Npredict"]
+            smpl 1 MODEL["last_obs"]
         endif
         BACE_main(&MODEL)
         BACE_summary(&MODEL)
         BACE_Print(&MODEL)
-        if MODEL.do_plot
+        if MODEL["do_plot"]
             BACE_Plot(&MODEL)
-        endif        
+        endif
     endif
 
     set warnings on

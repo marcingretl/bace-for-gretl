@@ -15,8 +15,8 @@ pdfdoc:BACE.pdf
 oprobit_predict </depends>
 <gretl-function name="BACE" type="bundle">
  <params count="3">
-  <param name="Y" type="series">
-<description>Dependent variable</description>
+  <param name="Y" type="list">
+<description>Dependent variable(s)</description>
   </param>
   <param name="X_list" type="list">
 <description>List of indenpendent variables (X)</description>
@@ -28,9 +28,23 @@ Bundle-based to carry out BMA analysis.
 Function returns bundle MODEL with (formatted) results.
 */
 bundle MODEL
-string Y_name = argname(Y)
-series @Y_name = Y
 string err
+series Y1, Y2
+scalar nY = nelem(Y)
+scalar Norig = NA
+if nY == 1
+  string Y_name = varnames(Y)[1]
+  series @Y_name = Y[1]
+  series Y1 = Y[1]
+elif nY == 2
+  loop i=1..2 --quiet
+    string Y_name = varnames(Y)[i]
+    series @Y_name = Y[i]
+    series Y$i = Y[i]
+  endloop
+else
+  err = &quot;Too many Y variables (should be either 1 or 2)&quot;
+endif
 if !exists(Options)
   bundle Options
 endif
@@ -41,25 +55,27 @@ if strlen(err) != 0
   return MODEL
 endif
 # Data transformation (if needed)
-if MODEL.data_trans == 1
+if MODEL[&quot;data_trans&quot;] == 1
   X_list = stdize(X_list, -1)
-elif MODEL.data_trans == 2
+elif MODEL[&quot;data_trans&quot;] == 2
   X_list = stdize(X_list, 0)
 endif
 # Handling missing values
-Norig = $nobs
-if $datatype == 2
-  smpl Y X_list --no-all-missing
-else
-  smpl Y X_list --no-missing
-endif
-if Norig != $nobs
-  printf &quot;\nThere are missing values in dataset!\n&quot;
-else
-  Norig = NA
+if MODEL[&quot;model_type&quot;] != &quot;intreg&quot;
+  Norig = $nobs
+  if $datatype == 2
+    smpl Y X_list --no-all-missing
+  else
+    smpl Y X_list --no-missing
+  endif
+  if Norig != $nobs
+    printf &quot;\nThere are missing values in dataset!\n&quot;
+  else
+    Norig = NA
+  endif
 endif
 # Basic parsing and checking
-err = BACE_parse(&amp;MODEL, Y, Y_name, X_list)
+err = BACE_parse(&amp;MODEL, Y1, varnames(Y), X_list, nY, Y2)
 if strlen(err) != 0
   if MODEL[&quot;_gui&quot;]
     MODEL[&quot;err&quot;] = err
@@ -68,14 +84,14 @@ if strlen(err) != 0
   endif
 else
   BACE_setup(&amp;MODEL, Norig)
-  # Setting sample for forecasting
-  if MODEL.Npredict
-    smpl 1 MODEL.last_obs
+  # Setting up sample for forecasting
+  if MODEL[&quot;Npredict&quot;]
+    smpl 1 MODEL[&quot;last_obs&quot;]
   endif
   BACE_main(&amp;MODEL)
   BACE_summary(&amp;MODEL)
   BACE_Print(&amp;MODEL)
-  if MODEL.do_plot
+  if MODEL[&quot;do_plot&quot;]
     BACE_Plot(&amp;MODEL)
   endif
 endif
@@ -92,12 +108,18 @@ Function prints BACE results.
 */
 scalar avg_model_size
 matrix coeffmat
-string model_type, tmpstr
+string model_type, tmpstr, tmpstr2
 # We make a copy of MODEL
 bundle M = MODEL
+# We set up estimator command
+string ESTIMATOR = M.estimator
 # We re-create Y process
 string Y_name = M.Y_name
 series @Y_name = M.Y
+if ESTIMATOR == &quot;intreg&quot;
+  string Y_name2 = M.Y_name2
+  series @Y_name2 = M.Y2
+endif
 # Do we have Y lags?
 if M.Y_AR_p &gt; 0
   lags M.Y_AR_p ; @Y_name
@@ -106,8 +128,6 @@ endif
 if M.Npredict &gt; 0
   smpl M.first_obs M.last_obs
 endif
-# We set up estimator command
-string ESTIMATOR = M.estimator
 # We set up real prior avg_model_size
 if M.prior_name == &quot;none&quot;
   avg_model_size = NA
@@ -131,8 +151,6 @@ endif
 if ESTIMATOR == &quot;tobit&quot;
   printf &quot;   left bound: %f\n&quot;, M.low
   printf &quot;   right bound: %f\n&quot;, M.high
-  #M.tobit_n_censored = { $model.n_left ; $model.n_right }
-  #M.tobit_normality_test = $model.normality_test
 endif
 printf &quot;Constant type: %s\n&quot;, M.const_type
 printf &quot;Prior: %s\n&quot;, M.prior_name
@@ -165,9 +183,11 @@ endif
 if M.verbosity == 2
   printf &quot;\n&quot;
   print &quot;----------------------------------&quot;
-  if nelem(M.StartModel_b) != 0
+  if nelem(M.StartModel_b)
     if M.limited_y &amp;&amp; M.ordered
       printf &quot;The initial model: ordered %s, dependent variable: %s\n&quot;, ESTIMATOR, M.Y_name
+    elif ESTIMATOR == &quot;intreg&quot;
+      printf &quot;The initial model: %s, Lower limit: %s, Upper limit: %s\n&quot;, ESTIMATOR, M.Y_name, M.Y_name2
     else
       printf &quot;The initial model: %s, dependent variable: %s\n&quot;, ESTIMATOR, M.Y_name
     endif
@@ -185,22 +205,31 @@ if M.verbosity == 2
   else
     printf(&quot;The initial model was empty.\n&quot;)
   endif
-  if ESTIMATOR == &quot;tobit&quot;
-    tmpstr = sprintf(&quot;Left-censored observations: %d&quot;, M.tobit_n_censored[1])
+  if M.censored_y
+    if ESTIMATOR == &quot;tobit&quot;
+      tmpstr2 = &quot;censored&quot;
+    elif ESTIMATOR == &quot;intreg&quot;
+      tmpstr2 = &quot;unbounded&quot;
+    endif
+    tmpstr = sprintf(&quot;Left-%s observations: %d&quot;, tmpstr2, M.n_censored[1])
     if M.Y_censoring &amp;&amp; !isnan(M.low)
       tmpstr = sprintf(&quot;%s (%s &lt;= %f)&quot;, tmpstr, M.Y_name, M.low)
     endif
     printf &quot;%s\n&quot;, tmpstr
-    tmpstr = sprintf(&quot;Right-censored observations: %d&quot;, M.tobit_n_censored[2])
+    tmpstr = sprintf(&quot;Right-%s observations: %d&quot;, tmpstr2, M.n_censored[2])
     if M.Y_censoring &amp;&amp; !isnan(M.high)
       tmpstr = sprintf(&quot;%s (%s &gt;= %f)&quot;, tmpstr, M.Y_name, M.high)
     endif
     printf &quot;%s\n&quot;, tmpstr
-    if nelem(M.tobit_normality_test)
+    if ESTIMATOR == &quot;intreg&quot;
+      printf &quot;Bounded observations: %d\n&quot;, M.n_censored[3]
+      printf &quot;Point observations: %d\n&quot;, M.n_censored[4]
+    endif
+    if nelem(M.normality_test)
       printf &quot;\nTest for normality of residual -\n&quot;
       printf &quot;  Null hypothesis: error is normally distributed\n&quot;
-      printf &quot;  Test statistic: Chi-square(%d) = %f\n&quot;, M.tobit_normality_test[&quot;dfn&quot;], M.tobit_normality_test[&quot;test&quot;]
-      printf &quot;  with p-value = %f\n&quot;, M.tobit_normality_test[&quot;pvalue&quot;]
+      printf &quot;  Test statistic: Chi-square(%d) = %f\n&quot;, M.normality_test[&quot;dfn&quot;], M.normality_test[&quot;test&quot;]
+      printf &quot;  with p-value = %f\n&quot;, M.normality_test[&quot;pvalue&quot;]
     endif
   endif
 endif
@@ -268,7 +297,7 @@ if M.limited_y
   printf &quot;Number of cases 'correctly predicted' = %d (accuracy %.1f%%)\n&quot;, M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
 endif
 # Forecasts
-if M.Npredict &gt; 0
+if M.Npredict
   printf &quot;\n&quot;
   print &quot;----------------------------------&quot;
   printf &quot;\n&quot;
@@ -586,11 +615,13 @@ return RES
 </code>
 </gretl-function>
 <gretl-function name="BACE_parse" type="string" private="1">
- <params count="4">
+ <params count="6">
   <param name="M" type="bundleref"/>
   <param name="Y" type="series"/>
-  <param name="Y_name" type="string"/>
+  <param name="Y_names" type="strings"/>
   <param name="X_list" type="list"/>
+  <param name="nY" type="int" default="1"/>
+  <param name="Y2" type="series" optional="true"/>
  </params>
 <code>/*
 Function parses given parameters end checks several conditions:
@@ -609,7 +640,12 @@ else
 endif
 # Local variables
 scalar k = nelem(X_list) + M.Y_AR_p + (M.with_const &gt; 1)
-matrix Y_uniq = uniq(Y)
+if nY == 1
+  matrix Y_uniq = uniq(Y)
+else
+  matrix Y_uniq = uniq(Y + Y2)
+endif
+string Y_name = Y_names[1]
 string err = &quot;&quot;
 string ESTIMATOR = M.estimator
 string tmp_str
@@ -618,6 +654,14 @@ if inlist(X_list, Y_name) != 0
   X_list -= X_list[inlist(X_list, Y_name)]
   k -= 1
   print &quot;Dependent variable was removed from the X list.&quot;
+endif
+# We check impossible options for models
+if ESTIMATOR == &quot;intreg&quot; &amp;&amp; M.with_const != 1
+  err = &quot;Interval regression model must include const term&quot;
+  return err
+elif ESTIMATOR == &quot;intreg&quot; &amp;&amp; M.Y_AR_p
+  err = &quot;Interval regression model must not include lagged dependend variable&quot;
+  return err
 endif
 # We check if given X_list does not include lagged Y
 if M.Y_AR_p &gt; 0
@@ -641,7 +685,11 @@ if nelem(X_list) &gt; 0
   if M.Y_AR_p &gt; 0
     @ESTIMATOR Y Y(-1 to -M.Y_AR_p) X_list const --quiet
   else
-    @ESTIMATOR Y X_list const --quiet
+    if ESTIMATOR == &quot;intreg&quot;
+      intreg Y Y2 X_list const --quiet
+    else
+      @ESTIMATOR Y X_list const --quiet
+    endif
   endif
   if $ncoeff &lt; k + 1
     X_list = $xlist - const
@@ -658,9 +706,12 @@ if M.avg_model_size &lt;= 0 || M.avg_model_size &gt;= k
   err = &quot;Average model size should be greater than 0 and lower than K&quot;
   return err
 endif
-# We check if aplha then 0 in we don't have const (we can't have empty model)
+# We check if aplha values
 if M.alpha == 0 &amp;&amp; M.with_const == 0
-  err = &quot;We cannot have empty initial model (alpha = 0) when we don't have constant&quot;
+  err = &quot;We cannot have empty initial model (alpha=0) when we don't have constant&quot;
+  return err
+elif M.model_type == &quot;intreg&quot; &amp;&amp; M.alpha != 1
+  err = &quot;For interval regression model we must have alpha=1&quot;
   return err
 endif
 # We check if number of models in ranking is not greater than 2^K (model space)
@@ -682,13 +733,21 @@ if M.Y_AR_p &gt; 0 &amp;&amp; (M.model_type != &quot;linear&quot; || $datatype !
 endif
 # We check if Y variable &quot;is discrete&quot; or &quot;count data&quot; in case of non-OLS model
 if M.limited_y &amp;&amp; sum(Y_uniq - int(Y_uniq)) &gt; 0
-  err = sprintf(&quot;The dependent variable is not discrete&quot;)
+  err = &quot;The dependent variable is not discrete&quot;
 elif M.model_type == &quot;poisson&quot; &amp;&amp; (sum(Y_uniq - int(Y_uniq)) &gt; 0 || max(Y) &lt;= 1)
-  err = sprintf(&quot;The dependent variable must be count data&quot;)
+  err = &quot;The dependent variable must be count data&quot;
+endif
+# We check if we have more than 1 Y only for intreg
+if nY &gt; 1 &amp;&amp; M.model_type != &quot;intreg&quot;
+  err = sprintf(&quot;You cannot specify %d Y variables for %s model&quot;, nY, M.model_type)
 endif
 series M.Y = Y
 string M.Y_name = Y_name
 matrix M.X_list = X_list
+if nY == 2
+  series M.Y2 = Y2
+  string M.Y_name2 = Y_names[2]
+endif
 return err
 </code>
 </gretl-function>
@@ -731,7 +790,16 @@ if M.Npredict
     endif
   endif
 endif
-series YyY = M.Y
+# We re-create Y(s) and X-s
+if inbundle(M, &quot;Y2&quot;)
+  string Y1_name = M.Y_name
+  string Y2_name = M.Y_name2
+  series @Y1_name = M.Y
+  series @Y2_name = M.Y2
+  list YyY = @Y1_name @Y2_name
+else
+  series YyY = M.Y
+endif
 if M.Y_AR_p &gt; 0
   lags M.Y_AR_p ; YyY
 endif
@@ -745,7 +813,7 @@ if M.alpha == 0 # Empty model (const only)
   else
     M.k_new = 0
   endif
-elif M.alpha == 1	# Trully random model
+elif M.alpha == 1 # Trully random model
   M.k_new = randint(0, max_k)
   matrix last_tmp
   if M.k_new &gt; 0
@@ -789,12 +857,22 @@ elif M.alpha == 1	# Trully random model
       endif
       M.StartModel_b = $model
       strings M.StartModel_xnames = varnames($xlist)
-      if ESTIMATOR == &quot;tobit&quot;
-        M.tobit_n_censored = { $model.n_left ; $model.n_right }
-        if inbundle($model, &quot;normality_test&quot;)
-          M.tobit_normality_test = $model.normality_test
-        endif
-      endif
+    endif
+  endif
+  if M.censored_y
+    if M.k_new == max_k
+      @ESTIMATOR YyY const last @ESTIMATOR_OPTS
+    elif M.k_new == 0 &amp;&amp; ESTIMATOR == &quot;intreg&quot;
+      intreg YyY const @ESTIMATOR_OPTS
+    endif
+    M.StartModel_b = $model
+    strings M.StartModel_xnames = varnames($xlist)
+    M.n_censored = { $model.n_left ; $model.n_right }
+    if ESTIMATOR == &quot;intreg&quot;
+      M.n_censored = M.n_censored | { $model.n_both ; $model.n_point }
+    endif
+    if inbundle($model, &quot;normality_test&quot;)
+      M.normality_test = $model.normality_test
     endif
   endif
 else
@@ -817,9 +895,9 @@ else
   M.StartModel_b = $model
   strings M.StartModel_xnames = varnames($xlist)
   if ESTIMATOR == &quot;tobit&quot;
-    M.tobit_n_censored = { $model.n_left ; $model.n_right }
+    M.n_censored = { $model.n_left ; $model.n_right }
     if inbundle($model, &quot;normality_test&quot;)
-      M.tobit_normality_test = $model.normality_test
+      M.normality_test = $model.normality_test
     endif
   endif
 endif
@@ -1130,6 +1208,8 @@ printf &quot;\n * Modify/correct correlation coeff in case of (E?)BIC.&quot;
 printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot;
 printf &quot;\n * Fix initial model for tobit model when alpha=0.&quot;
 printf &quot;\n * Add checking if Y is discreate if logit/probit/poisson selected.&quot;
+printf &quot;\n * Add all possible test/checks/whatever in the case of intreg model.&quot;
+printf &quot;\n * Simplify BACE_initial_model().&quot;
 printf &quot;\n * Add in PDF information about data_trans and bic_type.&quot;
 printf &quot;\n * Add in PDF information on dependecies.&quot;
 printf &quot;\n * Work on speed.&quot;
@@ -1219,8 +1299,8 @@ endif
 strings M.PriorBasedBic = defarray(&quot;EBIC&quot;)
 scalar M.Y_censoring = 0 # do we censore Y?
 string M.estimator_opts = &quot;&quot; # options for estimator (command line)
-matrix M.tobit_n_censored = {}
-bundle M.tobit_normality_test = null
+matrix M.n_censored = {}
+bundle M.normality_test = null
 # In case of &quot;out-of-sample&quot; prediction
 if M.Npredict
   scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
@@ -1405,6 +1485,9 @@ scalar ols_to_mle_correct = 1
 string ESTIMATOR = M.estimator
 # We re-create Y series
 series Y = M.Y
+if ESTIMATOR == &quot;intreg&quot;
+  series Y2 = M.Y2
+endif
 # We create list with lagged Y if needed
 if M.Y_AR_p &gt; 0
   mod_struct_new_Y_lags = M.mod_struct_new[1:M.Y_AR_p]
@@ -1431,7 +1514,9 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
   # We estimate model
   if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
     ESTIMATOR_OPTS = M.estimator_opts
-    @ESTIMATOR Y X @ESTIMATOR_OPTS --quiet
+    tobit Y X @ESTIMATOR_OPTS --quiet
+  elif ESTIMATOR == &quot;intreg&quot;
+    intreg Y Y2 X --quiet
   else
     @ESTIMATOR Y X --quiet
   endif
@@ -1450,10 +1535,9 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
   if M.Npredict
     fcast --out-of-sample --quiet
     M.Yhat_predict = $fcast
-    if !M.limited_y &amp;&amp; ESTIMATOR != &quot;tobit&quot;
+    if !M.limited_y &amp;&amp; !M.censored_y
       M.Yhat_predict_var = ($fcse*ols_to_mle_correct).^2 + $fcast.^2
     else
-      eval M.Yhat_predict
       M.Yhat_predict_var = ones(M.Npredict)*NA
     endif
   endif
@@ -1903,13 +1987,13 @@ k - number of independent variables
 string err = &quot;&quot;
 string separator = &quot;, &quot;
 scalar avg_model_size_tmp = 0
-scalar err2, arg_val, do_plot_tmp, do_show_progress
+scalar err2, arg_val, do_plot_tmp, do_show_progress, alpha_tmp
 bundle Options, Overloadable
 string arg_name, parameter_value
 strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
-strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;)
+strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;)
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
 strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;)
 strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
@@ -1927,7 +2011,7 @@ Overloadable[&quot;model_prior&quot;] = _(none=0, binomial=1, betabinomial=2, va
 Overloadable[&quot;with_const&quot;] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
 Overloadable[&quot;do_joint&quot;] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid=&quot;none, DW1, DW2, LS1, LS2, SM, YQ, MYQ&quot;)
 Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
-Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, valid=tolower(flatten(ModelTypes, separator)))
+Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, valid=tolower(flatten(ModelTypes, separator)))
 # We look for overloaded parameters and convert them into integers
 OverloadableKeys = getkeys(Overloadable)
 loop i=1..nelem(OverloadableKeys) --quiet
@@ -1977,12 +2061,18 @@ else
   with_const_tmp = UserOpts[&quot;with_const&quot;]
   avg_model_size_tmp = (k + Y_AR_p_tmp + (with_const_tmp == 2)) / 2
 endif
+# We set default alpha
+if inbundle(UserOpts, &quot;model_type&quot;) &amp;&amp; UserOpts[&quot;model_type&quot;] == &quot;intreg&quot;
+  alpha_tmp = 1.0
+else
+  alpha_tmp = 0.6
+endif
 # Template bundle with default values
 scalar Options[&quot;Y_AR_p&quot;] = 0
 scalar Options[&quot;with_const&quot;] = 1
 scalar Options[&quot;model_prior&quot;] = 2
 scalar Options[&quot;avg_model_size&quot;] = avg_model_size_tmp
-scalar Options[&quot;alpha&quot;] = 0.6
+scalar Options[&quot;alpha&quot;] = alpha_tmp
 scalar Options[&quot;Nrank&quot;] = xmin(2^(k+Y_AR_p_tmp-1), 40)
 scalar Options[&quot;do_joint&quot;] = 0
 scalar Options[&quot;Npredict&quot;] = 0
@@ -2066,7 +2156,9 @@ M.ModelPriorTypes = ModelPriorTypes
 M.ConstTypes = ConstTypes
 M.DataTransTypes = DataTransTypes
 strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable only!
+strings M.CensoredModelTypes = M.ModelTypes[5:6]
 scalar M.limited_y = nelem(instrings(M.DiscreteModelTypes, M.model_type)) &gt; 0 ? 1 : 0
+scalar M.censored_y = nelem(instrings(M.CensoredModelTypes, M.model_type)) &gt; 0 ? 1 : 0
 return err
 </code>
 </gretl-function>

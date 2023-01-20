@@ -55,7 +55,17 @@ function void BACE_initial_model (bundle *M)
             endif
         endif
     endif
-    series YyY = M.Y
+
+    # We re-create Y(s) and X-s
+    if inbundle(M, "Y2")
+        string Y1_name = M.Y_name
+        string Y2_name = M.Y_name2
+        series @Y1_name = M.Y
+        series @Y2_name = M.Y2
+        list YyY = @Y1_name @Y2_name
+    else
+        series YyY = M.Y
+    endif
     if M.Y_AR_p > 0
         lags M.Y_AR_p ; YyY
     endif
@@ -70,7 +80,7 @@ function void BACE_initial_model (bundle *M)
         else
             M.k_new = 0
         endif
-    elif M.alpha == 1	# Trully random model
+    elif M.alpha == 1 # Trully random model
         M.k_new = randint(0, max_k)
         matrix last_tmp
         if M.k_new > 0
@@ -114,12 +124,22 @@ function void BACE_initial_model (bundle *M)
                 endif
                 M.StartModel_b = $model
                 strings M.StartModel_xnames = varnames($xlist)
-                if ESTIMATOR == "tobit"
-                    M.tobit_n_censored = { $model.n_left ; $model.n_right }
-                    if inbundle($model, "normality_test")
-                        M.tobit_normality_test = $model.normality_test
-                    endif
-                endif
+            endif
+        endif
+        if M.censored_y
+            if M.k_new == max_k
+                @ESTIMATOR YyY const last @ESTIMATOR_OPTS
+            elif M.k_new == 0 && ESTIMATOR == "intreg"
+                intreg YyY const @ESTIMATOR_OPTS
+            endif
+            M.StartModel_b = $model
+            strings M.StartModel_xnames = varnames($xlist)
+            M.n_censored = { $model.n_left ; $model.n_right }
+            if ESTIMATOR == "intreg"
+                M.n_censored = M.n_censored | { $model.n_both ; $model.n_point }
+            endif
+            if inbundle($model, "normality_test")
+                M.normality_test = $model.normality_test
             endif
         endif
     else
@@ -142,9 +162,9 @@ function void BACE_initial_model (bundle *M)
         M.StartModel_b = $model
         strings M.StartModel_xnames = varnames($xlist)
         if ESTIMATOR == "tobit"
-            M.tobit_n_censored = { $model.n_left ; $model.n_right }
+            M.n_censored = { $model.n_left ; $model.n_right }
             if inbundle($model, "normality_test")
-                M.tobit_normality_test = $model.normality_test
+                M.normality_test = $model.normality_test
             endif
         endif
     endif
