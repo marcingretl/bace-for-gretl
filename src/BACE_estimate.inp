@@ -20,7 +20,7 @@ function void BACE_estimate (bundle *M)
    This function estimates and forecasts drawn models.
     */
     matrix mod_struct_new, mod_struct_new_Y_lags, vcv
-    list Y_lags    
+    list Y_lags
     string ESTIMATOR_OPTS
     scalar ols_to_mle_correct = 1
 
@@ -31,7 +31,7 @@ function void BACE_estimate (bundle *M)
     series Y = M.Y
     if ESTIMATOR == "intreg"
         series Y2 = M.Y2
-    endif    
+    endif
 
     # We create list with lagged Y if needed
     if M.Y_AR_p > 0
@@ -54,7 +54,11 @@ function void BACE_estimate (bundle *M)
 
     # Do we need const?
     if M.with_const == 1
-        X += const
+        if ESTIMATOR == "zip"
+            X = const X
+        else
+            X += const
+        endif
     endif
 
     # We estimate current model
@@ -65,6 +69,13 @@ function void BACE_estimate (bundle *M)
             tobit Y X @ESTIMATOR_OPTS --quiet
         elif ESTIMATOR == "intreg"
             intreg Y Y2 X --quiet
+        elif ESTIMATOR == "zip"
+            scalar alpha = mean(Y==0)/2
+            matrix coef = zeros(nelem(X), 1)
+            coef[1] = mean(Y) / (1-alpha)
+            mle ll = ln_zip_prob(&Y, X, &coef, &alpha)
+                params coef alpha
+            end mle --hessian --quiet
         else
             @ESTIMATOR Y X --quiet
         endif
@@ -76,6 +87,13 @@ function void BACE_estimate (bundle *M)
             M.bhat_tmp = $coeff
             M.bvar_tmp = $stderr.^2
         endif
+
+        # Modificiation in case of ZIP model
+        if ESTIMATOR == "zip"
+            M.bhat_tmp = M.bhat_tmp[1:end-1]
+            M.bvar_tmp = M.bvar_tmp[1:end-1]
+        endif
+
         # OLS to MLE correction
         if ESTIMATOR == "ols"
             ols_to_mle_correct = $df/$nobs

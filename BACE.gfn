@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-01-17</date>
+<date>2023-01-24</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -649,6 +649,9 @@ string Y_name = Y_names[1]
 string err = &quot;&quot;
 string ESTIMATOR = M.estimator
 string tmp_str
+if ESTIMATOR == &quot;zip&quot;
+  ESTIMATOR = &quot;ols&quot;
+endif
 # We check if given X_list does not include Y
 if inlist(X_list, Y_name) != 0
   X_list -= X_list[inlist(X_list, Y_name)]
@@ -777,6 +780,11 @@ endif
 if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
   ESTIMATOR_OPTS = sprintf(&quot;%s %s&quot;, M.estimator_opts, ESTIMATOR_OPTS)
 endif
+# For ZIP model we use OLS
+if ESTIMATOR == &quot;zip&quot;
+  ESTIMATOR = &quot;ols&quot;
+endif
+eval ESTIMATOR
 # Starting values of the local variables
 if M.Npredict
   if M.Y_AR_p == 0
@@ -1507,7 +1515,11 @@ if nelem(mod_struct_new_Y_lags) &gt; 0
 endif
 # Do we need const?
 if M.with_const == 1
-  X += const
+  if ESTIMATOR == &quot;zip&quot;
+    X = const X
+  else
+    X += const
+  endif
 endif
 # We estimate current model
 if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
@@ -1517,6 +1529,13 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     tobit Y X @ESTIMATOR_OPTS --quiet
   elif ESTIMATOR == &quot;intreg&quot;
     intreg Y Y2 X --quiet
+  elif ESTIMATOR == &quot;zip&quot;
+    scalar alpha = mean(Y==0)/2
+    matrix coef = zeros(nelem(X), 1)
+    coef[1] = mean(Y) / (1-alpha)
+    mle ll = ln_zip_prob(&amp;Y, X, &amp;coef, &amp;alpha)
+      params coef alpha
+    end mle --hessian --quiet
   else
     @ESTIMATOR Y X --quiet
   endif
@@ -1526,6 +1545,11 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
   else
     M.bhat_tmp = $coeff
     M.bvar_tmp = $stderr.^2
+  endif
+  # Modificiation in case of ZIP model
+  if ESTIMATOR == &quot;zip&quot;
+    M.bhat_tmp = M.bhat_tmp[1:end-1]
+    M.bvar_tmp = M.bvar_tmp[1:end-1]
   endif
   # OLS to MLE correction
   if ESTIMATOR == &quot;ols&quot;
@@ -1993,7 +2017,7 @@ string arg_name, parameter_value
 strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
-strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;)
+strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;, &quot;zip&quot;)
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
 strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;)
 strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
@@ -2011,7 +2035,7 @@ Overloadable[&quot;model_prior&quot;] = _(none=0, binomial=1, betabinomial=2, va
 Overloadable[&quot;with_const&quot;] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
 Overloadable[&quot;do_joint&quot;] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid=&quot;none, DW1, DW2, LS1, LS2, SM, YQ, MYQ&quot;)
 Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
-Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, valid=tolower(flatten(ModelTypes, separator)))
+Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, zip=7, valid=tolower(flatten(ModelTypes, separator)))
 # We look for overloaded parameters and convert them into integers
 OverloadableKeys = getkeys(Overloadable)
 loop i=1..nelem(OverloadableKeys) --quiet
@@ -2366,6 +2390,33 @@ elif dist == &quot;Beta-Binomial&quot;
   Exp = n*a/(a+x)
 endif
 return Exp/(1-P0) - avg
+</code>
+</gretl-function>
+<gretl-function name="ln_poi_prob" type="series" private="1">
+ <params count="3">
+  <param name="y" type="series"/>
+  <param name="X" type="list"/>
+  <param name="beta" type="matrixref"/>
+ </params>
+<code>series xb = lincomb(X, beta)
+return -exp(xb) + y*xb - lngamma(y+1)
+</code>
+</gretl-function>
+<gretl-function name="ln_zip_prob" type="series" private="1">
+ <params count="4">
+  <param name="y" type="seriesref"/>
+  <param name="X" type="list"/>
+  <param name="beta" type="matrixref"/>
+  <param name="p0" type="scalarref"/>
+ </params>
+<code># check if the probability is in [0,1]; otherwise, return NA
+if p0 &gt; 1 || p0 &lt; 0
+  series ret = NA
+else
+  series ret = ln_poi_prob(y, X, &amp;beta) + log(1-p0)
+  series ret = y==0 ? log(p0 + exp(ret)) : ret
+endif
+return ret
 </code>
 </gretl-function>
 <sample-script filename="examples/BACE_sample.inp">
