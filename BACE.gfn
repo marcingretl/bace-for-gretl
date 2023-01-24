@@ -780,9 +780,9 @@ endif
 if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
   ESTIMATOR_OPTS = sprintf(&quot;%s %s&quot;, M.estimator_opts, ESTIMATOR_OPTS)
 endif
-# For ZIP model we use OLS
+# For ZIP model we use poisson
 if ESTIMATOR == &quot;zip&quot;
-  ESTIMATOR = &quot;ols&quot;
+  ESTIMATOR = &quot;poisson&quot;
 endif
 eval ESTIMATOR
 # Starting values of the local variables
@@ -1218,6 +1218,9 @@ printf &quot;\n * Fix initial model for tobit model when alpha=0.&quot;
 printf &quot;\n * Add checking if Y is discreate if logit/probit/poisson selected.&quot;
 printf &quot;\n * Add all possible test/checks/whatever in the case of intreg model.&quot;
 printf &quot;\n * Simplify BACE_initial_model().&quot;
+printf &quot;\n * Simplify 'with_const' condition for X list in BACE_estimate().&quot;
+printf &quot;\n * Fix initial model for ZIP.&quot;
+printf &quot;\n * Add checks for ZIP.&quot;
 printf &quot;\n * Add in PDF information about data_trans and bic_type.&quot;
 printf &quot;\n * Add in PDF information on dependecies.&quot;
 printf &quot;\n * Work on speed.&quot;
@@ -1531,10 +1534,10 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     intreg Y Y2 X --quiet
   elif ESTIMATOR == &quot;zip&quot;
     scalar alpha = mean(Y==0)/2
-    matrix coef = zeros(nelem(X), 1)
-    coef[1] = mean(Y) / (1-alpha)
-    mle ll = ln_zip_prob(&amp;Y, X, &amp;coef, &amp;alpha)
-      params coef alpha
+    matrix coeff = zeros(nelem(X), 1)
+    coeff[1] = mean(Y) / (1-alpha)
+    mle ll = BACE_ln_zip_prob(&amp;Y, X, &amp;coeff, &amp;alpha)
+      params coeff alpha
     end mle --hessian --quiet
   else
     @ESTIMATOR Y X --quiet
@@ -1546,7 +1549,7 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     M.bhat_tmp = $coeff
     M.bvar_tmp = $stderr.^2
   endif
-  # Modificiation in case of ZIP model
+  # Modification in case of ZIP model
   if ESTIMATOR == &quot;zip&quot;
     M.bhat_tmp = M.bhat_tmp[1:end-1]
     M.bvar_tmp = M.bvar_tmp[1:end-1]
@@ -2392,7 +2395,7 @@ endif
 return Exp/(1-P0) - avg
 </code>
 </gretl-function>
-<gretl-function name="ln_poi_prob" type="series" private="1">
+<gretl-function name="BACE_ln_poi_prob" type="series" private="1">
  <params count="3">
   <param name="y" type="series"/>
   <param name="X" type="list"/>
@@ -2402,7 +2405,7 @@ return Exp/(1-P0) - avg
 return -exp(xb) + y*xb - lngamma(y+1)
 </code>
 </gretl-function>
-<gretl-function name="ln_zip_prob" type="series" private="1">
+<gretl-function name="BACE_ln_zip_prob" type="series" private="1">
  <params count="4">
   <param name="y" type="seriesref"/>
   <param name="X" type="list"/>
@@ -2413,7 +2416,7 @@ return -exp(xb) + y*xb - lngamma(y+1)
 if p0 &gt; 1 || p0 &lt; 0
   series ret = NA
 else
-  series ret = ln_poi_prob(y, X, &amp;beta) + log(1-p0)
+  series ret = BACE_ln_poi_prob(y, X, &amp;beta) + log(1-p0)
   series ret = y==0 ? log(p0 + exp(ret)) : ret
 endif
 return ret
