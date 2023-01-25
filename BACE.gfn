@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-01-17</date>
+<date>2023-01-25</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -265,6 +265,8 @@ else
   printf &quot;%15f&quot;, Post_Results
   if M.limited_y &amp;&amp; M.ordered
     printf &quot;\n%15f&quot;, M.cuts_avg
+  elif M.model_type == &quot;zip&quot;
+    printf &quot;\n%15f&quot;, M.alpha_avg
   endif
 endif
 printf &quot;\n&quot;
@@ -379,6 +381,9 @@ if M.verbosity == 2
         if M.limited_y &amp;&amp; M.ordered
           coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
           Xnames += M.cuts_names
+        elif M.model_type == &quot;zip&quot;
+          coeffmat = coeffmat | M.mod_rank_alpha_estimates[i]
+          Xnames += defarray(&quot;alpha&quot;)
         endif
         modprint coeffmat Xnames
       endif
@@ -537,10 +542,10 @@ endif
 </gretl-function>
 <gretl-function name="BACE_GUI" type="bundle" pkg-role="gui-main">
  <params count="12">
-  <param name="model_type" type="int" min="1" max="5" default="1">
+  <param name="model_type" type="int" min="1" max="6" default="1">
 <description>Model type</description>
-<labels count="5">
-"logit (including ordered)" "probit (including ordered)" "poisson" "tobit" "linear" </labels>
+<labels count="6">
+"logit (including ordered)" "probit (including ordered)" "poisson" "tobit" "zip" "linear" </labels>
   </param>
   <param name="Y" type="series">
 <description>Dependent variable</description>
@@ -592,7 +597,7 @@ Function is a wrapper to bundle-based BACE() interface.
 bundle Options, RES
 string err
 # Mapping GUI model_types indexes to strings
-strings ModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;linear&quot;)
+strings ModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;zip&quot;, &quot;linear&quot;)
 string Y_name = argname(Y)
 series @Y_name = Y
 scalar Options[&quot;Y_AR_p&quot;] = Y_AR_p
@@ -649,6 +654,9 @@ string Y_name = Y_names[1]
 string err = &quot;&quot;
 string ESTIMATOR = M.estimator
 string tmp_str
+if ESTIMATOR == &quot;zip&quot;
+  ESTIMATOR = &quot;ols&quot;
+endif
 # We check if given X_list does not include Y
 if inlist(X_list, Y_name) != 0
   X_list -= X_list[inlist(X_list, Y_name)]
@@ -777,6 +785,11 @@ endif
 if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
   ESTIMATOR_OPTS = sprintf(&quot;%s %s&quot;, M.estimator_opts, ESTIMATOR_OPTS)
 endif
+# For ZIP model we use poisson
+if ESTIMATOR == &quot;zip&quot;
+  ESTIMATOR = &quot;poisson&quot;
+endif
+eval ESTIMATOR
 # Starting values of the local variables
 if M.Npredict
   if M.Y_AR_p == 0
@@ -991,6 +1004,9 @@ if M.limited_y
     M.cutshat_avg = M.cutshat_avg / NORM
     M.cutsvar_avg = M.cutsvar_avg / NORM
   endif
+elif M.model_type == &quot;zip&quot;
+  M.alphahat_avg = M.alphahat_avg / NORM
+  M.alphavar_avg = M.alphavar_avg / NORM
 endif
 # Average model size (including matrix for plot)
 M.mod_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,2])
@@ -1099,6 +1115,12 @@ if M.limited_y &amp;&amp; M.ordered
   title = defarray(&quot;Mean&quot;, &quot;Std.Dev.&quot;)
   cnameset(M.cuts_avg, title)
   rnameset(M.cuts_avg, M.cuts_names)
+elif M.model_type == &quot;zip&quot;
+  matrix bvar = sqrt(M.alphavar_avg - M.alphahat_avg.^2)
+  matrix M.alpha_avg = M.alphahat_avg ~ bvar
+  title = defarray(&quot;Mean&quot;, &quot;Std.Dev.&quot;)
+  cnameset(M.alpha_avg, title)
+  rnameset(M.alpha_avg, &quot;alpha&quot;)
 endif
 if M.limited_y
   if nelem(instrings(M.DiscreteModelTypes[1:2], M.model_type))
@@ -1209,7 +1231,10 @@ printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot
 printf &quot;\n * Fix initial model for tobit model when alpha=0.&quot;
 printf &quot;\n * Add checking if Y is discreate if logit/probit/poisson selected.&quot;
 printf &quot;\n * Add all possible test/checks/whatever in the case of intreg model.&quot;
+printf &quot;\n * Add all possible test/checks/whatever in the case of fix model.&quot;
 printf &quot;\n * Simplify BACE_initial_model().&quot;
+printf &quot;\n * Simplify 'with_const' condition for X list in BACE_estimate().&quot;
+printf &quot;\n * Fix initial model for ZIP.&quot;
 printf &quot;\n * Add in PDF information about data_trans and bic_type.&quot;
 printf &quot;\n * Add in PDF information on dependecies.&quot;
 printf &quot;\n * Work on speed.&quot;
@@ -1433,6 +1458,14 @@ if !(M.low == 0 &amp;&amp; isnan(M.high))
   endif
   M.Y_censoring = 1
 endif
+# Zero inflated Poisson
+if M.model_type == &quot;zip&quot;
+  scalar M.zip_alpha = mean(Y==0) / 2
+  scalar M.alphahat_avg = NA
+  scalar M.alphavar_avg = NA
+  matrix M.alpha_avg = NA
+  matrices M.mod_rank_alpha_estimates = array(M.Nrank) # alpha estimates for models in ranking
+endif
 # Verbosity setting
 if M.verbosity == 1
   set warnings off
@@ -1477,9 +1510,10 @@ flush
 <code>/*
 This function estimates and forecasts drawn models.
 */
-matrix mod_struct_new, mod_struct_new_Y_lags, vcv
+matrix mod_struct_new, mod_struct_new_Y_lags, vcv, coeff
 list Y_lags
 string ESTIMATOR_OPTS
+scalar alpha
 scalar ols_to_mle_correct = 1
 # We set up estimator command
 string ESTIMATOR = M.estimator
@@ -1507,7 +1541,7 @@ if nelem(mod_struct_new_Y_lags) &gt; 0
 endif
 # Do we need const?
 if M.with_const == 1
-  X += const
+  X = const X
 endif
 # We estimate current model
 if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
@@ -1517,6 +1551,13 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     tobit Y X @ESTIMATOR_OPTS --quiet
   elif ESTIMATOR == &quot;intreg&quot;
     intreg Y Y2 X --quiet
+  elif ESTIMATOR == &quot;zip&quot;
+    alpha = M.zip_alpha
+    coeff = zeros(nelem(X), 1)
+    coeff[1] = mean(Y) / (1-alpha)
+    mle ll = BACE_ln_zip_prob(&amp;Y, X, &amp;coeff, &amp;alpha)
+      params coeff alpha
+    end mle --hessian --quiet
   else
     @ESTIMATOR Y X --quiet
   endif
@@ -1584,7 +1625,7 @@ Function collects results from MC3 experiment.
 */
 BACE_print_status(&quot;Collecting results&quot;, 0)
 matrix idx, var_idx, bhat, mod_struct, models_probs
-matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank
+matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank, alpha_estimates, alpha_estimates_rank
 scalar nr, mod_struct_sum
 scalar weight = 0
 if M.with_const == 1
@@ -1609,6 +1650,9 @@ if M.limited_y
     matrix cutshat_avg = zeros(M.cuts)
     matrix cutsvar_avg = zeros(M.cuts)
   endif
+elif M.model_type == &quot;zip&quot;
+  scalar alphahat_avg = 0
+  scalar alphavar_avg = 0
 endif
 # We set the number of visited models
 M.post_n_models = nelem(known_models)
@@ -1638,6 +1682,16 @@ if M.limited_y
       endif
     endloop
   endif
+elif M.model_type == &quot;zip&quot;
+  alpha_estimates = array(nelem(models_counter))
+  loop i=1..nelem(models_counter) --quiet
+    alpha_estimates[i] = models_estimates[i][end,]
+    if rows(models_estimates[i]) &gt; 1
+      models_estimates[i] = models_estimates[i][1:end-1,]
+    else
+      models_estimates[i] = {}
+    endif
+  endloop
 endif
 # Models size cumulative distribution
 models_probs = mreverse(msortby(models_counter ~ idx ~ seq(1, M.post_n_models_accepted)', 1))
@@ -1651,6 +1705,8 @@ models_structure_rank = models_structure[models_probs[,3]]
 models_estimates_rank = models_estimates[models_probs[,3]]
 if M.limited_y &amp;&amp; M.ordered
   cuts_estimates_rank = cuts_estimates[models_probs[,3]]
+elif M.model_type == &quot;zip&quot;
+  alpha_estimates_rank = alpha_estimates[models_probs[,3]]
 endif
 # We restore estimates for models in ranking
 loop i=1..M.Nrank --quiet
@@ -1669,6 +1725,8 @@ loop i=1..M.Nrank --quiet
     M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
     if M.limited_y &amp;&amp; M.ordered
       M.mod_rank_cuts_estimates[i] = cuts_estimates_rank[i][,1] ~ sqrt(cuts_estimates_rank[i][,2])
+    elif M.model_type == &quot;zip&quot;
+      M.mod_rank_alpha_estimates[i] = alpha_estimates_rank[i][,1] ~ sqrt(alpha_estimates_rank[i][,2])
     endif
   endif
 endloop
@@ -1701,6 +1759,10 @@ loop i=1..nelem(models_counter) --quiet
       bhat = cuts_estimates[i][,1]
       cutshat_avg += weight * bhat
       cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
+    elif M.model_type == &quot;zip&quot;
+      bhat = alpha_estimates[i][,1]
+      alphahat_avg += weight * bhat
+      alphavar_avg += weight * (alpha_estimates[i][,2] + bhat .^ 2)
     endif
     if mod_struct_sum
       mod_sizes[mod_struct_sum] += weight
@@ -1742,6 +1804,9 @@ endif
 if M.limited_y &amp;&amp; M.ordered
   M.cutshat_avg = cutshat_avg
   M.cutsvar_avg = cutsvar_avg
+elif M.model_type == &quot;zip&quot;
+  M.alphahat_avg = alphahat_avg
+  M.alphavar_avg = alphavar_avg
 endif
 # Probability of variables
 M.var_prob = var_prob
@@ -1993,7 +2058,7 @@ string arg_name, parameter_value
 strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
-strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;)
+strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;, &quot;zip&quot;)
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
 strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;)
 strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
@@ -2011,7 +2076,7 @@ Overloadable[&quot;model_prior&quot;] = _(none=0, binomial=1, betabinomial=2, va
 Overloadable[&quot;with_const&quot;] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
 Overloadable[&quot;do_joint&quot;] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid=&quot;none, DW1, DW2, LS1, LS2, SM, YQ, MYQ&quot;)
 Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
-Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, valid=tolower(flatten(ModelTypes, separator)))
+Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, zip=7, valid=tolower(flatten(ModelTypes, separator)))
 # We look for overloaded parameters and convert them into integers
 OverloadableKeys = getkeys(Overloadable)
 loop i=1..nelem(OverloadableKeys) --quiet
@@ -2366,6 +2431,34 @@ elif dist == &quot;Beta-Binomial&quot;
   Exp = n*a/(a+x)
 endif
 return Exp/(1-P0) - avg
+</code>
+</gretl-function>
+<gretl-function name="BACE_ln_poi_prob" type="series" private="1">
+ <params count="3">
+  <param name="y" type="series"/>
+  <param name="X" type="list"/>
+  <param name="beta" type="matrixref"/>
+ </params>
+<code>xb = lincomb(X, beta)
+return -exp(xb) + y*xb - lngamma(y+1)
+</code>
+</gretl-function>
+<gretl-function name="BACE_ln_zip_prob" type="series" private="1">
+ <params count="4">
+  <param name="y" type="seriesref"/>
+  <param name="X" type="list"/>
+  <param name="beta" type="matrixref"/>
+  <param name="p0" type="scalarref"/>
+ </params>
+<code>series ret
+# check if the probability is in [0,1]; otherwise, return NA
+if p0 &gt; 1 || p0 &lt; 0
+  ret = NA
+else
+  ret = BACE_ln_poi_prob(y, X, &amp;beta) + log(1-p0)
+  ret = y==0 ? log(p0 + exp(ret)) : ret
+endif
+return ret
 </code>
 </gretl-function>
 <sample-script filename="examples/BACE_sample.inp">

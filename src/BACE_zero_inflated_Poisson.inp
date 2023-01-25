@@ -1,0 +1,44 @@
+/*
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2012 Marcin Błażejowski and Jacek Kwiatkowski
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+   Based on code from Gretl User's Guide, https://gretl.sourceforge.net/guidefiles/example-26.4.inp
+   This library is for MLE estimation of zero-inflated Poisson model.
+*/
+
+/* compute log probabilities for the plain Poisson model */
+function series BACE_ln_poi_prob(series y, list X, matrix *beta)
+    xb = lincomb(X, beta)
+    
+    return -exp(xb) + y*xb - lngamma(y+1)
+end function
+
+/* compute log probabilities for the zero-inflated Poisson model */
+function series BACE_ln_zip_prob(series *y, list X, matrix *beta, scalar *p0)
+    series ret
+
+    # check if the probability is in [0,1]; otherwise, return NA
+    if p0 > 1 || p0 < 0
+        ret = NA
+    else
+        ret = BACE_ln_poi_prob(y, X, &beta) + log(1-p0)
+        ret = y==0 ? log(p0 + exp(ret)) : ret
+    endif
+    
+    return ret
+end function

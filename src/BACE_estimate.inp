@@ -19,9 +19,10 @@ function void BACE_estimate (bundle *M)
 /*
    This function estimates and forecasts drawn models.
     */
-    matrix mod_struct_new, mod_struct_new_Y_lags, vcv
-    list Y_lags    
+    matrix mod_struct_new, mod_struct_new_Y_lags, vcv, coeff
+    list Y_lags
     string ESTIMATOR_OPTS
+    scalar alpha
     scalar ols_to_mle_correct = 1
 
     # We set up estimator command
@@ -31,7 +32,7 @@ function void BACE_estimate (bundle *M)
     series Y = M.Y
     if ESTIMATOR == "intreg"
         series Y2 = M.Y2
-    endif    
+    endif
 
     # We create list with lagged Y if needed
     if M.Y_AR_p > 0
@@ -54,7 +55,7 @@ function void BACE_estimate (bundle *M)
 
     # Do we need const?
     if M.with_const == 1
-        X += const
+        X = const X
     endif
 
     # We estimate current model
@@ -65,10 +66,16 @@ function void BACE_estimate (bundle *M)
             tobit Y X @ESTIMATOR_OPTS --quiet
         elif ESTIMATOR == "intreg"
             intreg Y Y2 X --quiet
+        elif ESTIMATOR == "zip"
+            alpha = M.zip_alpha
+            coeff = zeros(nelem(X), 1)
+            coeff[1] = mean(Y) / (1-alpha)
+            mle ll = BACE_ln_zip_prob(&Y, X, &coeff, &alpha)
+                params coeff alpha
+            end mle --hessian --quiet
         else
             @ESTIMATOR Y X --quiet
         endif
-
         if M.with_const == 2 && $ncoeff > 1 && $model.parnames[1] == "const"
             M.bhat_tmp = $coeff[2:] | $coeff[1]
             M.bvar_tmp = ($stderr[2:] | $stderr[1]).^2

@@ -16,7 +16,7 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function bundle BACE_GUI (
-    int model_type[1:5:1] "Model type" {"logit (including ordered)", "probit (including ordered)", "poisson", "tobit", "linear"},
+    int model_type[1:6:1] "Model type" {"logit (including ordered)", "probit (including ordered)", "poisson", "tobit", "zip", "linear"},
       series Y "Dependent variable",
       int Y_AR_p[0::0] "Y lags (time-series only)",
       list X_list[null] "List of independent variables (X)",
@@ -41,7 +41,7 @@ function bundle BACE_GUI (
     string err
 
     # Mapping GUI model_types indexes to strings
-    strings ModelTypes = defarray("logit", "probit", "poisson", "tobit", "linear")
+    strings ModelTypes = defarray("logit", "probit", "poisson", "tobit", "zip", "linear")
 
     string Y_name = argname(Y)
     series @Y_name = Y
