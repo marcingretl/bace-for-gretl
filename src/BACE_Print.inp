@@ -187,6 +187,8 @@ function void BACE_Print (bundle *MODEL)
         printf "%15f", Post_Results
         if M.limited_y && M.ordered
             printf "\n%15f", M.cuts_avg
+        elif M.model_type == "zip"
+            printf "\n%15f", M.alpha_avg
         endif
     endif
     printf "\n"
@@ -305,6 +307,9 @@ function void BACE_Print (bundle *MODEL)
                     if M.limited_y && M.ordered
                         coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
                         Xnames += M.cuts_names
+                    elif M.model_type == "zip"
+                        coeffmat = coeffmat | M.mod_rank_alpha_estimates[i]
+                        Xnames += defarray("alpha")
                     endif
                     modprint coeffmat Xnames
                 endif

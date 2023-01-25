@@ -23,18 +23,22 @@
 
 /* compute log probabilities for the plain Poisson model */
 function series BACE_ln_poi_prob(series y, list X, matrix *beta)
-    series xb = lincomb(X, beta)
+    xb = lincomb(X, beta)
+    
     return -exp(xb) + y*xb - lngamma(y+1)
 end function
 
 /* compute log probabilities for the zero-inflated Poisson model */
 function series BACE_ln_zip_prob(series *y, list X, matrix *beta, scalar *p0)
+    series ret
+
     # check if the probability is in [0,1]; otherwise, return NA
     if p0 > 1 || p0 < 0
-        series ret = NA
+        ret = NA
     else
-        series ret = BACE_ln_poi_prob(y, X, &beta) + log(1-p0)
-        series ret = y==0 ? log(p0 + exp(ret)) : ret
+        ret = BACE_ln_poi_prob(y, X, &beta) + log(1-p0)
+        ret = y==0 ? log(p0 + exp(ret)) : ret
     endif
+    
     return ret
 end function

@@ -19,9 +19,10 @@ function void BACE_estimate (bundle *M)
 /*
    This function estimates and forecasts drawn models.
     */
-    matrix mod_struct_new, mod_struct_new_Y_lags, vcv
+    matrix mod_struct_new, mod_struct_new_Y_lags, vcv, coeff
     list Y_lags
     string ESTIMATOR_OPTS
+    scalar alpha
     scalar ols_to_mle_correct = 1
 
     # We set up estimator command
@@ -54,11 +55,7 @@ function void BACE_estimate (bundle *M)
 
     # Do we need const?
     if M.with_const == 1
-        if ESTIMATOR == "zip"
-            X = const X
-        else
-            X += const
-        endif
+        X = const X
     endif
 
     # We estimate current model
@@ -70,8 +67,8 @@ function void BACE_estimate (bundle *M)
         elif ESTIMATOR == "intreg"
             intreg Y Y2 X --quiet
         elif ESTIMATOR == "zip"
-            scalar alpha = mean(Y==0)/2
-            matrix coeff = zeros(nelem(X), 1)
+            alpha = M.zip_alpha
+            coeff = zeros(nelem(X), 1)
             coeff[1] = mean(Y) / (1-alpha)
             mle ll = BACE_ln_zip_prob(&Y, X, &coeff, &alpha)
                 params coeff alpha
@@ -85,11 +82,6 @@ function void BACE_estimate (bundle *M)
         else
             M.bhat_tmp = $coeff
             M.bvar_tmp = $stderr.^2
-        endif
-        # Modification in case of ZIP model
-        if ESTIMATOR == "zip"
-            M.bhat_tmp = M.bhat_tmp[1:end-1]
-            M.bvar_tmp = M.bvar_tmp[1:end-1]
         endif
         # OLS to MLE correction
         if ESTIMATOR == "ols"
