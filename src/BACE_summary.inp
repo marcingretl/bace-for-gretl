@@ -37,6 +37,9 @@ function void BACE_summary (bundle *M)
     endif
 
     # Normalisations
+    if sum(exp(M.mod_rank_prob)) == 0
+        M.mod_rank_prob = (M.mod_rank_prob / sum(M.mod_rank_prob)) .^ -1
+    endif
     M.mod_rank_prob = exp(M.mod_rank_prob) / sum(exp(M.mod_rank_prob))
     M.Numerical_Likelihood = M.mod_nume_prob / NORM
     M.Post_Results = transp(M.var_prob / NORM)
