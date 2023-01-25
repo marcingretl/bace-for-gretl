@@ -75,7 +75,7 @@ function bundle BACE (list Y "Dependent variable(s)",
         endif
     endif
 
-    # Basic parsing and checking    
+    # Basic parsing and checking
     err = BACE_parse(&MODEL, Y1, varnames(Y), X_list, nY, Y2)
     if strlen(err) != 0
         if MODEL["_gui"]

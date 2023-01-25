@@ -49,10 +49,6 @@ function string BACE_parse (bundle *M,
     string err = ""
     string ESTIMATOR = M.estimator
     string tmp_str
-    
-    if ESTIMATOR == "zip"
-        ESTIMATOR = "ols"
-    endif    
 
     # We check if given X_list does not include Y
     if inlist(X_list, Y_name) != 0

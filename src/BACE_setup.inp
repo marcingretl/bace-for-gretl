@@ -26,10 +26,7 @@ function void BACE_setup (bundle *M, int Norig)
     printf "\n * Fix initial model for tobit model when alpha=0."
     printf "\n * Add checking if Y is discreate if logit/probit/poisson selected."
     printf "\n * Add all possible test/checks/whatever in the case of intreg model."
-    printf "\n * Add all possible test/checks/whatever in the case of fix model."
     printf "\n * Simplify BACE_initial_model()."
-    printf "\n * Simplify 'with_const' condition for X list in BACE_estimate()."
-    printf "\n * Fix initial model for ZIP."
     printf "\n * Add in PDF information about data_trans and bic_type."
     printf "\n * Add in PDF information on dependecies."
     printf "\n * Work on speed."
@@ -268,15 +265,6 @@ function void BACE_setup (bundle *M, int Norig)
             M.estimator_opts = sprintf("%s--rlimit=%f", M.estimator_opts, M.high)
         endif        
         M.Y_censoring = 1
-    endif
-    
-    # Zero inflated Poisson
-    if M.model_type == "zip"
-        scalar M.zip_alpha = mean(Y==0) / 2
-        scalar M.alphahat_avg = NA
-        scalar M.alphavar_avg = NA
-        matrix M.alpha_avg = NA
-        matrices M.mod_rank_alpha_estimates = array(M.Nrank) # alpha estimates for models in ranking
     endif
 
     # Verbosity setting

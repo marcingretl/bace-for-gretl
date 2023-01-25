@@ -55,9 +55,6 @@ function void BACE_summary (bundle *M)
             M.cutshat_avg = M.cutshat_avg / NORM
             M.cutsvar_avg = M.cutsvar_avg / NORM
         endif
-    elif M.model_type == "zip"
-        M.alphahat_avg = M.alphahat_avg / NORM
-        M.alphavar_avg = M.alphavar_avg / NORM
     endif
 
     # Average model size (including matrix for plot)
@@ -172,12 +169,6 @@ function void BACE_summary (bundle *M)
         title = defarray("Mean", "Std.Dev.")
         cnameset(M.cuts_avg, title)
         rnameset(M.cuts_avg, M.cuts_names)
-    elif M.model_type == "zip"
-        matrix bvar = sqrt(M.alphavar_avg - M.alphahat_avg.^2)
-        matrix M.alpha_avg = M.alphahat_avg ~ bvar
-        title = defarray("Mean", "Std.Dev.")
-        cnameset(M.alpha_avg, title)
-        rnameset(M.alpha_avg, "alpha")
     endif
     if M.limited_y
         if nelem(instrings(M.DiscreteModelTypes[1:2], M.model_type))
@@ -226,7 +217,7 @@ function void BACE_summary (bundle *M)
             cnameset(M.jointness_m, M.all_names_sp_m)
             rnameset(M.jointness_m, M.all_names_sp_m)
         endif
-    endif
+    endif    
 
     # Cleaning up the bundle
     delete M.show_progress

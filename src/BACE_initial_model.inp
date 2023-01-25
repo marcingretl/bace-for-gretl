@@ -41,12 +41,6 @@ function void BACE_initial_model (bundle *M)
     if M.Y_censoring && ESTIMATOR == "tobit"
         ESTIMATOR_OPTS = sprintf("%s %s", M.estimator_opts, ESTIMATOR_OPTS)
     endif
-    
-    # For ZIP model we use poisson
-    if ESTIMATOR == "zip"
-        ESTIMATOR = "poisson"
-    endif
-    eval ESTIMATOR
 
     # Starting values of the local variables
     if M.Npredict
