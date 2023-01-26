@@ -21,7 +21,6 @@ function void BACE_setup (bundle *M, int Norig)
     */
     printf "\n#############################################################################\n"
     printf "To do:"
-    printf "\n * Modify/correct correlation coeff in case of (E?)BIC."
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
     printf "\n * Fix initial model for tobit model when alpha=0."
     printf "\n * Add checking if Y is discreate if logit/probit/poisson selected."
