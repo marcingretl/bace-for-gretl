@@ -39,6 +39,13 @@ function void BACE_Plot (const bundle *MODEL)
     elif MODEL.prior_name != "none" && MODEL.prior_based_bic
         avg_model_size = xmax(MODEL.avg_model_size, MODEL.avg_model_size_bic)
     endif
+    
+    # We decide where the legend should be placed
+    if MODEL.mod_size_av > avg_model_size
+        legend = "left"
+    else
+        legend = "right"
+    endif
 
     #########################################################
     #						Heatmaps						#
@@ -65,11 +72,8 @@ function void BACE_Plot (const bundle *MODEL)
     else
         xtics = ""
     endif
-    if MODEL.mod_size_av > avg_model_size
-        legend = "left"
-    else
-        legend = "right"
-    endif
+    eval plotmat
+    eval MODEL.mod_sizes
     plot plotmat
         options with-lp fit=none
         literal set link y2 via y inverse y
@@ -100,12 +104,12 @@ function void BACE_Plot (const bundle *MODEL)
         printf "set ylabel \"%s\"", "Posterior Probability Mass"
     end plot --output=@output
 
-    # Model prior distribution
+    # Model prior distribution values
     idx = 1 + (MODEL.with_const != 1 && !(MODEL.limited_y && MODEL.ordered))
     title = defarray(MODEL.prior_name, "Size")
     plotmat = exp(MODEL.model_prior_log)[idx:end] ~ MODEL.mod_sizes[,1]
     if MODEL.prior_based_bic
-        plotmat = (exp(MODEL.model_prior_bic_log) / sum(exp(MODEL.model_prior_bic_log)))[idx:end] ~ plotmat
+        plotmat = exp(MODEL.model_prior_bic_log)[idx:end] ~ plotmat
         plotmat = sumr(plotmat[,1:2]) ~ plotmat
         yrange = sprintf("set yrange [0:%f]", 1.1*max(plotmat[,1:end-1]))
         title = defarray("Effective", MODEL.bic_type_name) + title
@@ -125,9 +129,9 @@ function void BACE_Plot (const bundle *MODEL)
         literal set link y2 via y inverse y
         printf "%s", xtics
         printf "%s", yrange
-        printf "set title \"%s\"", "Model Prior Distribution"
+        printf "set title \"%s\"", "Model Prior Distribution Values"
         printf "set xlabel \"%s\"", "Model Size"
-        printf "set ylabel \"%s\"", "Density"
+        printf "set ylabel \"%s\"", "Value"
         printf "set key %s top", legend
     end plot --output=@output
 

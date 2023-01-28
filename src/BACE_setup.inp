@@ -196,7 +196,7 @@ function void BACE_setup (bundle *M, int Norig)
         scalar M.avg_model_size_bic = NA
         matrix M.model_prior_bic_log = zeros(M.k+1)
         loop i=0..M.k --quiet
-            M.model_prior_bic_log[i+1] = M.hyperparameter * log(bincoeff(M.k,i))
+            M.model_prior_bic_log[i+1] = M.hyperparameter * log(bincoeff(M.k,i)) * 0.5 # We divide by 2 bacause we need 0.5*BIC!!!
         endloop
     endif
 
