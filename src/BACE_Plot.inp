@@ -72,8 +72,6 @@ function void BACE_Plot (const bundle *MODEL)
     else
         xtics = ""
     endif
-    eval plotmat
-    eval MODEL.mod_sizes
     plot plotmat
         options with-lp fit=none
         literal set link y2 via y inverse y

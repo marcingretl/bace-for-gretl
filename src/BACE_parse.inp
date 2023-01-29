@@ -49,22 +49,74 @@ function string BACE_parse (bundle *M,
     string err = ""
     string ESTIMATOR = M.estimator
     string tmp_str
+    scalar err_nr
 
+    #################################################################################
+    #	Critical problems 															#
+    #################################################################################
+    # We check if Y variable "is discrete" or "count data" in case of non-OLS model
+    if M.limited_y && sum(Y_uniq - int(Y_uniq)) > 0
+        err = "The dependent variable is not discrete"
+    elif M.model_type == "poisson" && (sum(Y_uniq - int(Y_uniq)) > 0 || max(Y) <= 1)
+        err = "The dependent variable must be count data"
+    endif
+
+    # We check if we have more than 1 Y only for intreg
+    if nY > 1 && M.model_type != "intreg"
+        err = sprintf("You cannot specify %d Y variables for %s model", nY, M.model_type)
+    endif
+
+    # We check impossible options for models
+    if ESTIMATOR == "intreg" && M.with_const != 1
+        err = "Interval regression model must include constant"
+    elif ESTIMATOR == "intreg" && M.Y_AR_p
+        err = "Interval regression model must not include lagged dependend variable"
+    endif
+
+    # We check if average model size is within 0 and K
+    if M.avg_model_size <= 0 || M.avg_model_size >= k
+        err = "Average model size should be greater than 0 and lower than K"
+    endif
+
+    # We check if aplha values
+    if M.alpha == 0 && M.with_const == 0
+        err = "We cannot have empty initial model (alpha=0) when we don't have constant"
+    elif M.model_type == "intreg" && M.alpha != 1
+        err = "For interval regression model we must have alpha=1"
+    endif
+
+    # We check if number of models in ranking is not greater than 2^K (model space)
+    if M.Nrank > 2^(k+M.Y_AR_p)
+        err = "Number of the top ranked models cannot be greater than 2^K (space of parameters)"
+    endif
+
+    # We check if we have Y_AR_p only in case of linear model for time-series
+    if M.Y_AR_p > 0 && (M.model_type != "linear" || $datatype != 2)
+        string datatype
+        if $datatype == 1
+            datatype = "cross-sectional (undated) data"
+        elif $datatype == 2
+            datatype = "time-series data"
+        elif $datatype == 3
+            datatype = "panel data"
+        endif
+        err = sprintf("You try to estimate %s model for %s => you cannot have lagged %s", M.model_type, datatype, Y_name)
+    endif
+
+    # If we found critical problem then interupt
+    if strlen(err)
+        return err
+    endif
+
+    #################################################################################
+    #	Non-critical problems 														#
+    #################################################################################
     # We check if given X_list does not include Y
     if inlist(X_list, Y_name) != 0
         X_list -= X_list[inlist(X_list, Y_name)]
         k -= 1
         print "Dependent variable was removed from the X list."
     endif
-
-    # We check impossible options for models
-    if ESTIMATOR == "intreg" && M.with_const != 1
-        err = "Interval regression model must include const term"
-        return err
-    elif ESTIMATOR == "intreg" && M.Y_AR_p
-        err = "Interval regression model must not include lagged dependend variable"
-        return err
-    endif    
 
     # We check if given X_list does not include lagged Y
     if M.Y_AR_p > 0
@@ -88,13 +140,19 @@ function string BACE_parse (bundle *M,
     # We check if given variables are not co-linear
     if nelem(X_list) > 0
         if M.Y_AR_p > 0
-            @ESTIMATOR Y Y(-1 to -M.Y_AR_p) X_list const --quiet
+            catch @ESTIMATOR Y Y(-1 to -M.Y_AR_p) X_list const --quiet
+            err_nr = $error
         else
             if ESTIMATOR == "intreg"
-                intreg Y Y2 X_list const --quiet
+                catch intreg Y Y2 X_list const --quiet
+                err_nr = $error
             else
-                @ESTIMATOR Y X_list const --quiet
-            endif            
+                catch @ESTIMATOR Y X_list const --quiet
+                err_nr = $error
+            endif
+        endif
+        if err_nr
+            return sprintf("We could not estimate %s model: %s", M.model_type, errmsg(err_nr))
         endif
         if $ncoeff < k + 1
             X_list = $xlist - const
@@ -105,52 +163,6 @@ function string BACE_parse (bundle *M,
             endif
             print "Some of the independent variables were colinear and were dropped."
         endif
-    endif
-
-    # We check if average model size is within 0 and K
-    if M.avg_model_size <= 0 || M.avg_model_size >= k
-        err = "Average model size should be greater than 0 and lower than K"
-        return err
-    endif
-
-    # We check if aplha values
-    if M.alpha == 0 && M.with_const == 0
-        err = "We cannot have empty initial model (alpha=0) when we don't have constant"
-        return err
-    elif M.model_type == "intreg" && M.alpha != 1
-        err = "For interval regression model we must have alpha=1"
-        return err
-    endif
-
-    # We check if number of models in ranking is not greater than 2^K (model space)
-    if M.Nrank > 2^(k+M.Y_AR_p)
-        err = "Number of the top ranked models cannot be greater than 2^K (space of parameters)"
-        return err
-    endif
-
-    # We check if we have Y_AR_p only in case of linear model for time-series
-    if M.Y_AR_p > 0 && (M.model_type != "linear" || $datatype != 2)
-        string datatype
-        if $datatype == 1
-            datatype = "cross-sectional (undated) data"
-        elif $datatype == 2
-            datatype = "time-series data"
-        elif $datatype == 3
-            datatype = "panel data"
-        endif
-        err = sprintf("You try to estimate %s model for %s => you cannot have lagged %s", M.model_type, datatype, Y_name)
-    endif
-
-    # We check if Y variable "is discrete" or "count data" in case of non-OLS model
-    if M.limited_y && sum(Y_uniq - int(Y_uniq)) > 0
-        err = "The dependent variable is not discrete"
-    elif M.model_type == "poisson" && (sum(Y_uniq - int(Y_uniq)) > 0 || max(Y) <= 1)
-        err = "The dependent variable must be count data"
-    endif
-
-    # We check if we have more than 1 Y only for intreg
-    if nY > 1 && M.model_type != "intreg"
-        err = sprintf("You cannot specify %d Y variables for %s model", nY, M.model_type)
     endif
 
     series M.Y = Y

@@ -80,6 +80,17 @@ function void BACE_initial_model (bundle *M)
         else
             M.k_new = 0
         endif
+        if ESTIMATOR == "tobit"
+            if M.with_const == 1
+                tobit YyY const @ESTIMATOR_OPTS
+            else
+                tobit YyY last @ESTIMATOR_OPTS
+            endif            
+            M.n_censored = { $model.n_left ; $model.n_right }
+            if inbundle($model, "normality_test")
+                M.normality_test = $model.normality_test
+            endif
+        endif
     elif M.alpha == 1 # Trully random model
         M.k_new = randint(0, max_k)
         matrix last_tmp
@@ -172,7 +183,7 @@ function void BACE_initial_model (bundle *M)
     # Starting values
     matrix M.StartModel = last
     matrix M.mod_struct_new = zeros(1,M.k)
-
+   
     # Setting 1 for variables in current draw
     loop i=1..cols(M.StartModel) --quiet
         loop j=1..M.k --quiet
