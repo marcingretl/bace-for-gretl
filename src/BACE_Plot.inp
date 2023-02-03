@@ -127,7 +127,7 @@ function void BACE_Plot (const bundle *MODEL)
         literal set link y2 via y inverse y
         printf "%s", xtics
         printf "%s", yrange
-        printf "set title \"%s\"", "Model Prior Distribution Values"
+        printf "set title \"%s\"", "Prior Model Probabilities"
         printf "set xlabel \"%s\"", "Model Size"
         printf "set ylabel \"%s\"", "Value"
         printf "set key %s top", legend
