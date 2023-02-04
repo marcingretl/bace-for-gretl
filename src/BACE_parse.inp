@@ -39,7 +39,7 @@ function string BACE_parse (bundle *M,
     endif
 
     # Local variables
-    scalar k = nelem(X_list) + M.Y_AR_p + (M.with_const > 1)
+    scalar k = nelem(X_list) + M.y_lag + (M.with_const > 1)
     if nY == 1
         matrix Y_uniq = uniq(Y)
     else
@@ -69,7 +69,7 @@ function string BACE_parse (bundle *M,
     # We check impossible options for models
     if ESTIMATOR == "intreg" && M.with_const != 1
         err = "Interval regression model must include constant"
-    elif ESTIMATOR == "intreg" && M.Y_AR_p
+    elif ESTIMATOR == "intreg" && M.y_lag
         err = "Interval regression model must not include lagged dependend variable"
     endif
 
@@ -86,12 +86,12 @@ function string BACE_parse (bundle *M,
     endif
 
     # We check if number of models in ranking is not greater than 2^K (model space)
-    if M.Nrank > 2^(k+M.Y_AR_p)
+    if M.Nrank > 2^(k+M.y_lag)
         err = "Number of the top ranked models cannot be greater than 2^K (space of parameters)"
     endif
 
-    # We check if we have Y_AR_p only in case of linear model for time-series
-    if M.Y_AR_p > 0 && (M.model_type != "linear" || $datatype != 2)
+    # We check if we have y_lag only in case of linear model for time-series
+    if M.y_lag > 0 && (M.model_type != "linear" || $datatype != 2)
         string datatype
         if $datatype == 1
             datatype = "cross-sectional (undated) data"
@@ -119,8 +119,8 @@ function string BACE_parse (bundle *M,
     endif
 
     # We check if given X_list does not include lagged Y
-    if M.Y_AR_p > 0
-        loop i=1..M.Y_AR_p --quiet
+    if M.y_lag > 0
+        loop i=1..M.y_lag --quiet
             tmp_str = Y_name ~ "_" ~ "$i"
             if inlist(X_list, tmp_str) != 0
                 X_list -= X_list[inlist(X_list, tmp_str)]
@@ -139,8 +139,8 @@ function string BACE_parse (bundle *M,
 
     # We check if given variables are not co-linear
     if nelem(X_list) > 0
-        if M.Y_AR_p > 0
-            catch @ESTIMATOR Y Y(-1 to -M.Y_AR_p) X_list const --quiet
+        if M.y_lag > 0
+            catch @ESTIMATOR Y Y(-1 to -M.y_lag) X_list const --quiet
             err_nr = $error
         else
             if ESTIMATOR == "intreg"
@@ -156,8 +156,8 @@ function string BACE_parse (bundle *M,
         endif
         if $ncoeff < k + 1
             X_list = $xlist - const
-            if M.Y_AR_p > 0
-                loop i=1..M.Y_AR_p --quiet
+            if M.y_lag > 0
+                loop i=1..M.y_lag --quiet
                     X_list = X_list - Y_$i
                 endloop
             endif

@@ -38,8 +38,8 @@ function void BACE_Print (bundle *MODEL)
     endif    
 
     # Do we have Y lags?
-    if M.Y_AR_p > 0
-        lags M.Y_AR_p ; @Y_name
+    if M.y_lag > 0
+        lags M.y_lag ; @Y_name
     endif
 
     # We have to set sample

@@ -34,11 +34,11 @@ function void BACE_estimate (bundle *M)
     endif    
 
     # We create list with lagged Y if needed
-    if M.Y_AR_p > 0
-        mod_struct_new_Y_lags = M.mod_struct_new[1:M.Y_AR_p]
+    if M.y_lag > 0
+        mod_struct_new_Y_lags = M.mod_struct_new[1:M.y_lag]
         if sum(mod_struct_new_Y_lags) > 0
-            Y_lags = lags(selifc(seq(1,M.Y_AR_p), mod_struct_new_Y_lags), Y)
-            mod_struct_new = zeros(M.Y_AR_p)' ~ M.mod_struct_new[M.Y_AR_p+1:]
+            Y_lags = lags(selifc(seq(1,M.y_lag), mod_struct_new_Y_lags), Y)
+            mod_struct_new = zeros(M.y_lag)' ~ M.mod_struct_new[M.y_lag+1:]
         else
             mod_struct_new = M.mod_struct_new
         endif

@@ -30,7 +30,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar err2, arg_val, do_plot_tmp, do_show_progress, alpha_tmp
     bundle Options, Overloadable
     string arg_name, parameter_value
-    strings Integers = defarray("Y_AR_p", "with_const", "model_prior", "Nrank",\
+    strings Integers = defarray("y_lag", "with_const", "model_prior", "Nrank",\
       "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("avg_model_size", "alpha", "binary_threshold")
@@ -91,20 +91,20 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         Nrep = 1e+06
     endif
 
-    # We set temporal Y_AR_p value
-    if !inbundle(UserOpts, "Y_AR_p") || typeof(UserOpts["Y_AR_p"]) != 1
-        Y_AR_p_tmp = 0
+    # We set temporal y_lag value
+    if !inbundle(UserOpts, "y_lag") || typeof(UserOpts["y_lag"]) != 1
+        y_lag_tmp = 0
     else
-        Y_AR_p_tmp = UserOpts["Y_AR_p"]
+        y_lag_tmp = UserOpts["y_lag"]
     endif
 
     # We set temporal with_const value and calculate prior average model size
     if !inbundle(UserOpts, "with_const")
         with_const_tmp = 1
-        avg_model_size_tmp = (k + Y_AR_p_tmp) / 2
+        avg_model_size_tmp = (k + y_lag_tmp) / 2
     else
         with_const_tmp = UserOpts["with_const"]
-        avg_model_size_tmp = (k + Y_AR_p_tmp + (with_const_tmp == 2)) / 2
+        avg_model_size_tmp = (k + y_lag_tmp + (with_const_tmp == 2)) / 2
     endif
     
     # We set default alpha
@@ -115,26 +115,26 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     endif    
 
     # Template bundle with default values
-    scalar Options["Y_AR_p"] = 0
-    scalar Options["with_const"] = 1
+    string Options["model_type"] = "linear"
+    scalar Options["bic_type"] = 1
     scalar Options["model_prior"] = 2
+    scalar Options["with_const"] = 1
     scalar Options["avg_model_size"] = avg_model_size_tmp
-    scalar Options["alpha"] = alpha_tmp
-    scalar Options["Nrank"] = xmin(2^(k+Y_AR_p_tmp-1), 40)
+    scalar Options["data_trans"] = 0
     scalar Options["do_joint"] = 0
+    scalar Options["alpha"] = alpha_tmp
+    scalar Options["Nrank"] = xmin(2^(k+y_lag_tmp-1), 40)
     scalar Options["Npredict"] = 0
+    scalar Options["y_lag"] = 0
+    scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
+    scalar Options["binary_threshold"] = 0.5
+    scalar Options["low"] = 0
+    scalar Options["high"] = NA
     scalar Options["Nrep"] = Nrep
     scalar Options["burn"] = 10
     scalar Options["verbosity"] = 2
     scalar Options["show_progress"] = do_show_progress
     scalar Options["do_plot"] = do_plot_tmp
-    string Options["model_type"] = "linear"
-    scalar Options["data_trans"] = 0
-    scalar Options["bic_type"] = 1
-    scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
-    scalar Options["binary_threshold"] = 0.5
-    scalar Options["low"] = 0
-    scalar Options["high"] = NA
     scalar Options["_gui"] = 0
 
     # General checking, but still needs some manual work later
@@ -171,8 +171,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     endif
 
     # We check arguments for valid values
-    if Options.Y_AR_p < 0
-        err += "Y lags (Y_AR_p) takes the integer values"
+    if Options.y_lag < 0
+        err += "Y lags (y_lag) takes the integer values"
     elif Options.with_const < 0 || Options.with_const > 2
         err += "Constant in model takes the integer values in the range [0; 2]"
     elif Options.model_prior < 0 || Options.model_prior > 2

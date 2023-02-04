@@ -76,8 +76,8 @@ function void BACE_setup (bundle *M, int Norig)
             string M.const_type = M.ConstTypes[1]
         endif
     endif
-    if M.Y_AR_p > 0
-        X_list = lags(M.Y_AR_p, Y) X_list
+    if M.y_lag > 0
+        X_list = lags(M.y_lag, Y) X_list
     endif
     M.X_list = X_list
 
@@ -108,7 +108,7 @@ function void BACE_setup (bundle *M, int Norig)
     matrix M.var_numbers = Y || X_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
     matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
     strings M.all_names_sp_m = varnames(X_list)
-    loop i=1..M.Y_AR_p --quiet
+    loop i=1..M.y_lag --quiet
         M.all_names_sp_m[i] = strsub(M.all_names_sp_m[i], "Y_$i", M.Y_name~"_$i")
     endloop
     if M.with_const == 1
@@ -123,7 +123,7 @@ function void BACE_setup (bundle *M, int Norig)
 
     # In case of "out-of-sample" prediction
     if M.Npredict
-        scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
+        scalar M.first_obs = $t1 #y_lag+1 # the first observation for smpl command
         scalar M.last_obs = $tmax-M.Npredict # the last observation for smpl command
         matrix M.Y_mat_predict = M.Y_mat[end-M.Npredict+1:end] # "out-of-sample" matrix of the dependent variable
         M.Y_mat = M.Y_mat[1:end-M.Npredict]
@@ -133,7 +133,7 @@ function void BACE_setup (bundle *M, int Norig)
         matrix M.Yhat_predict_var_avg = zeros(M.Npredict,1) # predicion variance
         matrix M.prediction = {} # matrix with prediction results
         strings M.predict_obs_names = obslabel(seq($nobs-M.Npredict+1,$nobs)) # obs labels for forecasts
-        smpl M.first_obs M.last_obs #$nobs-h_predict-Y_AR_p #M.last_obs # setting sample
+        smpl M.first_obs M.last_obs #$nobs-h_predict-y_lag #M.last_obs # setting sample
     else
         matrix M.Yhat_avg = {}
         matrix M.Yhat_var_avg = {}

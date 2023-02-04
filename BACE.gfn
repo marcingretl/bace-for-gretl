@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-02-03</date>
+<date>2023-02-04</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -121,8 +121,8 @@ if ESTIMATOR == &quot;intreg&quot;
   series @Y_name2 = M.Y2
 endif
 # Do we have Y lags?
-if M.Y_AR_p &gt; 0
-  lags M.Y_AR_p ; @Y_name
+if M.y_lag &gt; 0
+  lags M.y_lag ; @Y_name
 endif
 # We have to set sample
 if M.Npredict &gt; 0
@@ -636,7 +636,7 @@ else
   string M.estimator = M.model_type
 endif
 # Local variables
-scalar k = nelem(X_list) + M.Y_AR_p + (M.with_const &gt; 1)
+scalar k = nelem(X_list) + M.y_lag + (M.with_const &gt; 1)
 if nY == 1
   matrix Y_uniq = uniq(Y)
 else
@@ -663,7 +663,7 @@ endif
 # We check impossible options for models
 if ESTIMATOR == &quot;intreg&quot; &amp;&amp; M.with_const != 1
   err = &quot;Interval regression model must include constant&quot;
-elif ESTIMATOR == &quot;intreg&quot; &amp;&amp; M.Y_AR_p
+elif ESTIMATOR == &quot;intreg&quot; &amp;&amp; M.y_lag
   err = &quot;Interval regression model must not include lagged dependend variable&quot;
 endif
 # We check if average model size is within 0 and K
@@ -677,11 +677,11 @@ elif M.model_type == &quot;intreg&quot; &amp;&amp; M.alpha != 1
   err = &quot;For interval regression model we must have alpha=1&quot;
 endif
 # We check if number of models in ranking is not greater than 2^K (model space)
-if M.Nrank &gt; 2^(k+M.Y_AR_p)
+if M.Nrank &gt; 2^(k+M.y_lag)
   err = &quot;Number of the top ranked models cannot be greater than 2^K (space of parameters)&quot;
 endif
-# We check if we have Y_AR_p only in case of linear model for time-series
-if M.Y_AR_p &gt; 0 &amp;&amp; (M.model_type != &quot;linear&quot; || $datatype != 2)
+# We check if we have y_lag only in case of linear model for time-series
+if M.y_lag &gt; 0 &amp;&amp; (M.model_type != &quot;linear&quot; || $datatype != 2)
   string datatype
   if $datatype == 1
     datatype = &quot;cross-sectional (undated) data&quot;
@@ -706,8 +706,8 @@ if inlist(X_list, Y_name) != 0
   print &quot;Dependent variable was removed from the X list.&quot;
 endif
 # We check if given X_list does not include lagged Y
-if M.Y_AR_p &gt; 0
-  loop i=1..M.Y_AR_p --quiet
+if M.y_lag &gt; 0
+  loop i=1..M.y_lag --quiet
     tmp_str = Y_name ~ &quot;_&quot; ~ &quot;$i&quot;
     if inlist(X_list, tmp_str) != 0
       X_list -= X_list[inlist(X_list, tmp_str)]
@@ -724,8 +724,8 @@ if inlist(X_list, const) != 0
 endif
 # We check if given variables are not co-linear
 if nelem(X_list) &gt; 0
-  if M.Y_AR_p &gt; 0
-    catch @ESTIMATOR Y Y(-1 to -M.Y_AR_p) X_list const --quiet
+  if M.y_lag &gt; 0
+    catch @ESTIMATOR Y Y(-1 to -M.y_lag) X_list const --quiet
     err_nr = $error
   else
     if ESTIMATOR == &quot;intreg&quot;
@@ -741,8 +741,8 @@ if nelem(X_list) &gt; 0
   endif
   if $ncoeff &lt; k + 1
     X_list = $xlist - const
-    if M.Y_AR_p &gt; 0
-      loop i=1..M.Y_AR_p --quiet
+    if M.y_lag &gt; 0
+      loop i=1..M.y_lag --quiet
         X_list = X_list - Y_$i
       endloop
     endif
@@ -787,7 +787,7 @@ if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
 endif
 # Starting values of the local variables
 if M.Npredict
-  if M.Y_AR_p == 0
+  if M.y_lag == 0
     smpl 1 M.N
   else
     if M.CPU_num == 1
@@ -808,8 +808,8 @@ if inbundle(M, &quot;Y2&quot;)
 else
   series YyY = M.Y
 endif
-if M.Y_AR_p &gt; 0
-  lags M.Y_AR_p ; YyY
+if M.y_lag &gt; 0
+  lags M.y_lag ; YyY
 endif
 list X_list2 = M.X_list
 list last = {}
@@ -1277,8 +1277,8 @@ else
     string M.const_type = M.ConstTypes[1]
   endif
 endif
-if M.Y_AR_p &gt; 0
-  X_list = lags(M.Y_AR_p, Y) X_list
+if M.y_lag &gt; 0
+  X_list = lags(M.y_lag, Y) X_list
 endif
 M.X_list = X_list
 ###############################################
@@ -1308,7 +1308,7 @@ matrix M.Y_mat = { Y }
 matrix M.var_numbers = Y || X_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
 matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
 strings M.all_names_sp_m = varnames(X_list)
-loop i=1..M.Y_AR_p --quiet
+loop i=1..M.y_lag --quiet
   M.all_names_sp_m[i] = strsub(M.all_names_sp_m[i], &quot;Y_$i&quot;, M.Y_name~&quot;_$i&quot;)
 endloop
 if M.with_const == 1
@@ -1322,7 +1322,7 @@ matrix M.n_censored = {}
 bundle M.normality_test = null
 # In case of &quot;out-of-sample&quot; prediction
 if M.Npredict
-  scalar M.first_obs = $t1 #Y_AR_p+1 # the first observation for smpl command
+  scalar M.first_obs = $t1 #y_lag+1 # the first observation for smpl command
   scalar M.last_obs = $tmax-M.Npredict # the last observation for smpl command
   matrix M.Y_mat_predict = M.Y_mat[end-M.Npredict+1:end] # &quot;out-of-sample&quot; matrix of the dependent variable
   M.Y_mat = M.Y_mat[1:end-M.Npredict]
@@ -1332,7 +1332,7 @@ if M.Npredict
   matrix M.Yhat_predict_var_avg = zeros(M.Npredict,1) # predicion variance
   matrix M.prediction = {} # matrix with prediction results
   strings M.predict_obs_names = obslabel(seq($nobs-M.Npredict+1,$nobs)) # obs labels for forecasts
-  smpl M.first_obs M.last_obs #$nobs-h_predict-Y_AR_p #M.last_obs # setting sample
+  smpl M.first_obs M.last_obs #$nobs-h_predict-y_lag #M.last_obs # setting sample
 else
   matrix M.Yhat_avg = {}
   matrix M.Yhat_var_avg = {}
@@ -1508,11 +1508,11 @@ if ESTIMATOR == &quot;intreg&quot;
   series Y2 = M.Y2
 endif
 # We create list with lagged Y if needed
-if M.Y_AR_p &gt; 0
-  mod_struct_new_Y_lags = M.mod_struct_new[1:M.Y_AR_p]
+if M.y_lag &gt; 0
+  mod_struct_new_Y_lags = M.mod_struct_new[1:M.y_lag]
   if sum(mod_struct_new_Y_lags) &gt; 0
-    Y_lags = lags(selifc(seq(1,M.Y_AR_p), mod_struct_new_Y_lags), Y)
-    mod_struct_new = zeros(M.Y_AR_p)' ~ M.mod_struct_new[M.Y_AR_p+1:]
+    Y_lags = lags(selifc(seq(1,M.y_lag), mod_struct_new_Y_lags), Y)
+    mod_struct_new = zeros(M.y_lag)' ~ M.mod_struct_new[M.y_lag+1:]
   else
     mod_struct_new = M.mod_struct_new
   endif
@@ -2009,7 +2009,7 @@ scalar avg_model_size_tmp = 0
 scalar err2, arg_val, do_plot_tmp, do_show_progress, alpha_tmp
 bundle Options, Overloadable
 string arg_name, parameter_value
-strings Integers = defarray(&quot;Y_AR_p&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
+strings Integers = defarray(&quot;y_lag&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
 strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;)
@@ -2066,19 +2066,19 @@ elif k &lt;= 19
 else
   Nrep = 1e+06
 endif
-# We set temporal Y_AR_p value
-if !inbundle(UserOpts, &quot;Y_AR_p&quot;) || typeof(UserOpts[&quot;Y_AR_p&quot;]) != 1
-  Y_AR_p_tmp = 0
+# We set temporal y_lag value
+if !inbundle(UserOpts, &quot;y_lag&quot;) || typeof(UserOpts[&quot;y_lag&quot;]) != 1
+  y_lag_tmp = 0
 else
-  Y_AR_p_tmp = UserOpts[&quot;Y_AR_p&quot;]
+  y_lag_tmp = UserOpts[&quot;y_lag&quot;]
 endif
 # We set temporal with_const value and calculate prior average model size
 if !inbundle(UserOpts, &quot;with_const&quot;)
   with_const_tmp = 1
-  avg_model_size_tmp = (k + Y_AR_p_tmp) / 2
+  avg_model_size_tmp = (k + y_lag_tmp) / 2
 else
   with_const_tmp = UserOpts[&quot;with_const&quot;]
-  avg_model_size_tmp = (k + Y_AR_p_tmp + (with_const_tmp == 2)) / 2
+  avg_model_size_tmp = (k + y_lag_tmp + (with_const_tmp == 2)) / 2
 endif
 # We set default alpha
 if inbundle(UserOpts, &quot;model_type&quot;) &amp;&amp; UserOpts[&quot;model_type&quot;] == &quot;intreg&quot;
@@ -2087,26 +2087,26 @@ else
   alpha_tmp = 0.6
 endif
 # Template bundle with default values
-scalar Options[&quot;Y_AR_p&quot;] = 0
-scalar Options[&quot;with_const&quot;] = 1
+string Options[&quot;model_type&quot;] = &quot;linear&quot;
+scalar Options[&quot;bic_type&quot;] = 1
 scalar Options[&quot;model_prior&quot;] = 2
+scalar Options[&quot;with_const&quot;] = 1
 scalar Options[&quot;avg_model_size&quot;] = avg_model_size_tmp
-scalar Options[&quot;alpha&quot;] = alpha_tmp
-scalar Options[&quot;Nrank&quot;] = xmin(2^(k+Y_AR_p_tmp-1), 40)
+scalar Options[&quot;data_trans&quot;] = 0
 scalar Options[&quot;do_joint&quot;] = 0
+scalar Options[&quot;alpha&quot;] = alpha_tmp
+scalar Options[&quot;Nrank&quot;] = xmin(2^(k+y_lag_tmp-1), 40)
 scalar Options[&quot;Npredict&quot;] = 0
+scalar Options[&quot;y_lag&quot;] = 0
+scalar Options[&quot;hyperparameter&quot;] = 0.5 # gamma for EBIC
+scalar Options[&quot;binary_threshold&quot;] = 0.5
+scalar Options[&quot;low&quot;] = 0
+scalar Options[&quot;high&quot;] = NA
 scalar Options[&quot;Nrep&quot;] = Nrep
 scalar Options[&quot;burn&quot;] = 10
 scalar Options[&quot;verbosity&quot;] = 2
 scalar Options[&quot;show_progress&quot;] = do_show_progress
 scalar Options[&quot;do_plot&quot;] = do_plot_tmp
-string Options[&quot;model_type&quot;] = &quot;linear&quot;
-scalar Options[&quot;data_trans&quot;] = 0
-scalar Options[&quot;bic_type&quot;] = 1
-scalar Options[&quot;hyperparameter&quot;] = 0.5 # gamma for EBIC
-scalar Options[&quot;binary_threshold&quot;] = 0.5
-scalar Options[&quot;low&quot;] = 0
-scalar Options[&quot;high&quot;] = NA
 scalar Options[&quot;_gui&quot;] = 0
 # General checking, but still needs some manual work later
 err2 = bcheck(&amp;Options, UserOpts)
@@ -2138,8 +2138,8 @@ if inbundle(UserOpts, &quot;model_type&quot;) &amp;&amp; strlen(UserOpts[&quot;m
   err += sprintf(&quot;Unknown model type: '%s'&quot;, UserOpts[&quot;model_type&quot;])
 endif
 # We check arguments for valid values
-if Options.Y_AR_p &lt; 0
-  err += &quot;Y lags (Y_AR_p) takes the integer values&quot;
+if Options.y_lag &lt; 0
+  err += &quot;Y lags (y_lag) takes the integer values&quot;
 elif Options.with_const &lt; 0 || Options.with_const &gt; 2
   err += &quot;Constant in model takes the integer values in the range [0; 2]&quot;
 elif Options.model_prior &lt; 0 || Options.model_prior &gt; 2

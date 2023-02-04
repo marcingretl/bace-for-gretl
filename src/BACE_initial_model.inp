@@ -44,7 +44,7 @@ function void BACE_initial_model (bundle *M)
 
     # Starting values of the local variables
     if M.Npredict
-        if M.Y_AR_p == 0
+        if M.y_lag == 0
             smpl 1 M.N
         else
             if M.CPU_num == 1
@@ -66,8 +66,8 @@ function void BACE_initial_model (bundle *M)
     else
         series YyY = M.Y
     endif
-    if M.Y_AR_p > 0
-        lags M.Y_AR_p ; YyY
+    if M.y_lag > 0
+        lags M.y_lag ; YyY
     endif
     list X_list2 = M.X_list
     list last = {}
