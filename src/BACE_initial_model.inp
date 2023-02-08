@@ -85,7 +85,7 @@ function void BACE_initial_model (bundle *M)
                 tobit YyY const @ESTIMATOR_OPTS
             else
                 tobit YyY last @ESTIMATOR_OPTS
-            endif            
+            endif
             M.n_censored = { $model.n_left ; $model.n_right }
             if inbundle($model, "normality_test")
                 M.normality_test = $model.normality_test
@@ -120,7 +120,14 @@ function void BACE_initial_model (bundle *M)
                     endloop
                 endloop
                 last_mat = transp(msortby(transp(last_mat),2))
-                last = last_mat[1,]
+                # We verify if we don't have duplicated variables on a list
+                last_tmp = uniq(last_mat[1,])
+                if nelem(last_tmp) < M.k_new
+                    last = last_tmp
+                    M.k_new = nelem(last_tmp)
+                else
+                    last = last_mat[1,]
+                endif
                 if M.with_const == 1
                     @ESTIMATOR YyY const last @ESTIMATOR_OPTS
                 else
@@ -183,7 +190,7 @@ function void BACE_initial_model (bundle *M)
     # Starting values
     matrix M.StartModel = last
     matrix M.mod_struct_new = zeros(1,M.k)
-   
+
     # Setting 1 for variables in current draw
     loop i=1..cols(M.StartModel) --quiet
         loop j=1..M.k --quiet

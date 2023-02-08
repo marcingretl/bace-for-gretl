@@ -197,6 +197,10 @@ function void BACE_summary (bundle *M)
         M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
         M.prediction = M.Y_mat_predict ~ M.Yhat_predict_avg ~ M.Yhat_predict_var_avg
         title = defarray(M.Y_name, "Mean", "Std.Dev")
+        if M.model_type == "intreg"
+            title[1] = "const"
+            M.prediction[,1] = 1
+        endif
         if M.limited_y
             M.prediction[,3] = M.prediction[,2]
             M.prediction[,2] = M.prediction[,2] .>= M.binary_threshold

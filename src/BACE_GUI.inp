@@ -21,7 +21,7 @@ function bundle BACE_GUI (
       list X_list[null] "List of independent variables (X)",
       int with_const[0:2:1] "Constant in model" {"Never", "Always", "Can be dropped"},
       int model_prior[0:2:1] "Model prior" {"none", "Binomial", "Beta-Binomial"},
-      int bic_type[1:4:1] "Bayesian information criterion" {"BIC", "HBIC", "IBIC", "EBIC"},
+      int bic_type[1:4:2] "Bayesian information criterion" {"BIC", "HBIC", "IBIC", "EBIC"},
       int do_joint[0:7:0] "Jointness analysis" {"None", "Doppelhofer-Weeks Measure (DW1)",\
       "Doppelhofer-Weeks Measure (DW2)", "Ley-Steel Measure (LS1)", "Ley-Steel Measure (LS2)",\
       "Strachan Measure (SM)", "Yule's Q Measure (YQ)", "Modified Yule's Q Measure (MYQ)"},

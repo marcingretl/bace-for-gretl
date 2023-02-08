@@ -116,7 +116,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
 
     # Template bundle with default values
     string Options["model_type"] = "linear"
-    scalar Options["bic_type"] = 1
+    scalar Options["bic_type"] = 2
     scalar Options["model_prior"] = 2
     scalar Options["with_const"] = 1
     scalar Options["avg_model_size"] = avg_model_size_tmp

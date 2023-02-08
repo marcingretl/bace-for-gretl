@@ -23,10 +23,12 @@ function string BACE_parse (bundle *M,
                             series Y2[null])
     /*
        Function parses given parameters end checks several conditions:
-       M				- pointer to the bundle
-       Y				- dependent variable
-       Y_name			- name of dependent variable
-       X_list			- list of given independent variables
+       M		- pointer to the bundle
+       Y		- dependent variable(s)
+       Y_names	- name(s) of dependent variable(s)
+       X_list	- list of given independent variables
+       nY 		- number of Y variables (used only for intreg)
+       Y2 		- the second Y series (right bounds for intreg)
        #
        Returns: string err holding the first error found in given dataset or parameters
     */

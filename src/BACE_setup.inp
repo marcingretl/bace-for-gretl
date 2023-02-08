@@ -21,11 +21,10 @@ function void BACE_setup (bundle *M, int Norig)
     */
     printf "\n#############################################################################\n"
     printf "To do:"
+    printf "\n * Delete unneeded entries in result bundle."
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
     printf "\n * Add all possible test/checks/whatever in the case of intreg model."
     printf "\n * Simplify BACE_initial_model()."
-    printf "\n * Add in PDF information about data_trans and bic_type."
-    printf "\n * Add in PDF information on dependecies."
     printf "\n * Work on speed."
     printf "\n#############################################################################\n"
 
