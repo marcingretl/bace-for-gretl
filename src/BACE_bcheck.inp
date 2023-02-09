@@ -84,11 +84,11 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
 
     # We set the default Nrep conditional on k
     if k <= 15
-        Nrep = 10000
+        Nrep = 10^4
     elif k <= 19
-        Nrep = 100000
+        Nrep = 10^5
     else
-        Nrep = 1e+06
+        Nrep = 10^6
     endif
 
     # We set temporal y_lag value
@@ -123,7 +123,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar Options["data_trans"] = 0
     scalar Options["do_joint"] = 0
     scalar Options["alpha"] = alpha_tmp
-    scalar Options["Nrank"] = xmin(2^(k+y_lag_tmp-1), 40)
+    scalar Options["Nrank"] = 5 #xmin(2^(k+y_lag_tmp-1), 40)
     scalar Options["Npredict"] = 0
     scalar Options["y_lag"] = 0
     scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
