@@ -537,11 +537,11 @@ endif
 </code>
 </gretl-function>
 <gretl-function name="BACE_GUI" type="bundle" pkg-role="gui-main">
- <params count="11">
+ <params count="10">
   <param name="model_type" type="int" min="1" max="5" default="1">
 <description>Model type</description>
 <labels count="5">
-"logit (including ordered)" "probit (including ordered)" "poisson" "tobit" "linear" </labels>
+"logit" "probit" "poisson" "tobit" "linear" </labels>
   </param>
   <param name="Y" type="series">
 <description>Dependent variable</description>
@@ -569,9 +569,6 @@ endif
 <labels count="8">
 "None" "Doppelhofer-Weeks Measure (DW1)" "Doppelhofer-Weeks Measure (DW2)" "Ley-Steel Measure (LS1)" "Ley-Steel Measure (LS2)" "Strachan Measure (SM)" "Yule's Q Measure (YQ)" "Modified Yule's Q Measure (MYQ)" </labels>
   </param>
-  <param name="Npredict" type="int" min="0" default="0">
-<description>Number of out-of-sample forecasts</description>
-  </param>
   <param name="verbosity" type="int" min="1" max="2" default="2">
 <description>Verbosity</description>
   </param>
@@ -596,7 +593,6 @@ series @Y_name = Y
 scalar Options[&quot;with_const&quot;] = with_const
 scalar Options[&quot;model_prior&quot;] = model_prior
 scalar Options[&quot;do_joint&quot;] = do_joint
-scalar Options[&quot;Npredict&quot;] = Npredict
 scalar Options[&quot;verbosity&quot;] = verbosity
 scalar Options[&quot;show_progress&quot;] = show_progress
 scalar Options[&quot;do_plot&quot;] = do_plot
@@ -2073,7 +2069,7 @@ endloop
 # We set the default Nrep conditional on k
 if k &lt;= 15
   Nrep = 10^4
-elif k &lt;= 19
+elif k &gt;= 16 &amp;&amp; k &lt;= 19
   Nrep = 10^5
 else
   Nrep = 10^6

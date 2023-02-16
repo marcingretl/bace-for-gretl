@@ -85,7 +85,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     # We set the default Nrep conditional on k
     if k <= 15
         Nrep = 10^4
-    elif k <= 19
+    elif k >= 16 && k <= 19
         Nrep = 10^5
     else
         Nrep = 10^6
