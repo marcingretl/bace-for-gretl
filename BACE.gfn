@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-02-09</date>
+<date>2023-02-16</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -2101,7 +2101,7 @@ endif
 # Template bundle with default values
 string Options[&quot;model_type&quot;] = &quot;linear&quot;
 scalar Options[&quot;bic_type&quot;] = 2
-scalar Options[&quot;model_prior&quot;] = 2
+scalar Options[&quot;model_prior&quot;] = 1
 scalar Options[&quot;with_const&quot;] = 1
 scalar Options[&quot;avg_model_size&quot;] = avg_model_size_tmp
 scalar Options[&quot;data_trans&quot;] = 0
@@ -2226,7 +2226,7 @@ if MODE == &quot;inclusions&quot;
     m[i,] = M.mod_rank[i]
   endloop
   m = mreverse(m')
-  palette = &quot;0 'white', 1 'red'&quot;
+  palette = &quot;0 'white', 1 'dark-green'&quot;
   output = &quot;-PIP.plt&quot;
 else
   title = sprintf(&quot;Jointness Based on %s&quot;, M.jointess_measure_names[M.do_joint])

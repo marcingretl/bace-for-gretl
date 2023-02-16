@@ -46,7 +46,7 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
             m[i,] = M.mod_rank[i]
         endloop
         m = mreverse(m')
-        palette = "0 'white', 1 'red'"
+        palette = "0 'white', 1 'dark-green'"
         output = "-PIP.plt"
     else
         title = sprintf("Jointness Based on %s", M.jointess_measure_names[M.do_joint])
