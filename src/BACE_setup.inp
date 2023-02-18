@@ -235,7 +235,10 @@ function void BACE_setup (bundle *M, int Norig)
     endif
     if M.with_const != 1 && !(M.limited_y && M.ordered) && M.model_prior
         M.model_prior_log[2:] /= (1 - M.model_prior_log[1])
-    endif
+        if min(M.model_prior_log) < 0
+            funcerr "The convergence criterion was not met"
+        endif        
+    endif    
     M.model_prior_log = log(M.model_prior_log)
 
     # Jointness stuff
