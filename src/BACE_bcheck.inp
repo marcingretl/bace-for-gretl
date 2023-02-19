@@ -123,7 +123,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar Options["data_trans"] = 0
     scalar Options["do_joint"] = 0
     scalar Options["alpha"] = alpha_tmp
-    scalar Options["Nrank"] = 5 #xmin(2^(k+y_lag_tmp-1), 40)
+    scalar Options["Nrank"] = xmin(2^(k+y_lag_tmp-1), 5)
     scalar Options["Npredict"] = 0
     scalar Options["y_lag"] = 0
     scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
