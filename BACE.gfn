@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-02-19</date>
+<date>2023-02-20</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -256,9 +256,11 @@ if $version &lt; 20170
 else
   matrix Post_Results = M.Post_Results
   if M.with_const == 1
-    Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
-    Post_Results = mreverse(msortby(Post_Results, 1))
-    Post_Results[1,1] -= 1
+    if M.model_type != &quot;mlogit&quot;
+      Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
+      Post_Results = mreverse(msortby(Post_Results, 1))
+      Post_Results[1,1] -= 1
+    endif
   else
     Post_Results = mreverse(msortby(Post_Results, 1))
   endif
@@ -288,7 +290,7 @@ printf &quot;Total probability of the models in ranking (numerical): %f\n\n&quot
 printf &quot;Correlation coefficient between the analytical\n&quot;
 printf &quot;and numerical probabilities of the above models: %f\n&quot;, corr(M.Numerical_Likelihood, M.mod_rank_prob)
 # Contingency table
-if M.limited_y
+if M.limited_y &amp;&amp; !M.multinomial
   printf &quot;\n&quot;
   print &quot;----------------------------------&quot;
   printf &quot;\n&quot;
@@ -630,6 +632,8 @@ Returns: string err holding the first error found in given dataset or parameters
 # We setup estimator
 if M.model_type == &quot;linear&quot;
   string M.estimator = &quot;ols&quot;
+elif M.model_type == &quot;mlogit&quot;
+  string M.estimator = &quot;logit&quot;
 else
   string M.estimator = M.model_type
 endif
@@ -729,6 +733,9 @@ if nelem(X_list) &gt; 0
     if ESTIMATOR == &quot;intreg&quot;
       catch intreg Y Y2 X_list const --quiet
       err_nr = $error
+    elif M.model_type == &quot;mlogit&quot;
+      catch logit Y X_list const --multinomial --quiet
+      err_nr = $error
     else
       catch @ESTIMATOR Y X_list const --quiet
       err_nr = $error
@@ -774,13 +781,17 @@ X_list2	- M.X_list in a form of list (not matrix)
 string ESTIMATOR_OPTS = &quot;--quiet&quot;
 # We set up estimator command
 string ESTIMATOR = M.estimator
-# If we have ordered logit/probit we have to correct $ncoeff
+# If we have ordered/multinomial logit/probit we have to correct $ncoeff
 scalar cuts = 0
+scalar yvals = 1
 if M.limited_y
   cuts = M.cuts
+  if M.model_type == &quot;mlogit&quot;
+    yvals = nelem(M.yvals)-1
+  endif
 endif
 # Do we have additional OPTS for estimator
-if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
+if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot; || M.model_type == &quot;mlogit&quot;
   ESTIMATOR_OPTS = sprintf(&quot;%s %s&quot;, M.estimator_opts, ESTIMATOR_OPTS)
 endif
 # Starting values of the local variables
@@ -875,7 +886,7 @@ elif M.alpha == 1 # Trully random model
       last = $xlist
       if M.with_const == 1
         last -= const
-        M.k_new = $ncoeff-1
+        M.k_new = ($ncoeff/yvals)-1
       else
         M.k_new = $ncoeff-cuts
       endif
@@ -912,7 +923,7 @@ else
   last = $xlist
   if M.with_const == 1
     last -= const
-    M.k_new = $ncoeff-1
+    M.k_new = ($ncoeff/yvals)-1
   else
     M.k_new = $ncoeff-cuts
   endif
@@ -990,6 +1001,9 @@ scalar NORM = M.Nrep - M.Nburn
 series Y = M.Y
 series Yhat
 list xtab_l
+if M.model_type == &quot;mlogit&quot;
+  yvals = nelem(M.yvals)-1
+endif
 M.bhat_avg = transp(M.bhat_avg)
 M.bvar_avg = transp(M.bvar_avg)
 # Restoring values of model_prior to 0 if we have 'none'
@@ -1008,8 +1022,19 @@ M.bvar_avg = M.bvar_avg / NORM
 M.consthat_avg = M.consthat_avg / NORM
 M.constvar_avg = M.constvar_avg / NORM
 if M.with_const == 1
-  M.bhat_avg = M.consthat_avg ~ M.bhat_avg
-  M.bvar_avg = M.constvar_avg ~ M.bvar_avg
+  if M.model_type == &quot;mlogit&quot;
+    M.bhat_avg = transp(M.consthat_avg) ~ M.bhat_avg
+    M.bvar_avg = transp(M.constvar_avg) ~ M.bvar_avg
+  else
+    M.bhat_avg = M.consthat_avg ~ M.bhat_avg
+    M.bvar_avg = M.constvar_avg ~ M.bvar_avg
+  endif
+  M.bhat_avg = transp(vec(transp(M.bhat_avg)))
+  M.bvar_avg = transp(vec(transp(M.bvar_avg)))
+  tmpm = M.Post_Results
+  loop i=1..yvals-1 --quiet
+    M.Post_Results = M.Post_Results | {1} | tmpm
+  endloop
   M.Post_Results = {1} | M.Post_Results
 endif
 if M.limited_y
@@ -1119,7 +1144,15 @@ tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.
 M.Post_Results = M.Post_Results ~ tmp
 title = defarray(&quot;PIP&quot;, &quot;Mean&quot;, &quot;Std.Dev.&quot;, &quot;Cond.Mean&quot;, &quot;Cond.Std.Dev.&quot;)
 cnameset(M.Post_Results, title)
-rnameset(M.Post_Results, M.all_names_sp_m)
+if M.model_type == &quot;mlogit&quot;
+  title = M.all_names_sp_m
+  loop yvals-1 --quiet
+    title += M.all_names_sp_m
+  endloop
+  rnameset(M.Post_Results, title)
+else
+  rnameset(M.Post_Results, M.all_names_sp_m)
+endif
 if M.limited_y &amp;&amp; M.ordered
   matrix bvar = sqrt(M.cutsvar_avg - M.cutshat_avg.^2)
   matrix M.cuts_avg = M.cutshat_avg ~ bvar
@@ -1137,11 +1170,13 @@ if M.limited_y
       M.Yhat = ordered_prediction(M.cuts_avg[,1], Yhat, M.yvalues[1], tmps, 1)
     endif
   endif
-  Yhat = M.Yhat
-  xtab_l = Y Yhat
-  xtab xtab_l --zeros --no-totals --quiet
-  M.contingency = $result
-  M.correctly_predicted = sum(Y == Yhat)
+  if M.model_type != &quot;mlogit&quot;
+    Yhat = M.Yhat
+    xtab_l = Y Yhat
+    xtab xtab_l --zeros --no-totals --quiet
+    M.contingency = $result
+    M.correctly_predicted = sum(Y == Yhat)
+  endif
 endif
 # Forecasts
 if M.Npredict
@@ -1258,19 +1293,28 @@ endif
 if M.limited_y
   scalar M.ordered = 0
   scalar M.cuts = 0
+  scalar M.multinomial = 0
   scalar M.correctly_predicted = NA
   matrix M.Yhat = {}
   matrix M.contingency = {}
+  matrix M.yvals = {}
   strings M.cuts_names = null
   # we check if we have ordered version
   tmp_str = M.estimator
-  @tmp_str Y X_list --quiet
+  if M.model_type == &quot;mlogit&quot;
+    @tmp_str Y X_list --multinomial --quiet
+  else
+    @tmp_str Y X_list --quiet
+  endif
   if inbundle($model, &quot;ordered&quot;)
     M.ordered = 1
     M.cuts = $model[&quot;ncoeff&quot;] - $model[&quot;nx&quot;]
     M.cuts_names = $model[&quot;parnames&quot;][end-M.cuts+1:end]
     M.yvalues = values(Y)
     M.with_const = 0
+  elif inbundle($model, &quot;multinom&quot;)
+    M.multinomial = 1
+    M.yvals = $model[&quot;yvals&quot;]
   endif
 endif
 if M.with_const == 1
@@ -1463,6 +1507,10 @@ if !(M.low == 0 &amp;&amp; isnan(M.high))
   endif
   M.Y_censoring = 1
 endif
+# Multinomial Logit
+if M.model_type == &quot;mlogit&quot;
+  M.estimator_opts = &quot;--multinomial&quot;
+endif
 # Verbosity setting
 if M.verbosity == 1
   set warnings off
@@ -1547,6 +1595,9 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     tobit Y X @ESTIMATOR_OPTS --quiet
   elif ESTIMATOR == &quot;intreg&quot;
     intreg Y Y2 X --quiet
+  elif M.model_type == &quot;mlogit&quot;
+    ESTIMATOR_OPTS = M.estimator_opts
+    logit Y X @ESTIMATOR_OPTS --quiet
   else
     @ESTIMATOR Y X --quiet
   endif
@@ -1613,13 +1664,17 @@ endif
 Function collects results from MC3 experiment.
 */
 BACE_print_status(&quot;Collecting results&quot;, 0)
-matrix idx, var_idx, bhat, mod_struct, models_probs
+matrix idx, var_idx, bhat, mod_struct, models_probs, tmp_var_idx
 matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank
 scalar nr, mod_struct_sum
 scalar weight = 0
+scalar yvals = 1
+if M.model_type == &quot;mlogit&quot;
+  yvals = nelem(M.yvals)-1
+endif
 if M.with_const == 1
-  matrix bhat_avg = zeros(M.k+1)
-  matrix bvar_avg = zeros(M.k+1)
+  matrix bhat_avg = zeros(M.k+1, yvals)
+  matrix bvar_avg = zeros(M.k+1, yvals)
 else
   matrix bhat_avg = zeros(M.k)
   matrix bvar_avg = zeros(M.k)
@@ -1695,6 +1750,12 @@ loop i=1..M.Nrank --quiet
     endif
   endif
   if nelem(models_estimates_rank[i])
+    if M.model_type == &quot;mlogit&quot;
+      tmp_var_idx = var_idx
+      loop yvals-1 --quiet
+        var_idx = var_idx ~ tmp_var_idx
+      endloop
+    endif
     M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
     M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
     if M.limited_y &amp;&amp; M.ordered
@@ -1724,9 +1785,26 @@ loop i=1..nelem(models_counter) --quiet
     endif
   endif
   if nelem(models_estimates[i])
-    bhat = models_estimates[i][,1]
-    bhat_avg[var_idx] += weight * bhat
-    bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
+    nr = nelem(models_estimates[i][,1])/yvals
+    loop j=1..yvals --quiet
+      bhat = models_estimates[i][,1][(j-1)*nr+1:j*nr]
+      bhat_avg[var_idx, j] += weight * bhat
+      bvar_avg[var_idx, j] += weight * (models_estimates[i][,2][(j-1)*nr+1:j*nr] + bhat .^ 2)
+    endloop
+    /*
+    if M.model_type == &quot;mlogit&quot;
+      nr = nelem(models_estimates[i][,1])/yvals
+      loop j=1..yvals --quiet
+        bhat = models_estimates[i][,1][(j-1)*nr+1:j*nr]
+        bhat_avg[var_idx, j] += weight * bhat
+        bvar_avg[var_idx, j] += weight * (models_estimates[i][,2][(j-1)*nr+1:j*nr] + bhat .^ 2)
+      endloop
+    else
+      bhat = models_estimates[i][,1]
+      bhat_avg[var_idx] += weight * bhat
+      bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
+    endif
+    */
     if M.limited_y &amp;&amp; M.ordered
       bhat = cuts_estimates[i][,1]
       cutshat_avg += weight * bhat
@@ -1763,8 +1841,8 @@ endloop
 if M.with_const == 1
   M.bhat_avg = bhat_avg[2:,]
   M.bvar_avg = bvar_avg[2:,]
-  M.consthat_avg = bhat_avg[1]
-  M.constvar_avg = bvar_avg[1]
+  M.consthat_avg = bhat_avg[1,]
+  M.constvar_avg = bvar_avg[1,]
 else
   M.bhat_avg = bhat_avg
   M.bvar_avg = bvar_avg
@@ -2023,7 +2101,7 @@ string arg_name, parameter_value
 strings Integers = defarray(&quot;y_lag&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
-strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;)
+strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;, &quot;mlogit&quot;)
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
 strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;)
 strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
@@ -2041,7 +2119,7 @@ Overloadable[&quot;model_prior&quot;] = _(none=0, binomial=1, betabinomial=2, va
 Overloadable[&quot;with_const&quot;] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
 Overloadable[&quot;do_joint&quot;] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid=&quot;none, DW1, DW2, LS1, LS2, SM, YQ, MYQ&quot;)
 Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
-Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, valid=tolower(flatten(ModelTypes, separator)))
+Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, mlogit=7, valid=tolower(flatten(ModelTypes, separator)))
 # We look for overloaded parameters and convert them into integers
 OverloadableKeys = getkeys(Overloadable)
 loop i=1..nelem(OverloadableKeys) --quiet
@@ -2185,7 +2263,7 @@ M.BicTypes = BicTypes
 M.ModelPriorTypes = ModelPriorTypes
 M.ConstTypes = ConstTypes
 M.DataTransTypes = DataTransTypes
-strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable only!
+strings M.DiscreteModelTypes = M.ModelTypes[2:3] + M.ModelTypes[7] # Note: the first two for binary dependent variable only!
 strings M.CensoredModelTypes = M.ModelTypes[5:6]
 scalar M.limited_y = nelem(instrings(M.DiscreteModelTypes, M.model_type)) &gt; 0 ? 1 : 0
 scalar M.censored_y = nelem(instrings(M.CensoredModelTypes, M.model_type)) &gt; 0 ? 1 : 0
