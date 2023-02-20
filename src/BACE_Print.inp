@@ -25,7 +25,7 @@ function void BACE_Print (bundle *MODEL)
 
     # We make a copy of MODEL
     bundle M = MODEL
-    
+
     # We set up estimator command
     string ESTIMATOR = M.estimator
 
@@ -35,7 +35,7 @@ function void BACE_Print (bundle *MODEL)
     if ESTIMATOR == "intreg"
         string Y_name2 = M.Y_name2
         series @Y_name2 = M.Y2
-    endif    
+    endif
 
     # Do we have Y lags?
     if M.y_lag > 0
@@ -145,13 +145,13 @@ function void BACE_Print (bundle *MODEL)
             if ESTIMATOR == "intreg"
                 printf "Bounded observations: %d\n", M.n_censored[3]
                 printf "Point observations: %d\n", M.n_censored[4]
-            endif            
+            endif
             if nelem(M.normality_test)
                 printf "\nTest for normality of residual -\n"
                 printf "  Null hypothesis: error is normally distributed\n"
                 printf "  Test statistic: Chi-square(%d) = %f\n", M.normality_test["dfn"], M.normality_test["test"]
                 printf "  with p-value = %f\n", M.normality_test["pvalue"]
-            endif            
+            endif
         endif
     endif
 
@@ -178,9 +178,11 @@ function void BACE_Print (bundle *MODEL)
     else
         matrix Post_Results = M.Post_Results
         if M.with_const == 1
-            Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
-            Post_Results = mreverse(msortby(Post_Results, 1))
-            Post_Results[1,1] -= 1
+            if M.model_type != "mlogit"
+                Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
+                Post_Results = mreverse(msortby(Post_Results, 1))
+                Post_Results[1,1] -= 1
+            endif
         else
             Post_Results = mreverse(msortby(Post_Results, 1))
         endif
@@ -211,7 +213,7 @@ function void BACE_Print (bundle *MODEL)
     printf "and numerical probabilities of the above models: %f\n", corr(M.Numerical_Likelihood, M.mod_rank_prob)
 
     # Contingency table
-    if M.limited_y
+    if M.limited_y && !M.multinomial
         printf "\n"
         print "----------------------------------"
         printf "\n"

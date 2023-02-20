@@ -47,20 +47,29 @@ function void BACE_setup (bundle *M, int Norig)
     ###############################################
     if M.limited_y
         scalar M.ordered = 0
-        scalar M.cuts = 0
+        scalar M.cuts = 0        
+        scalar M.multinomial = 0
         scalar M.correctly_predicted = NA
         matrix M.Yhat = {}
         matrix M.contingency = {}
+        matrix M.yvals = {}
         strings M.cuts_names = null
         # we check if we have ordered version
         tmp_str = M.estimator
-        @tmp_str Y X_list --quiet
+        if M.model_type == "mlogit"
+            @tmp_str Y X_list --multinomial --quiet
+        else
+            @tmp_str Y X_list --quiet
+        endif        
         if inbundle($model, "ordered")
             M.ordered = 1
             M.cuts = $model["ncoeff"] - $model["nx"]
             M.cuts_names = $model["parnames"][end-M.cuts+1:end]
             M.yvalues = values(Y)
             M.with_const = 0
+        elif inbundle($model, "multinom")
+            M.multinomial = 1
+            M.yvals = $model["yvals"]
         endif
     endif
     if M.with_const == 1
@@ -265,6 +274,11 @@ function void BACE_setup (bundle *M, int Norig)
         endif        
         M.Y_censoring = 1
     endif
+    
+    # Multinomial Logit
+    if M.model_type == "mlogit"
+        M.estimator_opts = "--multinomial"
+    endif    
 
     # Verbosity setting
     if M.verbosity == 1

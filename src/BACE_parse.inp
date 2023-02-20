@@ -36,6 +36,8 @@ function string BACE_parse (bundle *M,
     # We setup estimator
     if M.model_type == "linear"
         string M.estimator = "ols"
+    elif M.model_type == "mlogit"
+        string M.estimator = "logit"
     else
         string M.estimator = M.model_type
     endif
@@ -147,6 +149,9 @@ function string BACE_parse (bundle *M,
         else
             if ESTIMATOR == "intreg"
                 catch intreg Y Y2 X_list const --quiet
+                err_nr = $error
+            elif M.model_type == "mlogit"
+                catch logit Y X_list const --multinomial --quiet
                 err_nr = $error
             else
                 catch @ESTIMATOR Y X_list const --quiet

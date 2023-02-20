@@ -65,6 +65,9 @@ function void BACE_estimate (bundle *M)
             tobit Y X @ESTIMATOR_OPTS --quiet
         elif ESTIMATOR == "intreg"
             intreg Y Y2 X --quiet
+        elif M.model_type == "mlogit"
+            ESTIMATOR_OPTS = M.estimator_opts
+            logit Y X @ESTIMATOR_OPTS --quiet
         else
             @ESTIMATOR Y X --quiet
         endif

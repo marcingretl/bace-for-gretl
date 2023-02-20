@@ -31,14 +31,18 @@ function void BACE_initial_model (bundle *M)
     # We set up estimator command
     string ESTIMATOR = M.estimator
 
-    # If we have ordered logit/probit we have to correct $ncoeff
+    # If we have ordered/multinomial logit/probit we have to correct $ncoeff
     scalar cuts = 0
+    scalar yvals = 1
     if M.limited_y
         cuts = M.cuts
-    endif
+        if M.model_type == "mlogit"
+            yvals = nelem(M.yvals)-1
+        endif        
+    endif    
 
     # Do we have additional OPTS for estimator
-    if M.Y_censoring && ESTIMATOR == "tobit"
+    if M.Y_censoring && ESTIMATOR == "tobit" || M.model_type == "mlogit"
         ESTIMATOR_OPTS = sprintf("%s %s", M.estimator_opts, ESTIMATOR_OPTS)
     endif
 
@@ -136,7 +140,7 @@ function void BACE_initial_model (bundle *M)
                 last = $xlist
                 if M.with_const == 1
                     last -= const
-                    M.k_new = $ncoeff-1
+                    M.k_new = ($ncoeff/yvals)-1
                 else
                     M.k_new = $ncoeff-cuts
                 endif
@@ -173,7 +177,7 @@ function void BACE_initial_model (bundle *M)
         last = $xlist
         if M.with_const == 1
             last -= const
-            M.k_new = $ncoeff-1
+            M.k_new = ($ncoeff/yvals)-1
         else
             M.k_new = $ncoeff-cuts
         endif
