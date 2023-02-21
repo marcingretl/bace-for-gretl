@@ -107,7 +107,7 @@ return MODEL
 Function prints BACE results.
 */
 scalar avg_model_size, tmp
-matrix coeffmat, Post_Results
+matrix coeffmat, Post_Results, tmpm
 string model_type, tmpstr, tmpstr2
 # We make a copy of MODEL
 bundle M = MODEL
@@ -200,10 +200,19 @@ if M.verbosity == 2
     endloop
     coeffmat = M.StartModel_b.coeff ~ M.StartModel_b.stderr
     strings coeffmat_xnames = M.StartModel_xnames
-    if M.limited_y &amp;&amp; M.ordered
-      coeffmat_xnames += M.cuts_names
+    if M.model_type == &quot;mlogit&quot;
+      tmp = rows(coeffmat)/yvals
+      loop i=1..yvals --quiet
+        tmpm = coeffmat[(i-1)*tmp+1:i*tmp,]
+        printf &quot;%s = %d&quot;, Y_name, M.yvals[i+1]
+        modprint tmpm coeffmat_xnames
+      endloop
+    else
+      if M.limited_y &amp;&amp; M.ordered
+        coeffmat_xnames += M.cuts_names
+      endif
+      modprint coeffmat coeffmat_xnames
     endif
-    modprint coeffmat coeffmat_xnames
   else
     printf(&quot;The initial model was empty.\n&quot;)
   endif
@@ -390,11 +399,23 @@ if M.verbosity == 2
       else
         coeffmat = M.mod_rank_estimates[i][,1:2]
         Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
-        if M.limited_y &amp;&amp; M.ordered
-          coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
-          Xnames += M.cuts_names
+        if M.model_type == &quot;mlogit&quot;
+          tmp = rows(coeffmat)/yvals
+          loop j=1..yvals --quiet
+            tmpm = coeffmat[(j-1)*tmp+1:j*tmp,]
+            if j == 1
+              printf &quot;\n&quot;
+            endif
+            printf &quot;%s = %d&quot;, Y_name, M.yvals[j+1]
+            modprint tmpm Xnames
+          endloop
+        else
+          if M.limited_y &amp;&amp; M.ordered
+            coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
+            Xnames += M.cuts_names
+          endif
+          modprint coeffmat Xnames
         endif
-        modprint coeffmat Xnames
       endif
     endif
   endloop
@@ -1299,6 +1320,8 @@ printf &quot;\n * Delete unneeded entries in result bundle.&quot;
 printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot;
 printf &quot;\n * Add all possible test/checks/whatever in the case of intreg model.&quot;
 printf &quot;\n * Simplify BACE_initial_model().&quot;
+printf &quot;\n * Add forecasting and percentage of correctly predicted for mlogit model.&quot;
+printf &quot;\n * Verify forecasting in all models.&quot;
 printf &quot;\n * Work on speed.&quot;
 printf &quot;\n#############################################################################\n&quot;
 BACE_print_status(&quot;BACE setup&quot;)

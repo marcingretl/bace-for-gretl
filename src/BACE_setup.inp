@@ -25,6 +25,8 @@ function void BACE_setup (bundle *M, int Norig)
     printf "\n * Simplify 'if' condition for lags of Y in BACE_estimate()."
     printf "\n * Add all possible test/checks/whatever in the case of intreg model."
     printf "\n * Simplify BACE_initial_model()."
+    printf "\n * Add forecasting and percentage of correctly predicted for mlogit model."
+    printf "\n * Verify forecasting in all models."
     printf "\n * Work on speed."
     printf "\n#############################################################################\n"
 
