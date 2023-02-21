@@ -27,10 +27,7 @@ function void BACE_summary (bundle *M)
     series Y = M.Y
     series Yhat
     list xtab_l
-    if M.model_type == "mlogit"
-        yvals = nelem(M.yvals)-1
-    endif
-
+    scalar yvals = M.model_type == "mlogit" ? nelem(M.yvals)-1 : 1
     M.bhat_avg = transp(M.bhat_avg)
     M.bvar_avg = transp(M.bvar_avg)
 
@@ -65,6 +62,13 @@ function void BACE_summary (bundle *M)
             M.Post_Results = M.Post_Results | {1} | tmpm
         endloop
         M.Post_Results = {1} | M.Post_Results
+    else
+        M.bhat_avg = transp(vec(transp(M.bhat_avg)))
+        M.bvar_avg = transp(vec(transp(M.bvar_avg)))
+        tmpm = M.Post_Results
+        loop i=1..yvals-1 --quiet
+            M.Post_Results = M.Post_Results | tmpm
+        endloop
     endif
     if M.limited_y
         M.Yhat = M.Yhat / NORM

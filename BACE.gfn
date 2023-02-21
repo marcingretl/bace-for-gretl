@@ -106,13 +106,15 @@ return MODEL
 <code>/*
 Function prints BACE results.
 */
-scalar avg_model_size
-matrix coeffmat
+scalar avg_model_size, tmp
+matrix coeffmat, Post_Results
 string model_type, tmpstr, tmpstr2
 # We make a copy of MODEL
 bundle M = MODEL
 # We set up estimator command
 string ESTIMATOR = M.estimator
+# How many equations we have
+scalar yvals = M.model_type == &quot;mlogit&quot; ? nelem(M.yvals)-1 : 1
 # We re-create Y process
 string Y_name = M.Y_name
 series @Y_name = M.Y
@@ -251,16 +253,26 @@ printf &quot;\n&quot;
 print &quot;----------------------------------&quot;
 printf &quot;\n&quot;
 print &quot;Posterior moments (unconditional and conditional on inclusion):&quot;
-if $version &lt; 20170
-  printf &quot;%15f&quot;, M.Post_Results
-else
-  matrix Post_Results = M.Post_Results
-  if M.with_const == 1
-    if M.model_type != &quot;mlogit&quot;
+if M.model_type == &quot;mlogit&quot;
+  tmp = rows(M.Post_Results)/yvals
+  loop i=1..yvals --quiet
+    Post_Results = M.Post_Results[(i-1)*tmp+1:i*tmp,]
+    rnameset(Post_Results, M.all_names_sp_m)
+    if M.with_const == 1
       Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
       Post_Results = mreverse(msortby(Post_Results, 1))
       Post_Results[1,1] -= 1
+    else
+      Post_Results = mreverse(msortby(Post_Results, 1))
     endif
+    printf &quot;%s = %d\n%15f&quot;, Y_name, M.yvals[i+1], Post_Results
+  endloop
+else
+  Post_Results = M.Post_Results
+  if M.with_const == 1
+    Post_Results[1,1] += 1
+    Post_Results = mreverse(msortby(Post_Results, 1))
+    Post_Results[1,1] -= 1
   else
     Post_Results = mreverse(msortby(Post_Results, 1))
   endif
@@ -888,7 +900,11 @@ elif M.alpha == 1 # Trully random model
         last -= const
         M.k_new = ($ncoeff/yvals)-1
       else
-        M.k_new = $ncoeff-cuts
+        if M.model_type == &quot;mlogit&quot;
+          M.k_new = $ncoeff/yvals
+        else
+          M.k_new = $ncoeff-cuts
+        endif
       endif
       M.StartModel_b = $model
       strings M.StartModel_xnames = varnames($xlist)
@@ -925,7 +941,11 @@ else
     last -= const
     M.k_new = ($ncoeff/yvals)-1
   else
-    M.k_new = $ncoeff-cuts
+    if M.model_type == &quot;mlogit&quot;
+      M.k_new = $ncoeff/yvals
+    else
+      M.k_new = $ncoeff-cuts
+    endif
   endif
   M.StartModel_b = $model
   strings M.StartModel_xnames = varnames($xlist)
@@ -1001,9 +1021,7 @@ scalar NORM = M.Nrep - M.Nburn
 series Y = M.Y
 series Yhat
 list xtab_l
-if M.model_type == &quot;mlogit&quot;
-  yvals = nelem(M.yvals)-1
-endif
+scalar yvals = M.model_type == &quot;mlogit&quot; ? nelem(M.yvals)-1 : 1
 M.bhat_avg = transp(M.bhat_avg)
 M.bvar_avg = transp(M.bvar_avg)
 # Restoring values of model_prior to 0 if we have 'none'
@@ -1036,6 +1054,13 @@ if M.with_const == 1
     M.Post_Results = M.Post_Results | {1} | tmpm
   endloop
   M.Post_Results = {1} | M.Post_Results
+else
+  M.bhat_avg = transp(vec(transp(M.bhat_avg)))
+  M.bvar_avg = transp(vec(transp(M.bvar_avg)))
+  tmpm = M.Post_Results
+  loop i=1..yvals-1 --quiet
+    M.Post_Results = M.Post_Results | tmpm
+  endloop
 endif
 if M.limited_y
   M.Yhat = M.Yhat / NORM
@@ -1676,13 +1701,13 @@ if M.with_const == 1
   matrix bhat_avg = zeros(M.k+1, yvals)
   matrix bvar_avg = zeros(M.k+1, yvals)
 else
-  matrix bhat_avg = zeros(M.k)
-  matrix bvar_avg = zeros(M.k)
+  matrix bhat_avg = zeros(M.k, yvals)
+  matrix bvar_avg = zeros(M.k, yvals)
 endif
 matrix mod_sizes = zeros(M.k)
-matrix var_prob = zeros(1,M.k)
+matrix var_prob = zeros(1, M.k)
 if M.do_joint
-  matrix jointness_m = zeros(M.k,M.k)
+  matrix jointness_m = zeros(M.k, M.k)
 endif
 if M.Npredict
   Yhat_avg = zeros(M.Npredict)

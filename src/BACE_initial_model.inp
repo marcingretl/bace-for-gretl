@@ -38,8 +38,8 @@ function void BACE_initial_model (bundle *M)
         cuts = M.cuts
         if M.multinomial
             yvals = nelem(M.yvals)-1
-        endif        
-    endif    
+        endif
+    endif
 
     # Do we have additional OPTS for estimator
     if M.Y_censoring && ESTIMATOR == "tobit" || M.model_type == "mlogit"
@@ -142,7 +142,11 @@ function void BACE_initial_model (bundle *M)
                     last -= const
                     M.k_new = ($ncoeff/yvals)-1
                 else
-                    M.k_new = $ncoeff-cuts
+                    if M.model_type == "mlogit"
+                        M.k_new = $ncoeff/yvals
+                    else
+                        M.k_new = $ncoeff-cuts
+                    endif
                 endif
                 M.StartModel_b = $model
                 strings M.StartModel_xnames = varnames($xlist)
@@ -179,7 +183,11 @@ function void BACE_initial_model (bundle *M)
             last -= const
             M.k_new = ($ncoeff/yvals)-1
         else
-            M.k_new = $ncoeff-cuts
+            if M.model_type == "mlogit"
+                M.k_new = $ncoeff/yvals
+            else
+                M.k_new = $ncoeff-cuts
+            endif
         endif
         M.StartModel_b = $model
         strings M.StartModel_xnames = varnames($xlist)

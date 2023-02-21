@@ -19,8 +19,8 @@ function void BACE_Print (bundle *MODEL)
 /*
    Function prints BACE results.
     */
-    scalar avg_model_size
-    matrix coeffmat
+    scalar avg_model_size, tmp
+    matrix coeffmat, Post_Results
     string model_type, tmpstr, tmpstr2
 
     # We make a copy of MODEL
@@ -28,6 +28,9 @@ function void BACE_Print (bundle *MODEL)
 
     # We set up estimator command
     string ESTIMATOR = M.estimator
+
+    # How many equations we have
+    scalar yvals = M.model_type == "mlogit" ? nelem(M.yvals)-1 : 1
 
     # We re-create Y process
     string Y_name = M.Y_name
@@ -173,16 +176,26 @@ function void BACE_Print (bundle *MODEL)
     print "----------------------------------"
     printf "\n"
     print "Posterior moments (unconditional and conditional on inclusion):"
-    if $version < 20170
-        printf "%15f", M.Post_Results
-    else
-        matrix Post_Results = M.Post_Results
-        if M.with_const == 1
-            if M.model_type != "mlogit"
+    if M.model_type == "mlogit"
+        tmp = rows(M.Post_Results)/yvals
+        loop i=1..yvals --quiet
+            Post_Results = M.Post_Results[(i-1)*tmp+1:i*tmp,]
+            rnameset(Post_Results, M.all_names_sp_m)
+            if M.with_const == 1
                 Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
                 Post_Results = mreverse(msortby(Post_Results, 1))
                 Post_Results[1,1] -= 1
+            else
+                Post_Results = mreverse(msortby(Post_Results, 1))                
             endif
+            printf "%s = %d\n%15f", Y_name, M.yvals[i+1], Post_Results
+        endloop
+    else
+        Post_Results = M.Post_Results
+        if M.with_const == 1
+            Post_Results[1,1] += 1
+            Post_Results = mreverse(msortby(Post_Results, 1))
+            Post_Results[1,1] -= 1
         else
             Post_Results = mreverse(msortby(Post_Results, 1))
         endif

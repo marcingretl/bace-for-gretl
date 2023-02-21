@@ -35,13 +35,13 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         matrix bhat_avg = zeros(M.k+1, yvals)
         matrix bvar_avg = zeros(M.k+1, yvals)
     else
-        matrix bhat_avg = zeros(M.k)
-        matrix bvar_avg = zeros(M.k)
+        matrix bhat_avg = zeros(M.k, yvals)
+        matrix bvar_avg = zeros(M.k, yvals)
     endif
     matrix mod_sizes = zeros(M.k)
-    matrix var_prob = zeros(1,M.k)
+    matrix var_prob = zeros(1, M.k)
     if M.do_joint
-        matrix jointness_m = zeros(M.k,M.k)
+        matrix jointness_m = zeros(M.k, M.k)
     endif
     if M.Npredict
         Yhat_avg = zeros(M.Npredict)
