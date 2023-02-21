@@ -36,7 +36,7 @@ function void BACE_initial_model (bundle *M)
     scalar yvals = 1
     if M.limited_y
         cuts = M.cuts
-        if M.model_type == "mlogit"
+        if M.multinomial
             yvals = nelem(M.yvals)-1
         endif        
     endif    

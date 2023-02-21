@@ -55,8 +55,12 @@ function void BACE_Print (bundle *MODEL)
     endif
 
     # Setting up string with model type
-    if M.limited_y && M.ordered
-        model_type = sprintf("ordered %s", M.model_type)
+    if M.limited_y
+        if M.ordered
+            model_type = sprintf("ordered %s", M.model_type)
+        else
+            model_type = "multinomial logit"
+        endif
     else
         model_type = sprintf("%s", M.model_type)
     endif
@@ -64,11 +68,7 @@ function void BACE_Print (bundle *MODEL)
     # Additional information in summary
     printf "\n"
     print "----------------------------------"
-    if M.limited_y && M.ordered
-        printf "Model type: %s\n", model_type
-    else
-        printf "Model type: %s\n", model_type
-    endif
+    printf "Model type: %s\n", model_type
     if ESTIMATOR == "tobit"
         printf "   left bound: %f\n", M.low
         printf "   right bound: %f\n", M.high

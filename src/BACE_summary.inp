@@ -205,7 +205,7 @@ function void BACE_summary (bundle *M)
                 M.Yhat = ordered_prediction(M.cuts_avg[,1], Yhat, M.yvalues[1], tmps, 1)
             endif
         endif
-        if M.model_type != "mlogit"
+        if !M.multinomial
             Yhat = M.Yhat
             xtab_l = Y Yhat
             xtab xtab_l --zeros --no-totals --quiet
