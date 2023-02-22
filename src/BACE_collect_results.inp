@@ -23,17 +23,19 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
        Function collects results from MC3 experiment.
     */
     BACE_print_status("Collecting results", 0)
-    matrix idx, var_idx, bhat, mod_struct, models_probs, tmp_var_idx
+    matrix idx, var_idx, bhat, bvar, mod_struct, models_probs, tmp_var_idx
     matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank
     scalar nr, mod_struct_sum
     scalar weight = 0
     scalar yvals = 1
+    scalar with_const = 0
     if M.model_type == "mlogit"
         yvals = nelem(M.yvals)-1
     endif
     if M.with_const == 1
         matrix bhat_avg = zeros(M.k+1, yvals)
         matrix bvar_avg = zeros(M.k+1, yvals)
+        with_const = 1
     else
         matrix bhat_avg = zeros(M.k, yvals)
         matrix bvar_avg = zeros(M.k, yvals)
@@ -115,10 +117,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         endif
         if nelem(models_estimates_rank[i])
             if M.model_type == "mlogit"
-                tmp_var_idx = var_idx
-                loop yvals-1 --quiet
-                    var_idx = var_idx ~ tmp_var_idx
-                endloop
+                var_idx = transp(mshape(var_idx', yvals*nelem(var_idx), 1))
             endif
             M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
             M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
@@ -152,30 +151,23 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         endif
 
         if nelem(models_estimates[i])
-            nr = nelem(models_estimates[i][,1])/yvals
-            loop j=1..yvals --quiet
-                bhat = models_estimates[i][,1][(j-1)*nr+1:j*nr]
-                bhat_avg[var_idx, j] += weight * bhat
-                bvar_avg[var_idx, j] += weight * (models_estimates[i][,2][(j-1)*nr+1:j*nr] + bhat .^ 2)
-            endloop
-            /*
+            bhat = models_estimates[i][,1]
             if M.model_type == "mlogit"
-                nr = nelem(models_estimates[i][,1])/yvals
+                nr = with_const + mod_struct_sum
+                bhat = mshape(bhat, nr, yvals)
+                bvar = mshape(models_estimates[i][,2], nr, yvals)
                 loop j=1..yvals --quiet
-                    bhat = models_estimates[i][,1][(j-1)*nr+1:j*nr]
-                    bhat_avg[var_idx, j] += weight * bhat
-                    bvar_avg[var_idx, j] += weight * (models_estimates[i][,2][(j-1)*nr+1:j*nr] + bhat .^ 2)
+                    bhat_avg[var_idx, j] += weight * bhat[,j]
+                    bvar_avg[var_idx, j] += weight * (bvar[,j] + bhat[,j] .^ 2)
                 endloop
             else
-                bhat = models_estimates[i][,1]
                 bhat_avg[var_idx] += weight * bhat
                 bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
-            endif
-            */
-            if M.limited_y && M.ordered
-                bhat = cuts_estimates[i][,1]
-                cutshat_avg += weight * bhat
-                cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
+                if M.limited_y && M.ordered
+                    bhat = cuts_estimates[i][,1]
+                    cutshat_avg += weight * bhat
+                    cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
+                endif
             endif
 
             if mod_struct_sum

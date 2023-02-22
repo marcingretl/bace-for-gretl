@@ -110,6 +110,8 @@ function void BACE_Print (bundle *MODEL)
         if nelem(M.StartModel_b)
             if M.limited_y && M.ordered
                 printf "The initial model: ordered %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
+            elif M.limited_y && M.multinomial
+                printf "The initial model: multinomial %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
             elif ESTIMATOR == "intreg"
                 printf "The initial model: %s, Lower limit: %s, Upper limit: %s\n", ESTIMATOR, M.Y_name, M.Y_name2
             else

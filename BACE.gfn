@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-02-21</date>
+<date>2023-02-22</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -188,6 +188,8 @@ if M.verbosity == 2
   if nelem(M.StartModel_b)
     if M.limited_y &amp;&amp; M.ordered
       printf &quot;The initial model: ordered %s, dependent variable: %s\n&quot;, ESTIMATOR, M.Y_name
+    elif M.limited_y &amp;&amp; M.multinomial
+      printf &quot;The initial model: multinomial %s, dependent variable: %s\n&quot;, ESTIMATOR, M.Y_name
     elif ESTIMATOR == &quot;intreg&quot;
       printf &quot;The initial model: %s, Lower limit: %s, Upper limit: %s\n&quot;, ESTIMATOR, M.Y_name, M.Y_name2
     else
@@ -573,10 +575,10 @@ endif
 </gretl-function>
 <gretl-function name="BACE_GUI" type="bundle" pkg-role="gui-main">
  <params count="10">
-  <param name="model_type" type="int" min="1" max="5" default="1">
+  <param name="model_type" type="int" min="1" max="6" default="1">
 <description>Model type</description>
-<labels count="5">
-"logit" "probit" "poisson" "tobit" "linear" </labels>
+<labels count="6">
+"logit" "probit" "mlogit" "poisson" "tobit" "linear" </labels>
   </param>
   <param name="Y" type="series">
 <description>Dependent variable</description>
@@ -622,7 +624,7 @@ Function is a wrapper to bundle-based BACE() interface.
 bundle Options, RES
 string err
 # Mapping GUI model_types indexes to strings
-strings ModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;linear&quot;)
+strings ModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;, &quot;mlogit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;linear&quot;)
 string Y_name = argname(Y)
 series @Y_name = Y
 scalar Options[&quot;with_const&quot;] = with_const
@@ -1712,17 +1714,19 @@ endif
 Function collects results from MC3 experiment.
 */
 BACE_print_status(&quot;Collecting results&quot;, 0)
-matrix idx, var_idx, bhat, mod_struct, models_probs, tmp_var_idx
+matrix idx, var_idx, bhat, bvar, mod_struct, models_probs, tmp_var_idx
 matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank
 scalar nr, mod_struct_sum
 scalar weight = 0
 scalar yvals = 1
+scalar with_const = 0
 if M.model_type == &quot;mlogit&quot;
   yvals = nelem(M.yvals)-1
 endif
 if M.with_const == 1
   matrix bhat_avg = zeros(M.k+1, yvals)
   matrix bvar_avg = zeros(M.k+1, yvals)
+  with_const = 1
 else
   matrix bhat_avg = zeros(M.k, yvals)
   matrix bvar_avg = zeros(M.k, yvals)
@@ -1799,10 +1803,7 @@ loop i=1..M.Nrank --quiet
   endif
   if nelem(models_estimates_rank[i])
     if M.model_type == &quot;mlogit&quot;
-      tmp_var_idx = var_idx
-      loop yvals-1 --quiet
-        var_idx = var_idx ~ tmp_var_idx
-      endloop
+      var_idx = transp(mshape(var_idx', yvals*nelem(var_idx), 1))
     endif
     M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
     M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
@@ -1833,30 +1834,23 @@ loop i=1..nelem(models_counter) --quiet
     endif
   endif
   if nelem(models_estimates[i])
-    nr = nelem(models_estimates[i][,1])/yvals
-    loop j=1..yvals --quiet
-      bhat = models_estimates[i][,1][(j-1)*nr+1:j*nr]
-      bhat_avg[var_idx, j] += weight * bhat
-      bvar_avg[var_idx, j] += weight * (models_estimates[i][,2][(j-1)*nr+1:j*nr] + bhat .^ 2)
-    endloop
-    /*
+    bhat = models_estimates[i][,1]
     if M.model_type == &quot;mlogit&quot;
-      nr = nelem(models_estimates[i][,1])/yvals
+      nr = with_const + mod_struct_sum
+      bhat = mshape(bhat, nr, yvals)
+      bvar = mshape(models_estimates[i][,2], nr, yvals)
       loop j=1..yvals --quiet
-        bhat = models_estimates[i][,1][(j-1)*nr+1:j*nr]
-        bhat_avg[var_idx, j] += weight * bhat
-        bvar_avg[var_idx, j] += weight * (models_estimates[i][,2][(j-1)*nr+1:j*nr] + bhat .^ 2)
+        bhat_avg[var_idx, j] += weight * bhat[,j]
+        bvar_avg[var_idx, j] += weight * (bvar[,j] + bhat[,j] .^ 2)
       endloop
     else
-      bhat = models_estimates[i][,1]
       bhat_avg[var_idx] += weight * bhat
       bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
-    endif
-    */
-    if M.limited_y &amp;&amp; M.ordered
-      bhat = cuts_estimates[i][,1]
-      cutshat_avg += weight * bhat
-      cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
+      if M.limited_y &amp;&amp; M.ordered
+        bhat = cuts_estimates[i][,1]
+        cutshat_avg += weight * bhat
+        cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
+      endif
     endif
     if mod_struct_sum
       mod_sizes[mod_struct_sum] += weight
