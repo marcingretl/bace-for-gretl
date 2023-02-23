@@ -151,7 +151,7 @@ function string BACE_parse (bundle *M,
                 catch intreg Y Y2 X_list const --quiet
                 err_nr = $error
             elif M.model_type == "mlogit"
-                catch logit Y X_list const --multinomial --quiet
+                catch logit Y const X_list --multinomial --quiet
                 err_nr = $error
             else
                 catch @ESTIMATOR Y X_list const --quiet

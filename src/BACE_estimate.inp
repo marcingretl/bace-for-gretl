@@ -54,7 +54,7 @@ function void BACE_estimate (bundle *M)
 
     # Do we need const?
     if M.with_const == 1
-        X += const
+        X = const X
     endif
 
     # We estimate current model
