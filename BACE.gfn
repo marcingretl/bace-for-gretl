@@ -140,8 +140,10 @@ endif
 if M.limited_y
   if M.ordered
     model_type = sprintf(&quot;ordered %s&quot;, M.model_type)
-  else
+  elif M.multinomial
     model_type = &quot;multinomial logit&quot;
+  else
+    model_type = sprintf(&quot;%s&quot;, M.model_type)
   endif
 else
   model_type = sprintf(&quot;%s&quot;, M.model_type)

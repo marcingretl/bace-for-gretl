@@ -61,8 +61,10 @@ function void BACE_Print (bundle *MODEL)
     if M.limited_y
         if M.ordered
             model_type = sprintf("ordered %s", M.model_type)
-        else
+        elif M.multinomial
             model_type = "multinomial logit"
+        else
+            model_type = sprintf("%s", M.model_type)
         endif
     else
         model_type = sprintf("%s", M.model_type)
@@ -334,7 +336,7 @@ function void BACE_Print (bundle *MODEL)
                             tmpm = coeffmat[(j-1)*tmp+1:j*tmp,]
                             if j == 1
                                 printf "\n"
-                            endif                            
+                            endif
                             printf "%s = %d", Y_name, M.yvals[j+1]
                             modprint tmpm Xnames
                         endloop
