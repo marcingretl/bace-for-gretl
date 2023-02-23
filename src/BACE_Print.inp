@@ -19,15 +19,18 @@ function void BACE_Print (bundle *MODEL)
 /*
    Function prints BACE results.
     */
-    scalar avg_model_size
-    matrix coeffmat
+    scalar avg_model_size, tmp
+    matrix coeffmat, Post_Results, tmpm
     string model_type, tmpstr, tmpstr2
 
     # We make a copy of MODEL
     bundle M = MODEL
-    
+
     # We set up estimator command
     string ESTIMATOR = M.estimator
+
+    # How many equations we have
+    scalar yvals = M.model_type == "mlogit" ? nelem(M.yvals)-1 : 1
 
     # We re-create Y process
     string Y_name = M.Y_name
@@ -35,7 +38,7 @@ function void BACE_Print (bundle *MODEL)
     if ESTIMATOR == "intreg"
         string Y_name2 = M.Y_name2
         series @Y_name2 = M.Y2
-    endif    
+    endif
 
     # Do we have Y lags?
     if M.y_lag > 0
@@ -55,8 +58,12 @@ function void BACE_Print (bundle *MODEL)
     endif
 
     # Setting up string with model type
-    if M.limited_y && M.ordered
-        model_type = sprintf("ordered %s", M.model_type)
+    if M.limited_y
+        if M.ordered
+            model_type = sprintf("ordered %s", M.model_type)
+        else
+            model_type = "multinomial logit"
+        endif
     else
         model_type = sprintf("%s", M.model_type)
     endif
@@ -64,11 +71,7 @@ function void BACE_Print (bundle *MODEL)
     # Additional information in summary
     printf "\n"
     print "----------------------------------"
-    if M.limited_y && M.ordered
-        printf "Model type: %s\n", model_type
-    else
-        printf "Model type: %s\n", model_type
-    endif
+    printf "Model type: %s\n", model_type
     if ESTIMATOR == "tobit"
         printf "   left bound: %f\n", M.low
         printf "   right bound: %f\n", M.high
@@ -107,6 +110,8 @@ function void BACE_Print (bundle *MODEL)
         if nelem(M.StartModel_b)
             if M.limited_y && M.ordered
                 printf "The initial model: ordered %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
+            elif M.limited_y && M.multinomial
+                printf "The initial model: multinomial %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
             elif ESTIMATOR == "intreg"
                 printf "The initial model: %s, Lower limit: %s, Upper limit: %s\n", ESTIMATOR, M.Y_name, M.Y_name2
             else
@@ -119,10 +124,19 @@ function void BACE_Print (bundle *MODEL)
             endloop
             coeffmat = M.StartModel_b.coeff ~ M.StartModel_b.stderr
             strings coeffmat_xnames = M.StartModel_xnames
-            if M.limited_y && M.ordered
-                coeffmat_xnames += M.cuts_names
+            if M.model_type == "mlogit"
+                tmp = rows(coeffmat)/yvals
+                loop i=1..yvals --quiet
+                    tmpm = coeffmat[(i-1)*tmp+1:i*tmp,]
+                    printf "%s = %d", Y_name, M.yvals[i+1]
+                    modprint tmpm coeffmat_xnames
+                endloop
+            else
+                if M.limited_y && M.ordered
+                    coeffmat_xnames += M.cuts_names
+                endif
+                modprint coeffmat coeffmat_xnames
             endif
-            modprint coeffmat coeffmat_xnames
         else
             printf("The initial model was empty.\n")
         endif
@@ -145,13 +159,13 @@ function void BACE_Print (bundle *MODEL)
             if ESTIMATOR == "intreg"
                 printf "Bounded observations: %d\n", M.n_censored[3]
                 printf "Point observations: %d\n", M.n_censored[4]
-            endif            
+            endif
             if nelem(M.normality_test)
                 printf "\nTest for normality of residual -\n"
                 printf "  Null hypothesis: error is normally distributed\n"
                 printf "  Test statistic: Chi-square(%d) = %f\n", M.normality_test["dfn"], M.normality_test["test"]
                 printf "  with p-value = %f\n", M.normality_test["pvalue"]
-            endif            
+            endif
         endif
     endif
 
@@ -173,12 +187,24 @@ function void BACE_Print (bundle *MODEL)
     print "----------------------------------"
     printf "\n"
     print "Posterior moments (unconditional and conditional on inclusion):"
-    if $version < 20170
-        printf "%15f", M.Post_Results
+    if M.model_type == "mlogit"
+        tmp = rows(M.Post_Results)/yvals
+        loop i=1..yvals --quiet
+            Post_Results = M.Post_Results[(i-1)*tmp+1:i*tmp,]
+            rnameset(Post_Results, M.all_names_sp_m)
+            if M.with_const == 1
+                Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
+                Post_Results = mreverse(msortby(Post_Results, 1))
+                Post_Results[1,1] -= 1
+            else
+                Post_Results = mreverse(msortby(Post_Results, 1))
+            endif
+            printf "%s = %d\n%15f", Y_name, M.yvals[i+1], Post_Results
+        endloop
     else
-        matrix Post_Results = M.Post_Results
+        Post_Results = M.Post_Results
         if M.with_const == 1
-            Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
+            Post_Results[1,1] += 1
             Post_Results = mreverse(msortby(Post_Results, 1))
             Post_Results[1,1] -= 1
         else
@@ -211,7 +237,7 @@ function void BACE_Print (bundle *MODEL)
     printf "and numerical probabilities of the above models: %f\n", corr(M.Numerical_Likelihood, M.mod_rank_prob)
 
     # Contingency table
-    if M.limited_y
+    if M.limited_y && !M.multinomial
         printf "\n"
         print "----------------------------------"
         printf "\n"
@@ -302,11 +328,23 @@ function void BACE_Print (bundle *MODEL)
                 else
                     coeffmat = M.mod_rank_estimates[i][,1:2]
                     Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
-                    if M.limited_y && M.ordered
-                        coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
-                        Xnames += M.cuts_names
+                    if M.model_type == "mlogit"
+                        tmp = rows(coeffmat)/yvals
+                        loop j=1..yvals --quiet
+                            tmpm = coeffmat[(j-1)*tmp+1:j*tmp,]
+                            if j == 1
+                                printf "\n"
+                            endif                            
+                            printf "%s = %d", Y_name, M.yvals[j+1]
+                            modprint tmpm Xnames
+                        endloop
+                    else
+                        if M.limited_y && M.ordered
+                            coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
+                            Xnames += M.cuts_names
+                        endif
+                        modprint coeffmat Xnames
                     endif
-                    modprint coeffmat Xnames
                 endif
             endif
         endloop

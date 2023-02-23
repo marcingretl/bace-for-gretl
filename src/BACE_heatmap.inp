@@ -21,7 +21,7 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
    MODE - string indicating image mode {"inclusions", "jointness"}
    basename	- basename for gnuplot files
     */
-    scalar nrows, ncols, tmp, height, width, minval, maxval
+    scalar nrows, ncols, tmp, height, width, minval, maxval, error
     string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output
     matrix m
     strings all_names_sp_m
@@ -128,7 +128,7 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
     endif
 
     # We plot heatmap
-    plot
+    catch plot
         printf "set term pngcairo font \"Vera,9\" size %d,%d noenhanced", width, height
         literal set encoding utf8
         literal set decimalsign '.'
@@ -155,4 +155,8 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
         printf "EOD"
         literal plot $map matrix with image
     end plot --output=@output
+    error = $error
+    if error
+        printf "%s: %s\n", title, errmsg(error)
+    endif
 end function

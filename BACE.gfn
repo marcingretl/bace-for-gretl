@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-02-19</date>
+<date>2023-02-23</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -106,13 +106,15 @@ return MODEL
 <code>/*
 Function prints BACE results.
 */
-scalar avg_model_size
-matrix coeffmat
+scalar avg_model_size, tmp
+matrix coeffmat, Post_Results, tmpm
 string model_type, tmpstr, tmpstr2
 # We make a copy of MODEL
 bundle M = MODEL
 # We set up estimator command
 string ESTIMATOR = M.estimator
+# How many equations we have
+scalar yvals = M.model_type == &quot;mlogit&quot; ? nelem(M.yvals)-1 : 1
 # We re-create Y process
 string Y_name = M.Y_name
 series @Y_name = M.Y
@@ -135,19 +137,19 @@ else
   avg_model_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
 endif
 # Setting up string with model type
-if M.limited_y &amp;&amp; M.ordered
-  model_type = sprintf(&quot;ordered %s&quot;, M.model_type)
+if M.limited_y
+  if M.ordered
+    model_type = sprintf(&quot;ordered %s&quot;, M.model_type)
+  else
+    model_type = &quot;multinomial logit&quot;
+  endif
 else
   model_type = sprintf(&quot;%s&quot;, M.model_type)
 endif
 # Additional information in summary
 printf &quot;\n&quot;
 print &quot;----------------------------------&quot;
-if M.limited_y &amp;&amp; M.ordered
-  printf &quot;Model type: %s\n&quot;, model_type
-else
-  printf &quot;Model type: %s\n&quot;, model_type
-endif
+printf &quot;Model type: %s\n&quot;, model_type
 if ESTIMATOR == &quot;tobit&quot;
   printf &quot;   left bound: %f\n&quot;, M.low
   printf &quot;   right bound: %f\n&quot;, M.high
@@ -186,6 +188,8 @@ if M.verbosity == 2
   if nelem(M.StartModel_b)
     if M.limited_y &amp;&amp; M.ordered
       printf &quot;The initial model: ordered %s, dependent variable: %s\n&quot;, ESTIMATOR, M.Y_name
+    elif M.limited_y &amp;&amp; M.multinomial
+      printf &quot;The initial model: multinomial %s, dependent variable: %s\n&quot;, ESTIMATOR, M.Y_name
     elif ESTIMATOR == &quot;intreg&quot;
       printf &quot;The initial model: %s, Lower limit: %s, Upper limit: %s\n&quot;, ESTIMATOR, M.Y_name, M.Y_name2
     else
@@ -198,10 +202,19 @@ if M.verbosity == 2
     endloop
     coeffmat = M.StartModel_b.coeff ~ M.StartModel_b.stderr
     strings coeffmat_xnames = M.StartModel_xnames
-    if M.limited_y &amp;&amp; M.ordered
-      coeffmat_xnames += M.cuts_names
+    if M.model_type == &quot;mlogit&quot;
+      tmp = rows(coeffmat)/yvals
+      loop i=1..yvals --quiet
+        tmpm = coeffmat[(i-1)*tmp+1:i*tmp,]
+        printf &quot;%s = %d&quot;, Y_name, M.yvals[i+1]
+        modprint tmpm coeffmat_xnames
+      endloop
+    else
+      if M.limited_y &amp;&amp; M.ordered
+        coeffmat_xnames += M.cuts_names
+      endif
+      modprint coeffmat coeffmat_xnames
     endif
-    modprint coeffmat coeffmat_xnames
   else
     printf(&quot;The initial model was empty.\n&quot;)
   endif
@@ -251,12 +264,24 @@ printf &quot;\n&quot;
 print &quot;----------------------------------&quot;
 printf &quot;\n&quot;
 print &quot;Posterior moments (unconditional and conditional on inclusion):&quot;
-if $version &lt; 20170
-  printf &quot;%15f&quot;, M.Post_Results
+if M.model_type == &quot;mlogit&quot;
+  tmp = rows(M.Post_Results)/yvals
+  loop i=1..yvals --quiet
+    Post_Results = M.Post_Results[(i-1)*tmp+1:i*tmp,]
+    rnameset(Post_Results, M.all_names_sp_m)
+    if M.with_const == 1
+      Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
+      Post_Results = mreverse(msortby(Post_Results, 1))
+      Post_Results[1,1] -= 1
+    else
+      Post_Results = mreverse(msortby(Post_Results, 1))
+    endif
+    printf &quot;%s = %d\n%15f&quot;, Y_name, M.yvals[i+1], Post_Results
+  endloop
 else
-  matrix Post_Results = M.Post_Results
+  Post_Results = M.Post_Results
   if M.with_const == 1
-    Post_Results[1,1] += 1 # Trick to have const always in the first row after sorting by PIPs
+    Post_Results[1,1] += 1
     Post_Results = mreverse(msortby(Post_Results, 1))
     Post_Results[1,1] -= 1
   else
@@ -288,7 +313,7 @@ printf &quot;Total probability of the models in ranking (numerical): %f\n\n&quot
 printf &quot;Correlation coefficient between the analytical\n&quot;
 printf &quot;and numerical probabilities of the above models: %f\n&quot;, corr(M.Numerical_Likelihood, M.mod_rank_prob)
 # Contingency table
-if M.limited_y
+if M.limited_y &amp;&amp; !M.multinomial
   printf &quot;\n&quot;
   print &quot;----------------------------------&quot;
   printf &quot;\n&quot;
@@ -376,11 +401,23 @@ if M.verbosity == 2
       else
         coeffmat = M.mod_rank_estimates[i][,1:2]
         Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
-        if M.limited_y &amp;&amp; M.ordered
-          coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
-          Xnames += M.cuts_names
+        if M.model_type == &quot;mlogit&quot;
+          tmp = rows(coeffmat)/yvals
+          loop j=1..yvals --quiet
+            tmpm = coeffmat[(j-1)*tmp+1:j*tmp,]
+            if j == 1
+              printf &quot;\n&quot;
+            endif
+            printf &quot;%s = %d&quot;, Y_name, M.yvals[j+1]
+            modprint tmpm Xnames
+          endloop
+        else
+          if M.limited_y &amp;&amp; M.ordered
+            coeffmat = coeffmat | M.mod_rank_cuts_estimates[i]
+            Xnames += M.cuts_names
+          endif
+          modprint coeffmat Xnames
         endif
-        modprint coeffmat Xnames
       endif
     endif
   endloop
@@ -399,7 +436,7 @@ BACE result bundle plot function.
 string legend, output, basename, xtics
 string yrange = &quot;&quot;
 scalar avg_model_size = 0
-scalar idx
+scalar idx, error
 strings title
 if $sysinfo.gui_mode
   basename = &quot;display&quot;
@@ -432,7 +469,7 @@ endif
 #########################################################
 #						Distributions					#
 #########################################################
-# Models size distribution
+# Model size distribution
 plotmat = mreverse(MODEL.mod_sizes, 1)
 output = basename
 if !$sysinfo.gui_mode
@@ -443,7 +480,7 @@ if rows(plotmat) &lt; 20
 else
   xtics = &quot;&quot;
 endif
-plot plotmat
+catch plot plotmat
   options with-lp fit=none
   literal set link y2 via y inverse y
   printf &quot;%s&quot;, xtics
@@ -452,6 +489,10 @@ plot plotmat
   printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Density&quot;
   printf &quot;set key %s top&quot;, legend
 end plot --output=@output
+error = $error
+if error
+  printf &quot;Model Size Distribution: %s\n&quot;, errmsg(error)
+endif
 # Models size CDF
 plotmat = MODEL.models_probs_cdf
 output = basename
@@ -463,7 +504,7 @@ if rows(plotmat) &lt; 20
 else
   xtics = &quot;&quot;
 endif
-plot plotmat
+catch plot plotmat
   options with-line fit=none
   literal set grid
   printf &quot;%s&quot;, xtics
@@ -471,6 +512,10 @@ plot plotmat
   printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Number of Models&quot;
   printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Posterior Probability Mass&quot;
 end plot --output=@output
+error = $error
+if error
+  printf &quot;CDF of Model Size: %s\n&quot;, errmsg(error)
+endif
 # Model prior distribution values
 idx = 1 + (MODEL.with_const != 1 &amp;&amp; !(MODEL.limited_y &amp;&amp; MODEL.ordered))
 title = defarray(MODEL.prior_name, &quot;Size&quot;)
@@ -491,7 +536,7 @@ if rows(plotmat) &lt; 20
 else
   xtics = &quot;&quot;
 endif
-plot plotmat
+catch plot plotmat
   options with-lp fit=none
   literal set link y2 via y inverse y
   printf &quot;%s&quot;, xtics
@@ -501,6 +546,10 @@ plot plotmat
   printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Value&quot;
   printf &quot;set key %s top&quot;, legend
 end plot --output=@output
+error = $error
+if error
+  printf &quot;Prior Model Probabilities: %s\n&quot;, errmsg(error)
+endif
 #########################################################
 #						Forecasts						#
 #########################################################
@@ -525,7 +574,7 @@ if MODEL.Npredict
       xtics += sprintf(&quot;, &quot;)
     endif
   endloop
-  plot plotmat
+  catch plot plotmat
     options time-series with-lines
     options with-line fit=none
     options band=bars,1 band-style=bars
@@ -533,15 +582,19 @@ if MODEL.Npredict
     printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Observation&quot;
     printf &quot;set xtics %s&quot;, xtics
   end plot --output=@output
+  error = $error
+  if error
+    printf &quot;Predictive resultss: %s\n&quot;, errmsg(error)
+  endif
 endif
 </code>
 </gretl-function>
 <gretl-function name="BACE_GUI" type="bundle" pkg-role="gui-main">
  <params count="10">
-  <param name="model_type" type="int" min="1" max="5" default="1">
+  <param name="model_type" type="int" min="1" max="6" default="1">
 <description>Model type</description>
-<labels count="5">
-"logit" "probit" "poisson" "tobit" "linear" </labels>
+<labels count="6">
+"logit" "probit" "mlogit" "poisson" "tobit" "linear" </labels>
   </param>
   <param name="Y" type="series">
 <description>Dependent variable</description>
@@ -587,7 +640,7 @@ Function is a wrapper to bundle-based BACE() interface.
 bundle Options, RES
 string err
 # Mapping GUI model_types indexes to strings
-strings ModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;linear&quot;)
+strings ModelTypes = defarray(&quot;logit&quot;, &quot;probit&quot;, &quot;mlogit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;linear&quot;)
 string Y_name = argname(Y)
 series @Y_name = Y
 scalar Options[&quot;with_const&quot;] = with_const
@@ -630,6 +683,8 @@ Returns: string err holding the first error found in given dataset or parameters
 # We setup estimator
 if M.model_type == &quot;linear&quot;
   string M.estimator = &quot;ols&quot;
+elif M.model_type == &quot;mlogit&quot;
+  string M.estimator = &quot;logit&quot;
 else
   string M.estimator = M.model_type
 endif
@@ -729,6 +784,9 @@ if nelem(X_list) &gt; 0
     if ESTIMATOR == &quot;intreg&quot;
       catch intreg Y Y2 X_list const --quiet
       err_nr = $error
+    elif M.model_type == &quot;mlogit&quot;
+      catch logit Y const X_list --multinomial --quiet
+      err_nr = $error
     else
       catch @ESTIMATOR Y X_list const --quiet
       err_nr = $error
@@ -774,13 +832,17 @@ X_list2	- M.X_list in a form of list (not matrix)
 string ESTIMATOR_OPTS = &quot;--quiet&quot;
 # We set up estimator command
 string ESTIMATOR = M.estimator
-# If we have ordered logit/probit we have to correct $ncoeff
+# If we have ordered/multinomial logit/probit we have to correct $ncoeff
 scalar cuts = 0
+scalar yvals = 1
 if M.limited_y
   cuts = M.cuts
+  if M.multinomial
+    yvals = nelem(M.yvals)-1
+  endif
 endif
 # Do we have additional OPTS for estimator
-if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
+if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot; || M.model_type == &quot;mlogit&quot;
   ESTIMATOR_OPTS = sprintf(&quot;%s %s&quot;, M.estimator_opts, ESTIMATOR_OPTS)
 endif
 # Starting values of the local variables
@@ -875,9 +937,13 @@ elif M.alpha == 1 # Trully random model
       last = $xlist
       if M.with_const == 1
         last -= const
-        M.k_new = $ncoeff-1
+        M.k_new = ($ncoeff/yvals)-1
       else
-        M.k_new = $ncoeff-cuts
+        if M.model_type == &quot;mlogit&quot;
+          M.k_new = $ncoeff/yvals
+        else
+          M.k_new = $ncoeff-cuts
+        endif
       endif
       M.StartModel_b = $model
       strings M.StartModel_xnames = varnames($xlist)
@@ -912,9 +978,13 @@ else
   last = $xlist
   if M.with_const == 1
     last -= const
-    M.k_new = $ncoeff-1
+    M.k_new = ($ncoeff/yvals)-1
   else
-    M.k_new = $ncoeff-cuts
+    if M.model_type == &quot;mlogit&quot;
+      M.k_new = $ncoeff/yvals
+    else
+      M.k_new = $ncoeff-cuts
+    endif
   endif
   M.StartModel_b = $model
   strings M.StartModel_xnames = varnames($xlist)
@@ -990,6 +1060,7 @@ scalar NORM = M.Nrep - M.Nburn
 series Y = M.Y
 series Yhat
 list xtab_l
+scalar yvals = M.model_type == &quot;mlogit&quot; ? nelem(M.yvals)-1 : 1
 M.bhat_avg = transp(M.bhat_avg)
 M.bvar_avg = transp(M.bvar_avg)
 # Restoring values of model_prior to 0 if we have 'none'
@@ -1008,9 +1079,27 @@ M.bvar_avg = M.bvar_avg / NORM
 M.consthat_avg = M.consthat_avg / NORM
 M.constvar_avg = M.constvar_avg / NORM
 if M.with_const == 1
-  M.bhat_avg = M.consthat_avg ~ M.bhat_avg
-  M.bvar_avg = M.constvar_avg ~ M.bvar_avg
+  if M.model_type == &quot;mlogit&quot;
+    M.bhat_avg = transp(M.consthat_avg) ~ M.bhat_avg
+    M.bvar_avg = transp(M.constvar_avg) ~ M.bvar_avg
+  else
+    M.bhat_avg = M.consthat_avg ~ M.bhat_avg
+    M.bvar_avg = M.constvar_avg ~ M.bvar_avg
+  endif
+  M.bhat_avg = transp(vec(transp(M.bhat_avg)))
+  M.bvar_avg = transp(vec(transp(M.bvar_avg)))
+  tmpm = M.Post_Results
+  loop i=1..yvals-1 --quiet
+    M.Post_Results = M.Post_Results | {1} | tmpm
+  endloop
   M.Post_Results = {1} | M.Post_Results
+else
+  M.bhat_avg = transp(vec(transp(M.bhat_avg)))
+  M.bvar_avg = transp(vec(transp(M.bvar_avg)))
+  tmpm = M.Post_Results
+  loop i=1..yvals-1 --quiet
+    M.Post_Results = M.Post_Results | tmpm
+  endloop
 endif
 if M.limited_y
   M.Yhat = M.Yhat / NORM
@@ -1119,7 +1208,15 @@ tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.
 M.Post_Results = M.Post_Results ~ tmp
 title = defarray(&quot;PIP&quot;, &quot;Mean&quot;, &quot;Std.Dev.&quot;, &quot;Cond.Mean&quot;, &quot;Cond.Std.Dev.&quot;)
 cnameset(M.Post_Results, title)
-rnameset(M.Post_Results, M.all_names_sp_m)
+if M.model_type == &quot;mlogit&quot;
+  title = M.all_names_sp_m
+  loop yvals-1 --quiet
+    title += M.all_names_sp_m
+  endloop
+  rnameset(M.Post_Results, title)
+else
+  rnameset(M.Post_Results, M.all_names_sp_m)
+endif
 if M.limited_y &amp;&amp; M.ordered
   matrix bvar = sqrt(M.cutsvar_avg - M.cutshat_avg.^2)
   matrix M.cuts_avg = M.cutshat_avg ~ bvar
@@ -1137,11 +1234,13 @@ if M.limited_y
       M.Yhat = ordered_prediction(M.cuts_avg[,1], Yhat, M.yvalues[1], tmps, 1)
     endif
   endif
-  Yhat = M.Yhat
-  xtab_l = Y Yhat
-  xtab xtab_l --zeros --no-totals --quiet
-  M.contingency = $result
-  M.correctly_predicted = sum(Y == Yhat)
+  if !M.multinomial
+    Yhat = M.Yhat
+    xtab_l = Y Yhat
+    xtab xtab_l --zeros --no-totals --quiet
+    M.contingency = $result
+    M.correctly_predicted = sum(Y == Yhat)
+  endif
 endif
 # Forecasts
 if M.Npredict
@@ -1239,6 +1338,8 @@ printf &quot;\n * Delete unneeded entries in result bundle.&quot;
 printf &quot;\n * Simplify 'if' condition for lags of Y in BACE_estimate().&quot;
 printf &quot;\n * Add all possible test/checks/whatever in the case of intreg model.&quot;
 printf &quot;\n * Simplify BACE_initial_model().&quot;
+printf &quot;\n * Add forecasting and percentage of correctly predicted for mlogit model.&quot;
+printf &quot;\n * Verify forecasting in all models.&quot;
 printf &quot;\n * Work on speed.&quot;
 printf &quot;\n#############################################################################\n&quot;
 BACE_print_status(&quot;BACE setup&quot;)
@@ -1258,19 +1359,28 @@ endif
 if M.limited_y
   scalar M.ordered = 0
   scalar M.cuts = 0
+  scalar M.multinomial = 0
   scalar M.correctly_predicted = NA
   matrix M.Yhat = {}
   matrix M.contingency = {}
+  matrix M.yvals = {}
   strings M.cuts_names = null
   # we check if we have ordered version
   tmp_str = M.estimator
-  @tmp_str Y X_list --quiet
+  if M.model_type == &quot;mlogit&quot;
+    @tmp_str Y X_list --multinomial --quiet
+  else
+    @tmp_str Y X_list --quiet
+  endif
   if inbundle($model, &quot;ordered&quot;)
     M.ordered = 1
     M.cuts = $model[&quot;ncoeff&quot;] - $model[&quot;nx&quot;]
     M.cuts_names = $model[&quot;parnames&quot;][end-M.cuts+1:end]
     M.yvalues = values(Y)
     M.with_const = 0
+  elif inbundle($model, &quot;multinom&quot;)
+    M.multinomial = 1
+    M.yvals = $model[&quot;yvals&quot;]
   endif
 endif
 if M.with_const == 1
@@ -1463,6 +1573,10 @@ if !(M.low == 0 &amp;&amp; isnan(M.high))
   endif
   M.Y_censoring = 1
 endif
+# Multinomial Logit
+if M.model_type == &quot;mlogit&quot;
+  M.estimator_opts = &quot;--multinomial&quot;
+endif
 # Verbosity setting
 if M.verbosity == 1
   set warnings off
@@ -1537,7 +1651,7 @@ if nelem(mod_struct_new_Y_lags) &gt; 0
 endif
 # Do we need const?
 if M.with_const == 1
-  X += const
+  X = const X
 endif
 # We estimate current model
 if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
@@ -1547,6 +1661,9 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     tobit Y X @ESTIMATOR_OPTS --quiet
   elif ESTIMATOR == &quot;intreg&quot;
     intreg Y Y2 X --quiet
+  elif M.model_type == &quot;mlogit&quot;
+    ESTIMATOR_OPTS = M.estimator_opts
+    logit Y X @ESTIMATOR_OPTS --quiet
   else
     @ESTIMATOR Y X --quiet
   endif
@@ -1613,21 +1730,27 @@ endif
 Function collects results from MC3 experiment.
 */
 BACE_print_status(&quot;Collecting results&quot;, 0)
-matrix idx, var_idx, bhat, mod_struct, models_probs
+matrix idx, var_idx, bhat, bvar, mod_struct, models_probs, tmp_var_idx
 matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank
 scalar nr, mod_struct_sum
 scalar weight = 0
+scalar yvals = 1
+scalar with_const = 0
+if M.model_type == &quot;mlogit&quot;
+  yvals = nelem(M.yvals)-1
+endif
 if M.with_const == 1
-  matrix bhat_avg = zeros(M.k+1)
-  matrix bvar_avg = zeros(M.k+1)
+  matrix bhat_avg = zeros(M.k+1, yvals)
+  matrix bvar_avg = zeros(M.k+1, yvals)
+  with_const = 1
 else
-  matrix bhat_avg = zeros(M.k)
-  matrix bvar_avg = zeros(M.k)
+  matrix bhat_avg = zeros(M.k, yvals)
+  matrix bvar_avg = zeros(M.k, yvals)
 endif
 matrix mod_sizes = zeros(M.k)
-matrix var_prob = zeros(1,M.k)
+matrix var_prob = zeros(1, M.k)
 if M.do_joint
-  matrix jointness_m = zeros(M.k,M.k)
+  matrix jointness_m = zeros(M.k, M.k)
 endif
 if M.Npredict
   Yhat_avg = zeros(M.Npredict)
@@ -1695,6 +1818,9 @@ loop i=1..M.Nrank --quiet
     endif
   endif
   if nelem(models_estimates_rank[i])
+    if M.model_type == &quot;mlogit&quot;
+      var_idx = transp(mshape(var_idx', yvals*nelem(var_idx), 1))
+    endif
     M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
     M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
     if M.limited_y &amp;&amp; M.ordered
@@ -1725,12 +1851,22 @@ loop i=1..nelem(models_counter) --quiet
   endif
   if nelem(models_estimates[i])
     bhat = models_estimates[i][,1]
-    bhat_avg[var_idx] += weight * bhat
-    bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
-    if M.limited_y &amp;&amp; M.ordered
-      bhat = cuts_estimates[i][,1]
-      cutshat_avg += weight * bhat
-      cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
+    if M.model_type == &quot;mlogit&quot;
+      nr = with_const + mod_struct_sum
+      bhat = mshape(bhat, nr, yvals)
+      bvar = mshape(models_estimates[i][,2], nr, yvals)
+      loop j=1..yvals --quiet
+        bhat_avg[var_idx, j] += weight * bhat[,j]
+        bvar_avg[var_idx, j] += weight * (bvar[,j] + bhat[,j] .^ 2)
+      endloop
+    else
+      bhat_avg[var_idx] += weight * bhat
+      bvar_avg[var_idx] += weight * (models_estimates[i][,2] + bhat .^ 2)
+      if M.limited_y &amp;&amp; M.ordered
+        bhat = cuts_estimates[i][,1]
+        cutshat_avg += weight * bhat
+        cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
+      endif
     endif
     if mod_struct_sum
       mod_sizes[mod_struct_sum] += weight
@@ -1763,8 +1899,8 @@ endloop
 if M.with_const == 1
   M.bhat_avg = bhat_avg[2:,]
   M.bvar_avg = bvar_avg[2:,]
-  M.consthat_avg = bhat_avg[1]
-  M.constvar_avg = bvar_avg[1]
+  M.consthat_avg = bhat_avg[1,]
+  M.constvar_avg = bvar_avg[1,]
 else
   M.bhat_avg = bhat_avg
   M.bvar_avg = bvar_avg
@@ -2023,7 +2159,7 @@ string arg_name, parameter_value
 strings Integers = defarray(&quot;y_lag&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
-strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;)
+strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;, &quot;mlogit&quot;)
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
 strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;)
 strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
@@ -2041,7 +2177,7 @@ Overloadable[&quot;model_prior&quot;] = _(none=0, binomial=1, betabinomial=2, va
 Overloadable[&quot;with_const&quot;] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
 Overloadable[&quot;do_joint&quot;] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid=&quot;none, DW1, DW2, LS1, LS2, SM, YQ, MYQ&quot;)
 Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
-Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, valid=tolower(flatten(ModelTypes, separator)))
+Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, mlogit=7, valid=tolower(flatten(ModelTypes, separator)))
 # We look for overloaded parameters and convert them into integers
 OverloadableKeys = getkeys(Overloadable)
 loop i=1..nelem(OverloadableKeys) --quiet
@@ -2185,7 +2321,7 @@ M.BicTypes = BicTypes
 M.ModelPriorTypes = ModelPriorTypes
 M.ConstTypes = ConstTypes
 M.DataTransTypes = DataTransTypes
-strings M.DiscreteModelTypes = M.ModelTypes[2:3] # Note: the first two for binary dependent variable only!
+strings M.DiscreteModelTypes = M.ModelTypes[2:3] + M.ModelTypes[7] # Note: the first two for binary dependent variable only!
 strings M.CensoredModelTypes = M.ModelTypes[5:6]
 scalar M.limited_y = nelem(instrings(M.DiscreteModelTypes, M.model_type)) &gt; 0 ? 1 : 0
 scalar M.censored_y = nelem(instrings(M.CensoredModelTypes, M.model_type)) &gt; 0 ? 1 : 0
@@ -2202,7 +2338,7 @@ return err
 M - BACE result bundle, MODE - string indicating image mode {&quot;inclusions&quot;, &quot;jointness&quot;}
 basename	- basename for gnuplot files
 */
-scalar nrows, ncols, tmp, height, width, minval, maxval
+scalar nrows, ncols, tmp, height, width, minval, maxval, error
 string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output
 matrix m
 strings all_names_sp_m
@@ -2303,7 +2439,7 @@ else
   output = sprintf(&quot;%s%s&quot;, basename, output)
 endif
 # We plot heatmap
-plot
+catch plot
   printf &quot;set term pngcairo font \&quot;Vera,9\&quot; size %d,%d noenhanced&quot;, width, height
   literal set encoding utf8
   literal set decimalsign '.'
@@ -2330,6 +2466,10 @@ plot
   printf &quot;EOD&quot;
   literal plot $map matrix with image
 end plot --output=@output
+error = $error
+if error
+  printf &quot;%s: %s\n&quot;, title, errmsg(error)
+endif
 </code>
 </gretl-function>
 <gretl-function name="BACE_print_status" type="void" private="1">
