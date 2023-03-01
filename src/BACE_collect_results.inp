@@ -46,7 +46,13 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         matrix jointness_m = zeros(M.k, M.k)
     endif
     if M.Npredict
-        Yhat_avg = zeros(M.Npredict)
+        if M.limited_y && M.ordered
+            Yhat_avg = zeros(M.Npredict, nelem(M.yvalues))
+        elif M.limited_y && M.multinomial
+            Yhat_avg = zeros(M.Npredict, nelem(M.yvals))
+        else
+            Yhat_avg = zeros(M.Npredict)
+        endif
         Yhat_var_avg = zeros(M.Npredict)
     endif
     if M.limited_y
@@ -184,8 +190,13 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
 
         if M.Npredict
             if nelem(models_forecasts[i]) > 0
-                Yhat_avg += weight * models_forecasts[i][,1]
-                Yhat_var_avg += weight * models_forecasts[i][,2]
+                if M.limited_y && (M.ordered || M.multinomial)
+                    Yhat_avg += weight * models_forecasts[i][,1:end-1]
+                else
+                    Yhat_avg += weight * models_forecasts[i][,1]
+                endif                
+                #Yhat_var_avg += weight * models_forecasts[i][,2]
+                Yhat_var_avg += weight * models_forecasts[i][,end]
             endif
         endif
 

@@ -113,7 +113,7 @@ function void BACE_Print (bundle *MODEL)
             if M.limited_y && M.ordered
                 printf "The initial model: ordered %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
             elif M.limited_y && M.multinomial
-                printf "The initial model: multinomial %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
+                printf "The initial model: multinomial %s, dependent variable: %s\n\n", ESTIMATOR, M.Y_name
             elif ESTIMATOR == "intreg"
                 printf "The initial model: %s, Lower limit: %s, Upper limit: %s\n", ESTIMATOR, M.Y_name, M.Y_name2
             else
@@ -201,7 +201,7 @@ function void BACE_Print (bundle *MODEL)
             else
                 Post_Results = mreverse(msortby(Post_Results, 1))
             endif
-            printf "%s = %d\n%15f", Y_name, M.yvals[i+1], Post_Results
+            printf "\n%s = %d\n%15f", Y_name, M.yvals[i+1], Post_Results
         endloop
     else
         Post_Results = M.Post_Results

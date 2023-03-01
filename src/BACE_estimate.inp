@@ -85,7 +85,11 @@ function void BACE_estimate (bundle *M)
             M.bvar_tmp *= ols_to_mle_correct
         endif
         if M.Npredict
-            fcast --out-of-sample --quiet
+            if M.limited_y && (M.ordered || M.multinomial)
+                fcast --out-of-sample --all-probs --quiet
+            else
+                fcast --out-of-sample --quiet
+            endif            
             M.Yhat_predict = $fcast
             if !M.limited_y && !M.censored_y
                 M.Yhat_predict_var = ($fcse*ols_to_mle_correct).^2 + $fcast.^2
@@ -94,6 +98,13 @@ function void BACE_estimate (bundle *M)
             endif
         endif
         if M.limited_y
+            /*
+            if M.multinomial
+                M.Yhat = $allprobs
+            else
+                M.Yhat = {$model.yhat}
+            endif
+            */
             M.Yhat = {$model.yhat}
         endif
 

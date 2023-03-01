@@ -19,7 +19,7 @@ function void BACE_Plot (const bundle *MODEL)
 /*
    BACE result bundle plot function.
     */
-    string legend, output, basename, xtics
+    string legend, output, basename, xtics, plot_title
     string yrange = ""
     scalar avg_model_size = 0
     scalar idx, error
@@ -150,10 +150,13 @@ function void BACE_Plot (const bundle *MODEL)
     #########################################################
     # Predictive results
     if MODEL.Npredict
-        plotmat = MODEL.prediction[,1:2]
-        bars = MODEL.prediction[,2:3]
+        plotmat = MODEL.prediction[,1:2]        
         if MODEL.limited_y
-            bars[,2] = zeros(MODEL.Npredict)
+            plot_title = "Predictive results"
+            bars = MODEL.prediction[,2] ~ zeros(MODEL.Npredict, 1)
+        else            
+            plot_title = "Predictive results (with +/- one standard deviations as bars)"
+            bars = MODEL.prediction[,2:3]
         endif
         cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
         output = basename
@@ -173,13 +176,13 @@ function void BACE_Plot (const bundle *MODEL)
             options time-series with-lines
             options with-line fit=none
             options band=bars,1 band-style=bars
-            printf "set title \"%s\"", "Predictive results (with +/- one standard deviations as bars)"
+            printf "set title \"%s\"", plot_title
             printf "set xlabel \"%s\"", "Observation"
             printf "set xtics %s", xtics
         end plot --output=@output
         error = $error
         if error
-            printf "Predictive resultss: %s\n", errmsg(error)
+            printf "Predictive results: %s\n", errmsg(error)
         endif
     endif
 end function

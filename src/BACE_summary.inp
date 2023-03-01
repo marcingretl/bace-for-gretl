@@ -221,6 +221,13 @@ function void BACE_summary (bundle *M)
     # Forecasts
     if M.Npredict
         M.Yhat_predict_avg = M.Yhat_avg / NORM
+        if M.limited_y
+            if M.ordered
+                M.Yhat_predict_avg = M.yvalues[imaxr(M.Yhat_predict_avg)]
+            elif M.multinomial
+                M.Yhat_predict_avg = M.yvals[imaxr(M.Yhat_predict_avg)]
+            endif
+        endif
         M.Yhat_predict_var_avg = M.Yhat_var_avg / NORM
         M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
         M.prediction = M.Y_mat_predict ~ M.Yhat_predict_avg ~ M.Yhat_predict_var_avg
@@ -230,10 +237,16 @@ function void BACE_summary (bundle *M)
             M.prediction[,1] = 1
         endif
         if M.limited_y
-            M.prediction[,3] = M.prediction[,2]
-            M.prediction[,2] = M.prediction[,2] .>= M.binary_threshold
-            title[2] = "Forecast"
-            title[3] = "Mean"
+            if M.ordered || M.multinomial
+                M.prediction = M.prediction[,1:2]
+                title = title[1:2]
+                title[2] = "Forecast"
+            else
+                M.prediction[,3] = M.prediction[,2]
+                M.prediction[,2] = M.prediction[,2] .>= M.binary_threshold
+                title[2] = "Forecast"
+                title[3] = "Mean"
+            endif
         endif
         cnameset(M.prediction, title)
         rnameset(M.prediction, M.predict_obs_names)
