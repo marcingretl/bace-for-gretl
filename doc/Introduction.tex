@@ -1,23 +1,17 @@
 \section{Introduction}
-In article \cite{SalaMartinDoppelhoferMiller_BACE} authors suggest a
-technique for averaging the parameter estimates -- Bayesian Averaging
-of Classical Estimates (BACE), which enables to measure the importance of
-particular potential regressors. This approach is alternative to the
-familiar and earlier-applied Bayesian Model Averaging (BMA) technique,
-from which it differs mainly because of its less restrictive \textit{prior}
-assumptions. The authors showed that BACE weighting method may
-be understood as a limiting case of BMA approach  when the \textit{prior}
-information is dominated by the data. The averaging of the parameter
-estimates is performed across all possible combinations of linear regression models
-obtained by means of Ordinary Least Squares (OLS)
- with classical assumptions.
+In articles \cite{Raftery1995} and \cite{SalaMartinDoppelhoferMiller_BACE}, the authors suggest a technique for averaging parameter estimates called Bayesian Averaging of Classical Estimates (\pkg{BACE}). This technique enables the measurement of the importance of potential regressors and is an alternative to the familiar and previously applied Bayesian Model Averaging (BMA) technique. It differs mainly in that it is based on Ordinary Least Squares (OLS) or Maximum Likelihood estimation (MLE) estimates\footnote{The technique of model averaging using Maximum Likelihood estimation is sometimes referred to as Bayesian Averaging of Maximum Likelihood Estimates (BAMLE), as described in \cite{Moral_Benito_2012}. For simplicity in our notation, we use the term \pkg{BACE} to refer to both variants of Frequentist Model Averaging, whether using OLS or MLE.}. The averaging of the parameter estimates is performed across all possible combinations of regression models obtained by means of classical frequentist inference, and hence is known as Frequentist Model Averaging (FMA).
 
-The BACE approach has several interesting features in relation to
-the techniques such as BMA or robustness-checking methods (\textcolor{red}{reference}).
-First of all, it is not necessary to make assumptions concerning
-\textit{prior} distribution for parameters but only
-one simple assumption, on the expected model size.
+A key element in model averaging with Bayesian inference is calculating the marginal data density. However, in many cases, the combination of the likelihood function and a prior distribution leads to posterior distributions that are difficult to integrate analytically. This difficulty arises even when integrating each component is mathematically easy, such as in the case of a Normal likelihood with a Beta prior. While obtaining the marginal data density in Bayesian regression is relatively easy, models with  the limited dependent variables, such as logit and probit, are more computationally and numerically challenging  and require complex and advanced numerical techniques to obtain accurate estimates \cite[see][]{Bollen_2014,Pajor2017,JSSv104i02}. Additionally, it is well-known that as the number of explanatory variables increases, the number of possible models increases exponentially. This implies that in a model averaging approach, we must search through a very large model space in a limited amount of time. The \pkg{BACE} method, which is based on marginal data density approximation, solves this problem by requiring significantly less computational time than the standard Bayesian techniques that are necessary for advanced statistical models. It also provides a good approximation of marginal data density and  parameter estimates based on a weighted average over all possible classical  individual models \citep{Kufel_jae_2020}. 
 
-An example of the application of the BACE technique for forecasting
-macroeconomic indicators can be found, among others, in the articles
-\cite{vanDijk2004Forecasting, AlbisMapa2014MPRA55902, BialowolskiKuszewskiWitkowski2015Empirica}.
+Our approach follows directly ideas presented in \cite{KassRaftery-BayesFactors-1995,SalaMartinDoppelhoferMiller_BACE, Bollen_2014}, where authors use Schwarz criterion  to  calculate approximation of the marginal data density and the odds ratio. An example of the application of the \pkg{BACE} technique for forecasting macroeconomic indicators can be found, among others, in the articles by \cite{vanDijk2004Forecasting, Moral_Benito_2012, AlbisMapa2014MPRA55902} and \cite{BialowolskiKuszewskiWitkowski2015Empirica}. A recent overview of the applications of the \pkg{BACE} can be found in \cite{Steel2020}.
+
+In this paper, we  introduce Bayesian Averaging of Classical Estimates  package for \pkg{gretl},  named \pkg{BACE}. In our opinion, the presented  package contains several interesting features that are worth mentioning. Our \pkg{BACE} package is very fast and accurate set of functions.  We provide an averaging technique for several limited dependent variable models, namely: logit and probit models, ordered logit and probit models, multinomial logistic regression, Poisson regression, Tobit model, and interval regression. To our knowledge, most of them are only available in the \pkg{BACE} package. We use \pkg{gretl}, which is a popular, free, and open-source software for econometric analysis with an easy-to-use graphical user interface (GUI) for model averaging.
+
+While there are many packages in the literature dedicated to model averaging for standard regression \citep{aminiparmeter2011, clydelittmanghosh_bas, JSSv068i04, RePEc:jss:jstsof:v:068:i05}, to our knowledge, only a few packages have considered discrete dependent variable models \citep{JSSv104i02, rafteryhoetingvolinskypainteryeung_bma, sevcikovaraftery2022}. 
+In both recent cases, the authors use generalized linear models to approximate limited dependent variable models, such as logit, probit, and Poisson specifications. In the first example, \cite{JSSv104i02} introduced the \pkg{ParMA} package for \pkg{gretl}, where the authors use a Bayesian approach with a reversible jump Markov chain Monte Carlo scheme. 
+In the second case, \cite{rafteryhoetingvolinskypainteryeung_bma} and \cite{sevcikovaraftery2022} developed the \pkg{BMA} and \pkg{mlogitBMA} packages in \pkg{R} using a frequency approach based on the Bayesian Information Criterion (BIC). In terms of models with a limited dependent variable, our package can be considered an alternative to the previously mentioned packages because it offers a large number of  limited variable specifications, fast computational speed, good accuracy, the latest proposals of BIC variants, and the latest jointness measures.
+
+The remainder of this article is structured as follows: Section \ref{sec:Method_back} briefly outlines the model averaging and marginal data density approximation used in our package, as well as the implemented limited dependent variable models and measures of jointness. Section \ref{sec:BACE_implementation} presents the basic idea of the \pkg{BACE} package, including its code, the use of command line and GUI interfaces, and the outputs that are returned.  Section \ref{sec:usage_of_the_BACE package} includes a usage example for the ordered probit model. Section \ref{sec:Empirical illustration} presents an empirical illustration of logistic regression and Poisson regression, as well as information about the speed of calculation of \pkg{BACE} package. The final section concludes.
+
+
+

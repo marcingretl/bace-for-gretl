@@ -1,56 +1,160 @@
-\section{Bayesian Averaging of Classical Estimates}
-Consider simple regression model $M_j$: 
+\subsection{The limited  dependent variable models}
+In many practical applications, it is common to encounter
+phenomena with discrete or censored dependent variables.
+Our \pkg{BACE} package includes several models that can
+handle this issue, including the most popular ones such
+as logit and probit models, as well as their ordered
+specifications and multinomial logistic regression.
+Additionally, the package provides support for Poisson
+regression, Tobit model, and interval regression%
+\footnote{The \pkg{BACE} package also includes \st{standard}linear
+	regression models. However, since the dependent variable
+	is not bounded in these models, \st{simple} regression is
+	not the main focus of our interest.}.
+In all of these cases, the dependent variable is either
+dichotomous (i.e., taking the values zero or one),
+categorical, a count, or censored.
+%In all these cases we do not observe latent dependent variable but instead, we observe the value of binary or discrete variable. 
+In the remainder of this subsection, we present the standard
+and popular models for limited dependent variable included
+in our \pkg{BACE} package, which are also discussed in
+\cite{koop2007bayesian, hosmer:logistic, Winkelmann_2008, verbeek2018guide}
+and \cite{cottrell_luchcetti_gretl_manual}.
+
+First, let us analyze the logit and probit models. The logit
+and probit models are two types of regression models commonly
+used to predict a binary dependent variable. Logit models are
+based on the logistic distribution, while probit models are
+based on the normal distribution. Let us consider a model of the form:
 \begin{equation}
- y = X_j\beta_j + \epsilon
+	z_i= \sum_{j=1}^{k_r}x_{ij}\beta_{j} + \epsilon_i, 
 \end{equation}
-where $y$ is $(T x 1)$ vector of observations,  $X_j$ is  $(T x k_j)$ matrix containing the set of independent variables and constant, $\beta_j$ is a $(k_j x 1)$ vector of unknown parameters, $\epsilon$ is a $(N x 1)$ vector of errors which are assumed to be normally distributed i.e. $\epsilon \sim N(0_T, \sigma^2I_T)$, $N(\mu, \Sigma)$ denotes a normal distribution
-with location $\mu$ and covariance $\Sigma$.
+and	
+\begin{equation*}	
+	y_i= \left \{\begin{array}{ll}
+					1 & \text{if } z_i >0 \\
+					0 & \text{if } z_i \leq 0,
+				\end{array}\right.
+\end{equation*}
+where $z_i$, $i=1, \dots, N$ is an unobserved variable, while
+$y_i$ is binary, observed data. $x_{ij}$ and $\beta_j$ are
+explanatory variables and regression coefficients in model
+$M_r$ for $j=1,\dots, k_r$.
+If $\epsilon_i \overset{\text{iid}}{\sim} N(0, 1)$, then we
+have a probit model. Otherwise, we obtain a logit regression.
 
-By applying Ordinary Least Squares (OLS) estimates (see \cite{SalaMartinDoppelhoferMiller_BACE}) we can
-calculate approximation of posterior probability of model $M_j$ i.e.  $\Pr(M_j|y)$ using the following
-formula: (add: \cite{KassRaftery-BayesFactors-1995})
-
+In the next step, let us specify logit and probit models, where
+we consider the choice between $L$ alternatives, numbered from 1 to $L$:
 \begin{equation}
-\Pr(M_j|y) \approx \frac{\Pr(M_j)T^{-k_j/2}SSE_j^{-T/2}}
-    {\sum_{i=1}^{2^K}\Pr(M_i)T^{-k_i/2}SSE_i^{-T/2}},
+		z_i= \sum_{j=1}^{k_r}x_{ij}\beta_{j} + \epsilon_i,
+%		z_i= x_{ri}\beta_{ri} + \epsilon_i, 
 \end{equation}
-where  $SSE_j$ and $SSE_i$ are the OLS sum of squared errors, $2^K$ denotes the total number of potential combinations of the \textit{K} independent variables, $k_j$ and $k_i$ are the number of regression parameters $\beta_j$ and $\beta_i$. Prior probabilities $\Pr(M_j)$ and $\Pr(M_i)$ of models $M_j$ and $M_i$ are  binomially distributed, namely:
+and
+\begin{equation*}
+		y_i= \left \{ 
+			\begin{array}{lc}
+					 1 & \text{if } \alpha_0 < z_i \leq  \alpha_1 \\
+					 2 & \text{if } \alpha_1 < z_i \leq  \alpha_2 \\
+					 \vdots & \vdots \\
+					L & \text{if } \alpha_{L-1} < z_i \leq  \alpha_{L}, \\
+			\end{array}\right.
+\end{equation*}
+where unknown $\alpha_i$s are cutpoints with
+$\alpha_0 = -\infty, \alpha_1 = 0$ and $\alpha_L = \infty$.
+Assuming that $\epsilon_i$ is iid and standard normal, we obtain
+the ordered probit model, whereas the logistic distribution
+gives the ordered logit model.
+
+The latest considered model of this kind is multinomial logistic
+regression. It s an extension of logistic regression modelling
+for cases where the dependent variable is not binary but can
+take the values $0,1, \ldots, p$ and the categories are nominal,
+meaning they do not have a natural order.
+
+The model can be written in the following form:
+\begin{align}
+	\Pr\left(y_i= k\mid x_i\right) &= \frac{\exp \left( x_i\beta_k\right)} {1+\sum_{j=1}^{p}x_i\beta_j}, k > 0,\\
+	\Pr\left(y_i= 0\mid x_i\right) &= \frac{1} {1+\sum_{j=1}^{p}x_i\beta_j}.
+\end{align}
+
+Poisson regression is a model used to predict count data occurrences. That is, a dependent variable $y$ takes values $k=0,1, 2\ldots$ from the Poisson distribution. Under this assumption, the probability of the outcome variable $y$ conditional upon regressors is given by:
 \begin{equation}
-\Pr(M_j)=\theta^{k_i}(1-\theta)^{K-k_i}, \theta \in [0, 1].
+%	\Pr\left(y_i= j \mid X_r\right) = \frac{\exp \left\{-\lambda_r \right\} \lambda_r^j}{j!},
+	\Pr\left(y_i= k\mid x_i\right)  = \frac{\exp \left\{-\lambda_{i} \right\} \lambda_{i}^k}{k!},
 \end{equation}
-Note that the Binomial distribution implies that we only need to specify a prior expected model size  $\E(\Xi)=K\theta$ where $\E(\Xi) \in (0, K]$. If we define the value of $\E(\Xi)$ our BACE package will automatically produce a value of prior inclusion probability for all competitive models.  In case of  $\theta = 0.5$ prior expected model size  is equal to the average of number of potential regressors,  model prior distribution is uniform $\left( \Pr(M_i) = 2^{-K} \right)$ and reflects a lack of previous knowledge about models.
+where $\lambda_i= \exp(\sum_{j=1}^{k_r}x_{ij}\beta_{j})$ in model $M_r$.
 
-Using BACE we can also easily evaluate the mean and variance of
-the posterior distribution of regression parameters $\beta$ across the whole model space (see \cite{Leamer1978}):
+The Tobit model is a type of regression model used to analyze
+censored data, which refers to data with a lower or upper bound
+on the dependent variable. Consider the following Tobit model
+(type I) with two thresholds \citep{cottrell_luchcetti_gretl_manual}:
 \begin{equation}
-E(\beta |y) \approx \sum _{i=1}^{2^K}\Pr(M_i|y)E(\beta_i |y,M_i),
+	z_i= \sum_{j=1}^{k_r}x_{ij}\beta_{j} + \epsilon_i,
+	\label{eq: unobs_dep}
 \end{equation}
-
+and
 \begin{equation}
-Var(\beta |y) \approx 
-\sum_{i=1}^{2^K}\Pr(M_i|y)Var(\beta_i |y,M_i) +
-\sum_{i=1}^{2^K}\Pr(M_i|y) \left(E(\beta_i |y,M_i) - E(\beta |y)\right)^2,
+	y_i= \left \{ 
+	\begin{array}{ll}
+		a & \text{for }  z_i \le a\\
+		z_i &\text{for }  a < z_i < b\\
+		b & \text{for }  z_i \ge b,\\
+	\end{array}   \right.
+\label{eq: tobit}
 \end{equation}
-where $E(\beta_i |y,M_i)$ and $Var(\beta_i |y,M_i)$ are the OLS estimates of $\beta_i$
-from model $M_i$. 
+where $\epsilon \sim N(0, \sigma^2)$. Usually the most
+common specification is  $a=0$ and $b= \infty$.That is,
+at zero, observations are censored from below, which means
+that we do not observe any $z_i$ values that are negative \citep{verbeek2018guide}.
 
-Another useful characteristic popular in BACE approach is a Posterior
-Inclusion Probability (PIP). It is defined as the posterior probability that the variable $x_i$ is relevant in explaining the
-dependent variable  (see \cite{Leamer1978, mitchell_beauchamp_1988}). In our case the PIP is calculated (using Monte Carlo integration) as the sum of the posterior model probabilities for all of the models including specific variable:
+Another model that is available in the \pkg{BACE} package is
+the interval regression. It is similar to the standard linear
+regression, but it allows for the possibility of censoring
+some data points due to measurement limitations or other
+factors \citep{Stewart_1983, Bettin_Lucchetti_2012, cottrell_luchcetti_gretl_manual}.
+In this case, we consider a data generating process with an
+unobserved dependent variable $z_i$ (Equation \ref{eq: unobs_dep})
+and an observed interval that contains this variable:
 \begin{equation}
-\Pr(\beta_i \neq 0| y) = \sum_{i=1}^{2^K}\Pr(M_i|y)
+	m_i \leq z_i \leq  M_i.
 \end{equation}
+The interval can also be left-unbounded, i.e., $m_i = -\infty$
+or right-unbounded, when $M_i = \infty$. In the case of
+$m_i = M_i$, all observations are point observations and the
+model reduces to a standard regression model, which is also
+available in the \pkg{BACE} package. Please note that due to
+the complexity of the censoring problem, the interval
+regression model is only available in script form.
 
-In many cases,  despite of the interest of posterior characteristics it is valuable to predict future values of the dependent variable. 
-In BACE approach we can carry out predictive inference across the whole model space. 
-Given the matrix $X_j^*$ containing explanatory variables for each of the out-of-sample data points we can predict inference on unobserved values of dependent variable as a weighted average of the individual model forecasts. 
+All of the mentioned models are available in the \pkg{BACE}
+package. Through the use of model averaging analysis, it is
+possible to estimate parameters, identify the key determinants,
+and make predictions.
+%\subsection{BACE in regression models}
+%Our package focuses mainly on models with discrete dependent variable however it is also possible to estimate linear regression parameters as well. Consider simple regression model $M_r$: 
+%\begin{equation}
+%	y = X_r\beta_r + \epsilon
+%\end{equation}
+%where $y$ is $(N x 1)$ vector of observations,  $X_r$ is  $(N x k_r)$ matrix containing the set of independent variables and constant, $\beta_r$ is a $(k_r x 1)$ vector of unknown parameters, $\epsilon$ is a $(N x 1)$ vector of errors which are assumed to be normally distributed i.e. $\epsilon \sim N(0_N, \sigma^2I_N)$, $N(\mu, \Sigma)$ denotes a normal distribution
+%with location $\mu$ and covariance $\Sigma$.
 
-\subsection{XXX}
-\emph{Add Beta-Binomial distribution (including truncated \cite{Atwood1980,TripathiGuptaGurland-Estimation-1994})}
 
+%In case of standard BIC defined in (\ref{eq: BIC}) and by applying Ordinary Least Squares (OLS) estimates \citep[][]{KassRaftery-BayesFactors-1995,SalaMartinDoppelhoferMiller_BACE} we can also 
+%calculate approximation of posterior probability of model $M_j$ i.e.  $\Pr(M_j|y)$ using the following simplified
+%formula:
+
+%\begin{equation}
+%	\Pr(M_j|y) \approx \frac{\Pr(M_j)N^{-k_j/2}SSE_j^{-N/2}}
+%	{\sum_{r=1}^{2^K}\Pr(M_r)N^{-k_r/2}SSE_r^{-N/2}},
+%\end{equation}
+%where  $SSE_j$ and $SSE_r$ are the OLS sum of squared errors, $2^K$ denotes the total number of potential combinations of the \textit{K} independent variables, $k_j$ and $k_r$ are the number of regression parameters $\beta_j$ and $\beta_r$. 
+%Doppelhofer-Weeks Measure (DW1)
+%\begin{equation}
+%J_{DW1}(A,B)=\ln \left( \frac{p(A \cap B|y)}{p(A|y)p(B|y)} \right)
+%\end{equation}
 
 \subsection{Jointness measures}\label{sec:jointness_measures}
-The main implementations of Bayesian model averaging are concerned
+The main implementations of  model averaging are concerned
 with the selection of variables when model uncertainty is
 present. Another relevant issue which arises in this framework is to
 identify whether different sets of two variables $x_i$ and $x_j$ are
@@ -58,7 +162,10 @@ substitutes, complements or neither over the model space. For that
 reason, \cite{LeySteel2007} and \cite{DoppelhoferWeeks2009} define
 ex-post jointness measures of dependence between different sets of
 explanatory variables. Following \cite{Hofmarcher2018},
-let's define \nameref{tab:GeneralContingencyTable}:
+we can  use a general contingency Table \ref{tab:GeneralContingencyTable}
+and easily calculate a number of jointness measures considered
+in the literature. In \pkg{BACE} we have:
+
 \begin{table}[h!tb]
 	\centering
 	\caption{General contingency table for two binary variables.}
@@ -71,106 +178,94 @@ let's define \nameref{tab:GeneralContingencyTable}:
 	\label{tab:GeneralContingencyTable}
 \end{table}
 
-\label{sec:jointess_numbers}\begin{enumerate}
-	\item The jointness measure was proposed for the first
-	time in \cite{DoppelhoferWeeks2005} as
-	(\lstinline!"Doppelhofer-Weeks Measure (DW1)"!
-	in our package):
-	\begin{equation}
-		J_{\mathit{DW1}}(A,B) = \ln\left(\frac{\Prob(AB\mid y)}
-		{\Prob(A\mid y) \Prob(B\mid y)}\right)\sim
-		J_{\mathit{DW1}} = \ln\left(\frac{aN}{(a+b)(a+c)}\right).
-		\label{DW_jointness1}
-	\end{equation}
-	\item An alternative jointness measure was proposed by
-	\cite{DoppelhoferWeeks2009} as
-	(\lstinline!"Doppelhofer-Weeks Measure (DW2)"!
-	in our package):
-	\begin{equation}
-		J_{\mathit{DW2}}(A,B) =
-		\ln\left(\frac {\Prob(AB \mid y)\Prob(\overline{A}\overline{B} \mid y)}
-		{\Prob(A\overline{B}\mid y)\Prob(\overline{A}B\mid y)}\right)\sim
-		J_{\mathit{DW2}} = \ln\left(\frac{ad}{bc}\right).
-		\label{DW_jointness2}
-	\end{equation}
-	%where $\Prob(\tilde{i} \cap \tilde{j}\mid y)$ denotes the sum of the
-	%posterior probabilities of the regression models in which neither
-	%$x_i$ and $x_j$ are included, $\Prob(i \cap \tilde{j}\mid y)$
-	%corresponds to the sum of the posterior probabilities of all models in
-	%which $x_i$ is included and $x_j$ is excluded. The last probability
-	%$\Prob(\tilde{i} \cap j\mid y)$ is defined analogously.
-	%$J_{\mathit{DW}}$ corresponds to the posterior odds of including $i$,
-	%given that $j$ is included, divided by the posterior odds of including
-	%$i$ given that $j$ is not included (see %\citealt{DoppelhoferWeeks2009}).,
-	\item Two jointness statistics were proposed
-	in \cite{LeySteel2007} as
-	(\lstinline!"Ley-Steel Measure (LS1)"! in our package):
-	\begin{equation}
-		J_{\mathit{LS1}}(A,B) =
-		\frac{\Prob(AB\mid y)}{\Prob(A\mid y)+\Prob(B\mid y)-\Prob(AB\mid y)}
-		\sim J_{\mathit{LS1}} = \frac{a}{a+b+c},
-		\label{LS_jointness1}
-	\end{equation}
-	\item and (\lstinline!"Ley-Steel Measure (LS2)"! in our package):
-	\begin{equation}
-		J_{\mathit{LS2}}(A,B) =
-		\frac{\Prob(AB\mid y)}{\Prob(A\overline{B}\mid y)+\Prob(\overline{A}B\mid y)}
-		\sim J_{\mathit{LS2}} = \frac{a}{b+c}.
-		\label{LS_jointness2}
-	\end{equation}
-	%	where $\Prob(i \cap j\mid y)$ represents the sum of the posterior
-	%	probabilities of those models that contain both variables $x_i$ and
-	%	$x_j$, $\Prob(i\mid y)$ and $\Prob(j\mid y)$ are the PIPs of $x_i$ and
-	%	$x_j$.  $J_{\mathit{LS}}$ can be interpreted as the posterior odds
-	%	ratio of the models including both \textit{i} and \textit{j} vs the
-	%	models that include them only individually (see
-	%	\citealt{LeySteel2007}).
-	\item Another jointness measure was proposed in
-	\cite{Strachan-JAE-2009} as
-	(\lstinline!"Strachan Measure"! in our package):
-	\begin{equation}
-		J_{\mathit{St}}(A,B) = \Prob(A\mid y)\Prob(B\mid y)\ln\left(
-		\frac{\Prob(AB\mid y)}{\Prob(A\overline{B}\mid y)\Prob(\overline{A}B\mid y)}\right)
-		\sim J_{\mathit{ST}} = \frac{a+b}{N}\frac{a+c}{N}\ln\left(\frac{aN}{bc}\right).
-		\label{St_jointness}
-	\end{equation}
-	\item Next jointness measure is Yule's Q defined as
-	(\lstinline!"Yule's Q Measure (YQ)"! in our package):
-	\begin{equation}
-		J_{\mathit{YQ}}(A,B) = 
-		\frac{\Prob(AB)\Prob(\overline{AB})-\Prob(A\overline{B})\Prob(\overline{A}B)}
-		{\Prob(AB)\Prob(\overline{AB})+\Prob(A\overline{B})\Prob(\overline{A}B)}
-		\sim J_{\mathit{YQ}} = \frac{ad - bc}{ad + bc}.
-		\label{Yq_jointness}
-	\end{equation}
-	\item The last jointness measure (the default) is
-	modified Yule's Q defined as
-	(\lstinline!"Modified Yule's Q Measure (YQM)"! in our package):
-	\begin{equation}		
-		J_{\mathit{YQ}} = \frac
-		{\left(a+\frac{1}{2}\right)\left(d+\frac{1}{2}\right) -
-			\left(b+\frac{1}{2}\right)\left(c+\frac{1}{2}\right)} 
-		{\left(a+\frac{1}{2}\right)\left(d+\frac{1}{2}\right) +
-			\left(b+\frac{1}{2}\right)\left(c+\frac{1}{2}\right) - \frac{1}{2}}.
-		\label{YqM_jointness}
-	\end{equation}
-\end{enumerate}
+%Based on  the information included  in  Table \ref{tab:GeneralContingencyTable}, we can easily calculate a number of jointness measures considered in the literature:
 
-According to \cite{DoppelhoferWeeks2009}, we use the classification
-of jointness among the variables given in Table~\ref{tab1}.
+\label{sec:jointess_numbers}\begin{itemize}
+	\item The jointness measure $J_{\mathit{DW1}}$, first
+		proposed in the \cite{DoppelhoferWeeks2005}:
+		\begin{align}
+			\begin{split}
+				J_{\mathit{DW1}}(A,B) &  = \ln\left(\frac{\Prob(AB\mid y)}
+				{\Prob(A\mid y) \Prob(B\mid y)}\right)\\
+				& = \ln\left(\frac{aN}{(a+b)(a+c)}\right).
+			\end{split}
+			\label{DW_jointness1}
+		\end{align}
+	\item An alternative variant $J_{\mathit{DW2}}$ also
+		proposed by \cite{DoppelhoferWeeks2009}:
+		\begin{align}
+			\begin{split}
+				J_{\mathit{DW2}}(A,B) & =\ln\left(\frac {\Prob(AB \mid y)\Prob(\overline{A}\overline{B} \mid y)}
+				{\Prob(A\overline{B}\mid y)\Prob(\overline{A}B\mid y)}\right) \\
+				& = \ln\left(\frac{ad}{bc}\right).
+			\end{split}
+			\label{DW_jointness2}
+		\end{align}		
+	\item The jointness statistics presented in \cite{LeySteel2007}:
+		\begin{align}
+			\begin{split}
+				J_{\mathit{LS1}}(A,B) & = \frac{\Prob(AB\mid y)}{\Prob(A\mid y)+\Prob(B\mid y)-\Prob(AB\mid y)} \\
+				& = \frac{a}{a+b+c}.
+			\end{split}
+			\label{LS_jointness1}
+		\end{align}
+	\item An additional variant of an earlier measure: 
+		\begin{align}
+			\begin{split}
+				J_{\mathit{LS2}}(A,B) & = \frac{\Prob(AB\mid y)}{\Prob(A\overline{B}\mid y)+\Prob(\overline{A}B\mid y)} \\
+				& =  \frac{a}{b+c}.
+			\end{split}
+			\label{LS_jointness2}
+		\end{align}
+	\item The measure  proposed in \cite{Strachan2009}:
+		\begin{align}
+			\begin{split}
+				J_{\mathit{St}}(A,B) & = \Prob(A\mid y)\Prob(B\mid y)
+				\ln\left(\frac{\Prob(AB\mid y)}{\Prob(A\overline{B}\mid y)
+					\Prob(\overline{A}B\mid y)}\right) \\
+				& = \frac{a+b}{N}\frac{a+c}{N}\ln\left(\frac{aN}{bc}\right).
+			\end{split}
+			\label{St_jointness}
+		\end{align}
+	\item  Yule's Q  measure:
+		\begin{align}
+			\begin{split}
+				J_{\mathit{YQ}}(A,B) & = \frac{\Prob(AB)\Prob(\overline{AB})-\Prob(A\overline{B})\Prob(\overline{A}B)}
+				{\Prob(AB)\Prob(\overline{AB})+\Prob(A\overline{B})\Prob(\overline{A}B)} \\
+				& = \frac{ad - bc}{ad + bc}.
+			\end{split}
+			\label{Yq_jointness}
+		\end{align}
+	\item The last  measure and also the default one,
+		modified Yule's Q:
+		\begin{equation}		
+			J_{\mathit{YQ}} = \frac
+			{\left(a+\frac{1}{2}\right)\left(d+\frac{1}{2}\right) -
+				\left(b+\frac{1}{2}\right)\left(c+\frac{1}{2}\right)} 
+			{\left(a+\frac{1}{2}\right)\left(d+\frac{1}{2}\right) +
+				\left(b+\frac{1}{2}\right)\left(c+\frac{1}{2}\right) - \frac{1}{2}}.
+			\label{YqM_jointness}
+		\end{equation}
+\end{itemize}
 
-\begin{table}[hbt!]
-	\centering
-	\caption{Classification of strength of jointness measures.}\label{tab1}	
-	\begin{tabular}{lc}\hline
-		Evidence & Jointness statistics \\ \hline
-		strong substitutes & $J_{\mathit{LS}}, J_{\mathit{DW}} \le -2 $ \\
-		significant substitutes & $-2 <J_{\mathit{LS}}, J_{\mathit{DW}} \le-1 $ \\
-		not significantly related & $-1< J_{\mathit{LS}}, J_{\mathit{DW}} <1 $ \\
-		significant complements & $ 1\ge J_{\mathit{LS}}, J_{\mathit{DW}} <2 $ \\
-		strong complements & $ J_{\mathit{LS}}, J_{\mathit{DW}} \ge 2 $ \\ \hline
-	\end{tabular}	
-\end{table} 
+Information on the properties of these listed measures
+and their interpretations can be found in the publication
+of \cite{Hofmarcher2018}.
+
+%According to \cite{DoppelhoferWeeks2009}, we use the classification
+%of jointness among the variables given in Table~\ref{tab1}. 
+%\begin{table}[hbt!]
+%	\centering
+%	\caption{Classification of strength of jointness measures.}\label{tab1}	
+%	\begin{tabular}{lc}\hline
+%		Evidence & Jointness statistics \\ \hline
+%		strong substitutes & $J_{\mathit{LS}}, J_{\mathit{DW}} \le -2 $ \\
+%		significant substitutes & $-2 <J_{\mathit{LS}}, J_{\mathit{DW}} \le-1 $ \\
+%		not significantly related & $-1< J_{\mathit{LS}}, J_{\mathit{DW}} <1 $ \\
+%		significant complements & $ 1\ge J_{\mathit{LS}}, J_{\mathit{DW}} <2 $ \\
+%		strong complements & $ J_{\mathit{LS}}, J_{\mathit{DW}} \ge 2 $ \\ \hline
+%	\end{tabular}	
+%\end{table} 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%% OLD %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\cite{DoppelhoferWeeks2009}(DW2)
@@ -207,3 +302,37 @@ of jointness among the variables given in Table~\ref{tab1}.
 %
 %A (B ) indicates that event A (B) did not occur.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\cite{DoppelhoferWeeks2009}(DW2)
+%\begin{equation}
+%J_{DW2}(i,j)=\ln \left( \frac{p(i\cap j|y)p(\overline i \cap \overline j|y)}{p (i \cap \overline j|y) p(\overline i \cap j|y)} \right)
+%\end{equation}
+
+
+%\cite{LeySteel2007}(LS2)
+%\begin{equation}
+%J_{LS1}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i|y)+p(j|y) - 2p(i \cap j|y)} \right)
+%\end{equation}
+%
+%\cite{LeySteel2007} (LS2)
+%\begin{equation}
+%J_{LS2}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)+p(\overline i \cap j|y)} \right)
+%\end{equation}
+
+%Strachan Measure \cite{Strachan2009}
+%\begin{equation}
+%J_{St}(i,j)=\ p(i|y)p(j|y) \ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)p(\overline i \cap j|y)} \right)
+%\end{equation}
+
+%Yule's Q Measure (YQ) \cite{}
+%\begin{equation}
+%J_{YQ}(A,B)=\ln \left( \frac{p(A \cap B|y)p(\overline A \cap \overline B|y) - p(A \cap \overline B|y)p(\overline A \cap  B|y)}{p(A \cap %B|y)p(\overline A \cap \overline B|y) + p(A \cap \overline B|y)p(\overline A \cap  B|y)} \right)
+%\end{equation}
+
+%Modified Yule's Q Measure (YQM) \cite{Hofmarcher2018}
+%\begin{equation}
+%J_{YQ}(i,j)=\ln \left( \frac{\left(p(i \cap j|y)+ \frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) - \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right)}
+%{\left(p(i \cap j|y)+\frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) + \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right) -\frac{1}{2}} \right)
+%\end{equation}
+
+%A (B ) indicates that event A (B) did not occur.

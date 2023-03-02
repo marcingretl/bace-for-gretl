@@ -22,10 +22,7 @@ function void BACE_setup (bundle *M, int Norig)
     printf "\n#############################################################################\n"
     printf "To do:"
     printf "\n * Delete unneeded entries in result bundle."
-    printf "\n * Add all possible test/checks/whatever in the case of intreg model."
-    printf "\n * Add correctly predicted for mlogit model."
-    printf "\n * Verify forecasting in all models + clean up the code."
-    printf "\n * Work on speed."
+    printf "\n * Clean up the code."
     printf "\n#############################################################################\n"
 
     BACE_print_status("BACE setup")

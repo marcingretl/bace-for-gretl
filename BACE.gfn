@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>1.3-svn</version>
-<date>2023-03-01</date>
+<date>2023-03-02</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -315,13 +315,17 @@ printf &quot;Total probability of the models in ranking (numerical): %f\n\n&quot
 printf &quot;Correlation coefficient between the analytical\n&quot;
 printf &quot;and numerical probabilities of the above models: %f\n&quot;, corr(M.Numerical_Likelihood, M.mod_rank_prob)
 # Contingency table
-if M.limited_y &amp;&amp; !M.multinomial
+if M.limited_y
   printf &quot;\n&quot;
   print &quot;----------------------------------&quot;
-  printf &quot;\n&quot;
-  print &quot;Contingency table (actual in rows, predicted in columns):&quot;
-  eval M.contingency
-  printf &quot;Number of cases 'correctly predicted' = %d (accuracy %.1f%%)\n&quot;, M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
+  if !M.multinomial
+    printf &quot;\n&quot;
+    print &quot;Contingency table (actual in rows, predicted in columns):&quot;
+    eval M.contingency
+  else
+    printf &quot;\n&quot;
+  endif
+  printf &quot;Number of cases 'correctly predicted' = %d (accuracy %.1f%%)\n&quot;, M.correctly_predicted, 100*M.correctly_predicted/$nobs
 endif
 # Forecasts
 if M.Npredict
@@ -558,7 +562,7 @@ endif
 # Predictive results
 if MODEL.Npredict
   plotmat = MODEL.prediction[,1:2]
-  if MODEL.limited_y
+  if MODEL.limited_y || MODEL.model_type == &quot;tobit&quot;
     plot_title = &quot;Predictive results&quot;
     bars = MODEL.prediction[,2] ~ zeros(MODEL.Npredict, 1)
   else
@@ -1244,8 +1248,11 @@ if M.limited_y
     xtab_l = Y Yhat
     xtab xtab_l --zeros --no-totals --quiet
     M.contingency = $result
-    M.correctly_predicted = sum(Y == Yhat)
+  else
+    M.Yhat = M.yvals[imaxr(M.Yhat)]
+    Yhat = M.Yhat
   endif
+  M.correctly_predicted = sum(Y == Yhat)
 endif
 # Forecasts
 if M.Npredict
@@ -1261,9 +1268,14 @@ if M.Npredict
   M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
   M.prediction = M.Y_mat_predict ~ M.Yhat_predict_avg ~ M.Yhat_predict_var_avg
   title = defarray(M.Y_name, &quot;Mean&quot;, &quot;Std.Dev&quot;)
-  if M.model_type == &quot;intreg&quot;
-    title[1] = &quot;const&quot;
-    M.prediction[,1] = 1
+  if M.censored_y
+    if M.model_type == &quot;intreg&quot;
+      title[1] = &quot;const&quot;
+      M.prediction[,1] = 1
+    elif M.model_type == &quot;tobit&quot;
+      M.prediction = M.prediction[,1:2]
+      title = title[1:2]
+    endif
   endif
   if M.limited_y
     if M.ordered || M.multinomial
@@ -1353,10 +1365,7 @@ This function creates BUNDLE holding all BACE information
 printf &quot;\n#############################################################################\n&quot;
 printf &quot;To do:&quot;
 printf &quot;\n * Delete unneeded entries in result bundle.&quot;
-printf &quot;\n * Add all possible test/checks/whatever in the case of intreg model.&quot;
-printf &quot;\n * Add correctly predicted for mlogit model.&quot;
-printf &quot;\n * Verify forecasting in all models + clean up the code.&quot;
-printf &quot;\n * Work on speed.&quot;
+printf &quot;\n * Clean up the code.&quot;
 printf &quot;\n#############################################################################\n&quot;
 BACE_print_status(&quot;BACE setup&quot;)
 scalar tmp
@@ -1702,21 +1711,18 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
       fcast --out-of-sample --quiet
     endif
     M.Yhat_predict = $fcast
-    if !M.limited_y &amp;&amp; !M.censored_y
+    if !M.limited_y &amp;&amp; ESTIMATOR != &quot;tobit&quot;
       M.Yhat_predict_var = ($fcse*ols_to_mle_correct).^2 + $fcast.^2
     else
       M.Yhat_predict_var = ones(M.Npredict)*NA
     endif
   endif
   if M.limited_y
-    /*
     if M.multinomial
       M.Yhat = $allprobs
     else
       M.Yhat = {$model.yhat}
     endif
-    */
-    M.Yhat = {$model.yhat}
   endif
   # We calculate log of marginal density
   if M.bic_type_name == &quot;BIC&quot;
@@ -1790,7 +1796,11 @@ if M.Npredict
   Yhat_var_avg = zeros(M.Npredict)
 endif
 if M.limited_y
-  Yhat = zeros($nobs)
+  if M.multinomial
+    Yhat = zeros($nobs, yvals+1)
+  else
+    Yhat = zeros($nobs)
+  endif
   if M.ordered
     matrix cutshat_avg = zeros(M.cuts)
     matrix cutsvar_avg = zeros(M.cuts)

@@ -239,13 +239,17 @@ function void BACE_Print (bundle *MODEL)
     printf "and numerical probabilities of the above models: %f\n", corr(M.Numerical_Likelihood, M.mod_rank_prob)
 
     # Contingency table
-    if M.limited_y && !M.multinomial
+    if M.limited_y
         printf "\n"
         print "----------------------------------"
-        printf "\n"
-        print "Contingency table (actual in rows, predicted in columns):"
-        eval M.contingency
-        printf "Number of cases 'correctly predicted' = %d (accuracy %.1f%%)\n", M.correctly_predicted, 100*M.correctly_predicted/sum(M.contingency)
+        if !M.multinomial
+            printf "\n"
+            print "Contingency table (actual in rows, predicted in columns):"
+            eval M.contingency
+        else
+            printf "\n"
+        endif
+        printf "Number of cases 'correctly predicted' = %d (accuracy %.1f%%)\n", M.correctly_predicted, 100*M.correctly_predicted/$nobs
     endif
 
     # Forecasts

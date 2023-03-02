@@ -1,346 +1,572 @@
-\subsection{The GUI way}
-Once you start \cmd{gretl}, you must open a data file and then you can
-load the relevant \cmd{BACE} package from the \cmd{gretl} server. In the main
-window, go to File $\rightarrow$ Function packages $\rightarrow$ On server
-heading. By selecting \cmd{BACE}, you will download the package on your
-local machine. Next, go to File $\rightarrow$ Function packages $\rightarrow$
-On local machine and by selecting BACE from the list open a window similar
-to the one shown in Figure~\ref{fig:Main window for BACE}:
 
-\begin{figure}[h!]
+The main interface to the \pkg{BACE} package
+is \cmd{BACE()} function described in \ref{sec:BACE()}.
+Calling this function is available from both:
+script and command line window, just after loading
+the package via \lstinline!include! command. 
+As an
+example we use so-called NELS dataset used in
+\cite{HillGriffithsLim_principles_2017}
+which concerns longitudinal study on eigth-grade students
+in USA\footnote{This dataset is available at
+	\url{http://www.principlesofeconometrics.com/poe5/poe5data.html}. It is also included in the standard \pkg{gretl} distribution thanks to the work of Lee Adkins:
+	\url{http://www.learneconometrics.com/gretl/index.html}.}.
+Table~\ref{tab:nels_dataset_description} includes basic
+characteristics of this dataset.
+
+\begin{table}[htb!]
 	\centering
-	\includegraphics[width=0.7\columnwidth, keepaspectratio]{PNG/BACE_main_window}
-	\caption{Main window for \cmd{BACE}.}
-	\label{fig:Main window for BACE}
-\end{figure}
+	\caption{NELS dataset variables definition}%
+	\label{tab:nels_dataset_description}%\multirow{3}{*}{Hendrys' selection}\ldelim\{{7}{20pt}[]
+	\begin{footnotesize}\begin{tabulary}{0.9\textwidth}{lCL}\hline\hline
+		\multirow[c]{3}{*}{psechoice}&\multirow[c]{3}{*}{=}&%
+			\hspace*{-9pt}\multirow[t]{3}{*}{\ldelim\{{3}{*}}%
+			1 if first postsecondary education was no college\\
+				  &&2 if first postsecondary education was a 2-year college\\
+				  &&3 if first postsecondary education was a 4-year college\\
+		hscath	  &=& 1 if catholic high school graduate\\
+		hsrural	  &=& 1 if high school rural\\
+		grades	  &=& average grade in math, english and social studies on 13 point scale with 1 = highest\\
+		faminc	  &=& gross 1991 family income (in \$1000)\\
+		famsiz	  &=& number of family members\\
+		parsome	  &=& 1 if most educated parent had some college, but not a 4-year degree\\
+		parcoll	  &=& 1 if most educated parent graduated from college or had an advanced degree\\
+		female	  &=& 1 if female\\
+		asian	  &=& 1 if asian\\
+		hispan	  &=& 1 if hispan\\
+		black	  &=& 1 if black\\
+		grants	  &=& 1 if student had a grant/scholarship or fellowship when attending college\\
+		loans	  &=& 1 if student received a loan while attending college\\\hline
+	\end{tabulary}\newline
+	Source: \url{http://www.principlesofeconometrics.com/poe5/data/def/nels.def}\end{footnotesize}
+\end{table}
 
-According to Figure~\ref{fig:Main window for BACE}, we can specify
-the following entries in the GUI \cmd{BACE} window\label{text:module_parameters}
-\begin{itemize}
-	\item \textbf{Model type} -- What kind of modeling should be
-		should be performed? [required]
-	\item \textbf{Dependent variable} -- The dependent variable
-		as series [required].
-	\item \textbf{Y lags} -- number of lags for dependent variable
-		as integer (for time-series only).
-	\item \textbf{List of independent variables} -- List of all
-		independent variables (including lagged series) as list
-		[may be null].
-	\item \textbf{Constant in model} -- Do we include intercept?
-		[required]
-		\begin{enumerate}
-			\item Never -- all models without constant,
-			\item Always -- all models with constant,
-			\item Can be dropped -- constant may be removed
-				from or added to any model.
-		\end{enumerate}
-	\item \textbf{Model prior} -- Do we impose a prior on
-		model space? [required]:
-		\begin{enumerate}
-			\item none,
-			\item Binomial -- binomial distribution,
-			\item Beta-Binomial -- beta-binomial distribution.
-		\end{enumerate}
-	\item \textbf{Bayesian information criterion} -- Version of
-		BIC to be used [required].
-		\begin{enumerate}
-			\item BIC, 
-			\item HBIC,
-			\item IBIC,
-			\item EBIC.
-		\end{enumerate}
-	\item \textbf{Jointness analysis} -- If \cmd{None} (the default),
-		the jointness analysis is omitted. Alternatively, one can
-		choose one of the 7 available jointness measures.
-	\item \textbf{Number of out-of-sample forecasts} -- Defines the
-		total number of out-of-sample forecasts of the dependent variable.
-	\item \textbf{Verbosity} -- An integer value of 1 or 2; the default
-		is 2, so a more detailed description of the	analysis is provided
-		(initial model, speed of convergence, estimation results for top
-		ranked models).
-	\item \textbf{Show overall progress} -- The progress bar is printed.
-	\item \textbf{Plot graphs?} -- Shall we produce graphs?
-\end{itemize}
-
-
-\subsection{The script way}
-\subsubsection{Script}
-The \cmd{BACE} package can also be used inside \proglang{Hansl} scripts.
-A very minimal code could be as follows:
-%
+We assume analysis for ordered probit model for \texttt{psechoice} with
+default values of \pkg{BACE} parameters. The only
+non-default setting will be jointness analysis by
+modified Yule's~Q Measure (Equation~\ref{YqM_jointness}).
+A very minimal code would be as follows%
+\footnote{Total execution time on machine with 4 Intel Core
+	i7-8550U CPU @1.80GHz and 16~GB RAM took $\approx$~8 sec.}:
 \begin{lstlisting}
-open greene9_1.gdt
+open nels.gdt --quiet
 include BACE.gfn
+set seed 1000000
+list X = 2..14
 
-list greene = capital labor nfirm
+res = BACE(psechoice, X, _(model_type="probit", do_joint="myq")) 
+\end{lstlisting}\label{sc:initial_script_example}
+The above example consists of 5 lines and is rather
+self-explained. In the first line we call
+\lstinline!open! command to load NELS dataset from
+\texttt{nels.gdt} file. In the second line we load
+\pkg{BACE} package (using \lstinline!include! command).
+The third line contains definition of seed for
+pseudo-random number generator. In the fourth line
+we define gretl's \lstinline!list X! which includes independent
+variables with ID's between 2 and 14. Finally, the fifth
+line defines Bayesian Averaging of Classical Estimates
+analysis of student's college type choice in USA
+with two parameters set explicitly (i.e., values of
+rest of parameters are set to their defaults as described on
+page~\pageref{sec:default_option_bundle}). Note, that
+switching between binary and ordered probit is done by
+gretl automatically according to type of the depended
+variable. The \pkg{BACE} results will be saved in
+\texttt{res} bundle.
 
-BACE(valadd, greene)
+The above-mentioned way of calling \cmd{BACE()} function
+is not the only one possible in \pkg{gretl}. 
+Alternatively, we can use an option bundle to define
+\pkg{BACE} parameters\footnote{We assume that the first four
+	lines from the initial script remain unchanged in
+	consecutive examples.}:
+\begin{lstlisting}
+bundle opts
+opts["model_type"] = "probit"
+opts["do_joint"] = "myq"
+
+res = BACE(psechoice, X, opts)
 \end{lstlisting}
-The above example consists of three blocks. The first block
-is just opening of the so called \cmd{greene9\_1} dataset,
-which is bundled in every standard \pkg{gretl} installation.
-This dataset contains cross-sectional data on manufacturing
-of transportation equipment presented as Table 9.1 in
-\cite{greene_Econometric_A}%
-\footnote{This dataset is also available at
-	\url{http://people.stern.nyu.edu/wgreene/Text/Edition7/TableF7-2.txt}.}.
-We also set the seed in order to have exact reproduction
-of the results.
-
-The second block is the definition of the \cmd{greene}
-list which contains three independent variables available
-in the \cmd{greene9\_1} dataset.
-
-The third block contains the definition for Bayesian
-Averaging of Classical Estimates analysis with default
-settings described on page~\pageref{sec:default_option_bundle}.
-On contrary, the corresponding ''big call'', i.e. setting
+On contrary, the corresponding "big call", i.e. setting
 all possible parameters manually, would be as follows:
 \begin{lstlisting}
-bundle opts = defbundle("model_prior", 2, "avg_model_size", 1.5, \
-  "alpha", 0.6, "Nrank", 4, "do_joint", 0, "Npredict", 0, \
-  "Nrep", 1000, "burn", 10, "verbosity", 2, "show_progress", 1, \
-  "do_plot", 1, "model_type", "linear", "const_type", 1, \
-  "bic_type", 1, "data_trans", 0)
-BACE(valadd, greene, opts)
+bundle opts = defbundle("model_prior", 1, \
+  "avg_model_size", 6.5, "alpha", 0.6, "Nrank", 5, \
+  "do_joint", 7, "Npredict", 0, "Nrep", 10000, \
+  "burn", 10, "verbosity", 2, "show_progress", 1, \
+  "do_plot", 1, "model_type", 3, "with_const", 0, \
+  "bic_type", 2, "data_trans", 0, \
+  "hyperparameter", 0.5, "binary_threshold", 0.5, \
+  "low", NA, "high", 0)
+
+res = BACE(psechoice, X, opts)
 \end{lstlisting}
 or alternatively with the new syntax for creating bundle
 on-the-fly:
 \begin{lstlisting}
-BACE(valadd, greene, _(model_prior=2, avg_model_size=1.5,\
-  alpha=0.6, Nrank=4, do_joint=0, Npredict=0, Nrep=1000,\
-  burn=10, verbosity=2, show_progress=1, do_plot=1,\
-  model_type="linear", const_type=1, bic_type=1, data_trans=0))
+res = BACE(psechoice, X, _(model_prior=1, \
+  avg_model_size=6.5, alpha=0.6, Nrank=5, \
+  do_joint=7, Npredict=0, Nrep=10^4, burn=10, \
+  verbosity=2, show_progress=1, do_plot=1,\
+  model_type=3, with_const=0, bic_type=2, \
+  data_trans=0, hyperparameter=0.5, \
+  binary_threshold=0.5, low=NA, high=0))
 \end{lstlisting}
 Since some parameters in option bundle are over-loadable
-(see~\ref{sec:over-loadable_options}), the equivalent
-call looks like this:
+(see information in~\ref{sec:over-loadable_options}),
+the equivalent call looks like this:
 \begin{lstlisting}
-BACE(valadd, greene, _(model_prior="beta-binomial",\
-  avg_model_size=1.5, alpha=0.6, Nrank=4, do_joint="none",\
-  Npredict=0, Nrep=1000, burn=10, verbosity=2, show_progress=1,\
-  do_plot=1, model_type="linear", const_type="always",\
-  bic_type="bic", data_trans="none"))
-\end{lstlisting} 
-%\begin{lstlisting}
-%	open greene9_1.gdt
-%	include BACE.gfn
-%	set seed 1000000
-%	
-%	list greene = capital labor nfirm
-%	
-%	scalar model_type = 1
-%	scalar y_lags = 0
-%	scalar with_const = 1
-%	scalar data_trans = 0
-%	scalar model_prior = 1
-%	scalar bic_type = 1
-%	scalar hyperparameter = 0
-%	scalar prior_avg_model_size = 1.5
-%	scalar alpha = 0.6
-%	scalar top_ranked_model = 4
-%	scalar joint = 1
-%	scalar forecasts = 0
-%	scalar Nrep = 2000
-%	scalar Nburn = 10
-%	scalar verbosity = 1
-%	scalar progress = 1
-%	scalar plots = 1
-%	
-%	BACE_GUI(model_type, valadd, y_lags, greene, with_const,\
-%	data_trans, model_prior, bic_type, hyperparameter,\
-%	prior_avg_model_size, alpha, top_ranked_model, joint,\
-%	forecasts, Nrep, Nburn, verbosity, progress, plots)
-%\end{lstlisting}
-
-Suppose we want to run the same analysis but following
-Occam's razor principle. The simplest way is setting the prior
-average model size to 1. We also want to have ''random'' constant,
-i.e. intercept can be dropped in any model. We also want to save
-results of the BACE analysis in the bundle \cmd{res},
-the code should be as follows:
-\begin{lstlisting}
-res = BACE(valadd, greene, _(avg_model_size=1.1, with_const=2))
+res = BACE(psechoice, X, \
+  _(model_prior="binomial", avg_model_size=6.5, \
+  alpha=0.6, Nrank=5, do_joint="myq", Npredict=0, \
+  Nrep=10^4, burn=10, verbosity=2, show_progress=1, \
+  do_plot=1, model_type="probit", with_const="never", \
+  bic_type="hbic", data_trans="none", \
+  hyperparameter=0.5, binary_threshold=0.5, low=NA, \
+  high=0))
 \end{lstlisting}
+Note that since we are using an ordered probit model here,
+some of the options mentioned above are redundant and as
+such are not even considered. Those are:
+\begin{itemize}
+	\item \texttt{hyperparameter}, used only for EBIC
+		(Equation~\ref{eq: EBIC}),
+	\item \texttt{binary\_threshold}, used only for
+		binary \gretlcmd{logit} or \gretlcmd{probit} models,
+	\item \texttt{low} and \texttt{high}, used only
+		for \gretlcmd{tobit} model.
+\end{itemize}
+Results from \pkg{BACE} are described in Section~\ref{sec:outputs}.
 
-Suppose we want to calculate Doppelhofer-Weeks Measure (DW1)
+Suppose we want to calculate Ley-Steel's LS2 Measure
 instead of already computed Modified Yule's Q Measure (MYQ).
 Since the type of jointness measure is controlled by
 \lstinline!do_join! field in the result bundle, the only
 thing we have to do is to set the value of \lstinline!do_join!
-to 2 and print BACE results again. The code should be as follows:
+to 4 (or "ls2") and produce \pkg{BACE} results again.
+The code should be as follows:
 \begin{lstlisting}
-res.do_joint = 2
+res["do_joint"] = 4
 BACE_Print(&res)
+BACE_Plot(&res)
 \end{lstlisting}
+
+Note, that all above mentioned analysis may
+be performed via GUI interface. But - since
+it is only an option method - it does not offer
+an option to set all possible package parameters.
+See Section~\ref{sec:BACE_GUI()} for details.
 
 
 \subsection{Output}\label{sec:outputs}
-\textcolor{red}{\textbf{Outdated!!!}}\newline
-If you select the appropriate entries in the GUI \cmd{BACE} window,
-our package returns: Posterior Inclusion Probabilities (PIP), the
-averages of the posterior means and standard deviations of parameters
-(``Mean'' and ``Std.Dev.'', respectively) and the posterior mean and
-standard deviation of each coefficient conditional on the variable
-being included in the model (``Cond.Mean'' and
-``Cond.Std.Dev.''). Furthermore, the package also returns the
-predictive results for the dependent variable (``Mean'' and
-``Std.Dev.'').
+The output from the \pkg{BACE} package can be split into
+two parts: printed text produced by the \cmd{BACE\_Print()}
+function, where summary and posterior results are presented,
+and plotted graphs returned by the \cmd{BACE\_Plot()} function.
+Both functions are described in Sections \ref{sec:BACE_Print()}
+and \ref{sec:BACE_Plot()}. The printed output window consists of
+several important sections, such as the initial settings and
+basic summary of random sampling, an initial (starting) model
+estimates, posterior results—summary of the most common model
+averaging metrics, jointness measures, and estimates for the top models.
+%[Principles of Econometrics 5th Ed, example 16.3.4]
 
-Let us consider the data used in previous example
-(\cmd{australia.gdt}).  This dataset contains the Australian macro
-data used in \cite{Johansen1995Likelihood} and originally supplied by
-Tony Hall.  The variables used in the text are:
+When you run the script with the initial set (a complete script
+is described on page \pageref{sc:initial_script_example}):
+\begin{lstlisting}
+res = BACE(psechoice, X, _(model_type="probit", do_joint="myq"))
+\end{lstlisting}
+one of the first pieces of information returned is a short
+summary of the \pkg{BACE} settings, along with basic
+information about the results of the Monte Carlo experiment.
+This information includes the number of visited and accepted
+models. The first part of the printed results is as follows:
+\begin{CodeChunk}\begin{CodeOutput}
+Model type: ordered probit
+Constant type: Never (with cut points)
+Prior: Binomial
+Prior average model size: 6.500000
+Significance level for the initial model: 0.600000
+Bayesian information criterion used: HBIC
+Data transformation: none
+Total number of iterations: 10000
+Number of burn-in draws: 1000
+Total number of possible models: 8192
+Number of models visited: 114
+Number of models accepted: 15
+\end{CodeOutput}
+\end{CodeChunk}
+The results printed above are fairly self-explanatory,
+but a few additional comments should be added:
 \begin{itemize}
-	\item lpau -- log of Australian CPI (dependent variable),
-	\item lpus -- log of US CPI,
-	\item le -- log of exchange rate (price of US dollars in Aus. dollars),
-	\item iau2 -- 5-year Treasury bond rate, Australia,
-	\item ius2 -- 5-year Treasury bond rate, USA. 
+	\item In case of \gretlcmd{tobit} model two
+		additional lines are printed below \texttt{Model type}:
+		\texttt{left bound} and \texttt{right bound}
+		with values of \texttt{low} and \texttt{high}
+		limits respectively.		
+	\item If we use EBIC as a model selection criterion,
+		an additional line will be printed below the
+		\texttt{Bayesian information criterion used}, which
+		is the \texttt{Hyperparameter for EBIC (gamma)}
+		with the value of the $\gamma$ parameter used in the simulation.			
+	\item If we have binary \gretlcmd{logit} or \gretlcmd{probit}
+		models, an additional line is printed below the
+		\texttt{Data transformation}, i.e. the \texttt{Threshold
+		for binary dependent variable}, with the minimum value
+		for which the dependent variable takes a value of 1.		
+	\item If we run \pkg{BACE} with either ,"random" or "without"
+		a constant term, two additional lines may be printed below
+		the \texttt{Total number of iterations}: \texttt{Number of
+		rejected draws} and \texttt{Effective number of iterations}.
+		This is due to the fact that, in these cases, an empty model
+		does not exist, so if we have such a specification drawn in
+		an \MCcube simulation, it must be rejected (we cannot implicitly
+		exclude empty specifications from the model space in our drawing schema).
+	\item If \pkg{BACE}  encounters missing values in a dataset,
+		a line \texttt{Original number of observations (with missing)}
+		is printed at the bottom of the summary.
 \end{itemize}
-Suppose we want to perform BACE analysis up to $ADL(2,2)$ specification,
-i.e. all possible combinations from $ADL(0,0)$ to $ADL(2,2)$.
-The example script would be as follows:
+If \texttt{verbosity} option is set to 2, the results of the
+initial model estimation  are printed. For the NELS example,
+the initial model looks as follows:
+\begin{CodeChunk}\begin{CodeOutput}
+The initial model: ordered probit, dependent variable: psechoice
 
-\begin{CodeChunk}
-	\begin{CodeInput}
-		set verbose off
-		include BACE.gfn
-		open australia.gdt
-		genr time
-		
-		# We create lagged values
-		adl_lags = 2
-		lags(adl_lags, ius2)
-		lags(adl_lags, iau2)
-		lags(adl_lags, e2)
-		lags(adl_lags, lpus)
-		lags(adl_lags, le)
-		
-		# We define list with all X-es (including lags)
-		list X_list = time ius2 ius2_* iau2 iau2_* e2 e2_* lpus lpus_* le le_*
-		
-		set seed 1000000
-		scalar y_lags = 2
-		scalar with_const = 2
-		scalar model_prior = 1
-		scalar prior_avg_model_size = (nelem(X_list) + y_lags + (with_const > 0)) / 2
-		scalar alpha = 0.6
-		scalar top_ranked_model = 4
-		scalar joint = 0
-		scalar forecasts = 4
-		scalar Nrep = 20000
-		scalar Nburn = 10
-		scalar verbosity = 2
-		scalar progress = 0
-		
-		RES = BACE_GUI(lpau, y_lags, X_list, with_const, model_prior, prior_avg_model_size,
-		alpha, top_ranked_model, joint, forecasts, Nrep, Nburn, verbosity, progress)
-	\end{CodeInput}
-\end{CodeChunk}
-In the above analysis all variables (including dependent variable $lpau_t$)
-are lagged by 2 periods. Additionally we compute 4 forecasts:
-
-\begin{CodeChunk}
-	\begin{CodeOutput}
-		Posterior moments (unconditional and conditional on inclusion):
-		PIP         Mean     Std.Dev.    Cond.Mean Cond.Std.Dev
-		lpau_1      1.000000     0.894595     0.091656     0.894595     0.091656
-		ius2      0.996500    -0.418560     0.102196    -0.420030     0.099314
-		lpus_2      0.790611    -0.303217     0.212152    -0.383523     0.161647
-		lpus_1      0.780500     0.356760     0.260342     0.457092     0.202432
-		iau2      0.752222     0.224487     0.161678     0.298432     0.112617
-		le_2      0.506944    -0.027670     0.046149    -0.054582     0.052271
-		const      0.392778    -0.074241     0.125663    -0.189015     0.136050
-		e2_2      0.335667     0.002317     0.033496     0.006903     0.057540
-		lpus      0.296222     0.037894     0.107134     0.127924     0.165014
-		le_1      0.282500    -0.023085     0.062683    -0.081716     0.095485
-		lpau_2      0.253056     0.037914     0.087083     0.149825     0.114894
-		e2_1      0.245222     0.015275     0.052532     0.062292     0.091240
-		time      0.233778     0.000053     0.000269     0.000226     0.000520
-		iau2_1      0.231389     0.035210     0.090726     0.152166     0.133328
-		le      0.211667     0.010063     0.042201     0.047542     0.081437
-		e2      0.176222    -0.005057     0.034623    -0.028698     0.078258
-		ius2_1      0.175222     0.021296     0.072659     0.121539     0.133961
-		ius2_2      0.140111    -0.009023     0.048048    -0.064400     0.113626
-		iau2_2      0.132000     0.005342     0.042150     0.040469     0.109717
-		
-		----------------------------------
-		
-		Posterior probability of models:
-		Model 1:	0.024278
-		Model 2:	0.020556
-		Model 3:	0.012889
-		Model 4:	0.009278
-		Total probability of the models in ranking (numerical): 0.067000
-		
-		Correlation coefficient between the analytical
-		and numerical probabilities of the above models: 0.932557
-		
-		----------------------------------
-		
-		Predictive results:
-		lpau           Mean       Std.Dev.
-		1990:2        5.334649       5.340552       0.007950
-		1990:3        5.341856       5.356902       0.008400
-		1990:4        5.368310       5.378660       0.010094
-		1991:1        5.366443       5.395817       0.013705
-	\end{CodeOutput}
+           coefficient   std. error       z       p-value 
+----------------------------------------------------------
+hscath      0.348616     0.0664749       5.244   1.57e-07  ***
+hsrural    -0.187616     0.0352009      -5.330   9.83e-08  ***
+grades     -0.229958     0.00825797    -27.85    1.18e-170 ***
+faminc      0.00782622   0.000519981    15.05    3.40e-51  ***
+famsiz     -0.0510152    0.0120154      -4.246   2.18e-05  ***
+parsome     0.323895     0.0401926       8.059   7.72e-16  ***
+parcoll     0.684446     0.0487883      14.03    1.04e-44  ***
+asian       0.102519     0.0623079       1.645   0.0999    *
+hispan      0.153188     0.0545347       2.809   0.0050    ***
+black       0.261885     0.0575335       4.552   5.32e-06  ***
+grants      0.792064     0.0403978      19.61    1.36e-85  ***
+loans       1.09411      0.0524522      20.86    1.26e-96  ***
+cut1       -1.67948      0.0921330     -18.23    3.05e-74  ***
+cut2       -0.523737     0.0902467      -5.803   6.50e-09  ***
+\end{CodeOutput}
 \end{CodeChunk}
 
-% The \cmd{BMA} estimate function accepts a scalar, which sets the verbosity
-% of the output. Its default value is 1, which causes the estimation
-% output to be printed out. A value of 2 forces the \cmd{BMA} function to
-% print out all the details of the estimation. You can print out the
-% above-mentioned results and additionally the following information:
-% the total CPU time, type of model prior, prior average model size,
-% significance level for the initial model, type of g-prior, total
-% number of iterations and, finally, the number of burn-in
-% draws. Moreover, the \cmd{BMA} estimate function produces the estimation
-% results for the initial and top ranked models. The jointness analysis
-% is inactive by default. If it is active, you will get: posterior joint
-% probability of explanatory variables, jointness statistic as given in
-% Equations~\ref{LS_jointness} or~\ref{DW_jointness} and classification
-% of jointness measures.  The jointness analysis for the previous
-% example should look like this:
-% %
-% \begin{CodeChunk}
-	% \begin{CodeOutput}
-		% Posterior joint probability of variables:
-		%               GDPsh560 Confuncious   Life_Exp  Equip_Inv ...  
-		%    GDPsh560   0.000000    0.889256   0.932182   0.903349 ...
-		% Confuncious   0.000000    0.000000   0.826208   0.816956 ...
-		%    Life_Exp   0.000000    0.000000   0.000000   0.839068 ...
-		%   Equip_Inv   0.000000    0.000000   0.000000   0.000000 ...
-		%         ...        ...         ...        ...        ... ...
-		% Jointness statistics (Ley-Steel Measure):
-		%               GDPsh560 Confuncious   Life_Exp  Equip_Inv ...
-		%    GDPsh560   0.000000    2.083161   2.643181   2.235000 ...
-		% Confuncious   0.000000    0.000000   1.576599   1.618373 ...
-		%    Life_Exp   0.000000    0.000000   0.000000   1.662559 ...
-		%   Equip_Inv   0.000000    0.000000   0.000000   0.000000 ...  
-		%         ...        ...         ...        ...        ... ... 
-		% Strong substitutes:
-		%         Rev_Coup,Area       -4.516140
-		% Rev_Coup,Publ_Edu_pct       -4.459739
-		%                   ...             ...
-		% Significant substitutes:   
-		%        GDPsh560,Hindu       -1.997989
-		%      Mining,War_Dummy       -1.989541
-		%                   ...             ...   
-		% Significant complements:
-		%  Confuncious,Life_Exp        1.576599
-		% Confuncious,Equip_Inv        1.618373
-		%                   ...             ...
-		% Strong complements:   
-		%   DPsh560,Confuncious        2.083161
-		%    GDPsh560,Equip_Inv        2.235000
-		%                   ...             ...  
-		% \end{CodeOutput}
-	% \end{CodeChunk}
-% %
+The output contains typical information regarding model
+estimates, including coefficient estimates, standard errors
+for the coefficient estimates, z-statistics that test whether
+the coefficients are equal to zero, and corresponding p-values.
+In some cases, the results for the initial model may be
+extended with additional information:
 
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: "BACE_package_for_gretl"
-%%% End:
+\begin{itemize}
+  \item If case of a \gretlcmd{tobit} model, lines indicating
+  	the number of left-- and/or right--censored observations
+  	will be printed.
+  \item If we have an \gretlcmd{intreg} model, lines indicating
+  	the number of left-- and right--unbounded, bounded, and
+  	point observations will be printed.
+  \item When it comes to models with a censored dependent
+  variable, the results of the normality test are displayed.
+\end{itemize}
+
+One of the first pieces of information displayed about
+posterior results is prior and posterior model size
+distributions, for NELS example that will be:
+\begin{CodeChunk}\begin{CodeOutput}
+Prior:
+	average model size: 6.500000
+	standard deviation: 1.802776
+Posterior:
+	average model size: 10.548111
+	standard deviation: 0.638328
+\end{CodeOutput}
+\end{CodeChunk}
+
+Note that if we use EBIC, an additional lines labelled
+\texttt{Effective Prior} are displayed, showing the moments
+of the effective prior model size distribution calculated as
+a combination of the \texttt{model\_prior} specified by
+the user and the model prior implicitly included in EBIC
+(Equation~\ref{eq: EBIC}).
+
+The next step displays the basic characteristics associated
+with evaluating the parameters and related variables in the
+model averaging approach.
+\begin{CodeChunk}\begin{CodeOutput}
+  Posterior moments (unconditional and conditional on inclusion):
+                 PIP        Mean     Std.Dev.    Cond.Mean Cond.Std.Dev.
+   loans    1.000000    1.089366     0.052477     1.089366     0.052477
+  grants    1.000000    0.796474     0.040560     0.796474     0.040560
+ parcoll    1.000000    0.689982     0.048644     0.689982     0.048644
+ parsome    1.000000    0.326197     0.040197     0.326197     0.040197
+  faminc    1.000000    0.007738     0.000521     0.007738     0.000521
+  grades    1.000000   -0.229508     0.008326    -0.229508     0.008326
+ hsrural    1.000000   -0.199767     0.035077    -0.199767     0.035077
+  hscath    1.000000    0.341419     0.066410     0.341419     0.066410
+   black    0.990222    0.240438     0.062522     0.242812     0.058061
+  famsiz    0.980889   -0.047048     0.013558    -0.047965     0.011976
+  hispan    0.460667    0.066270     0.080632     0.143856     0.054333
+   asian    0.094000    0.008674     0.033129     0.092273     0.062943
+  female    0.022333   -0.000169     0.004942    -0.007560     0.032215
+\end{CodeOutput}
+\end{CodeChunk}
+The main output of \pkg{BACE}  includes typical model averaging
+metrics: \texttt{PIP} (Posterior Inclusion Probabilities),
+\texttt{Mean} and \texttt{Std.Dev.} (the average of the posterior
+means and standard deviations of parameters), \texttt{Cond.Mean}
+and \texttt{Cond.Std.Dev.} (the posterior mean and standard
+deviation of each coefficient, conditional on the variable being
+included in the model).
+
+In ordered probit and logit models, the values of the
+cut points are used to measure the effects of the
+regressors on the dependent variable. In the \pkg{BACE}
+approach, we have their average estimates based on
+the total model space.
+\begin{CodeChunk}
+\begin{CodeOutput}
+                Mean       Std.Dev.
+cut1       -1.682247       0.095886
+cut2       -0.527395       0.093964
+\end{CodeOutput}
+\end{CodeChunk}
+
+Next, we print a CDF-like table showing the
+probabilities associated with the models.
+\begin{CodeChunk}\begin{CodeOutput}
+Posterior probability of models:
+Best 5 models account for 0.9630 of mass
+Best 6 models account for 0.9732 of mass
+Best 7 models account for 0.9828 of mass
+Best 8 models account for 0.9916 of mass
+Best 9 models account for 0.9963 of mass
+Best 15 models account for 1.0000 of mass
+Best 14 models account for 1.0000 of mass
+\end{CodeOutput}
+\end{CodeChunk}
+
+We also print the rankings of the models, along with\label{top_ranked_models}
+the Pearson coefficient calculated for the list based
+on both the analytical and numerical probabilities of
+the models. In the case of NELS, this would be:
+\begin{CodeChunk}\begin{CodeOutput}
+Best models ranking:
+Model 1:	0.459889
+Model 2:	0.398444
+Model 3:	0.046111
+Model 4:	0.045444
+Model 5:	0.013111
+Total probability of the models in ranking (numerical): 0.963000
+
+Correlation coefficient between the analytical
+and numerical probabilities of the above models: 0.917611
+\end{CodeOutput}
+\end{CodeChunk}
+
+We return the importance of the "best models" in relation
+to the entire model space by ranking them based on MCMC
+sampling. Additionally, the program provides information
+on Pearson's correlation between the analytical and \MCcube
+posterior probabilities of the models. High correlation
+indicates the convergence of the Monte Carlo chain
+\citep{koop2003,fernandezleysteel2001b}. The "exact"
+posterior model probabilities are calculated from
+approximations \ref{eq: BIC}--\ref{eq: EBIC}.
+\begin{CodeChunk}\begin{CodeOutput}
+Contingency table (actual in rows, predicted in columns):
+             1            2            3 
+
+1          896          375          124 
+2          375          610          816 
+3          129          496         2828 
+
+Number of cases 'correctly predicted' = 4334 (accuracy 65.2%)		
+\end{CodeOutput}
+\end{CodeChunk}
+
+For a logit and probit models, we also obtain the so-called
+contingency matrix, or more specifically, its variant -- the
+confusion matrix. As we know, the confusion matrix is a tool
+for evaluating the performance of a classification model. 
+In this case, it offers a concise summary, enabling us to
+evaluate the accuracy of our model's prediction of
+\texttt{psechoice}. We collect individual results and
+calculate all combinations of predicted and actual values
+based on the total model space. 
+
+The joint probability  and jointness  analysis for the current
+example should appear as follows:
+\begin{CodeChunk}\begin{CodeOutput}
+Posterior joint probability of variables:
+            hscath        hsrural        grades        faminc         
+hscath     0.000000      1.000000      1.000000      1.000000     ...       
+hsrural    1.000000      0.000000      1.000000      1.000000     ... 
+grades     1.000000      1.000000      0.000000      1.000000     ...      
+faminc     1.000000      1.000000      1.000000      0.000000     ...     
+famsiz     0.980889      0.980889      0.980889      0.980889     ...       
+parsome    1.000000      1.000000      1.000000      1.000000     ...      
+parcoll    1.000000      1.000000      1.000000      1.000000     ...       
+female     0.022333      0.022333      0.022333      0.022333     ...       
+asian      0.094000      0.094000      0.094000      0.094000     ...       
+hispan     0.460667      0.460667      0.460667      0.460667     ...       
+black      0.990222      0.990222      0.990222      0.990222     ...       
+grants     1.000000      1.000000      1.000000      1.000000     ...       
+loans      1.000000      1.000000      1.000000      1.000000     ...       
+\end{CodeOutput}
+\end{CodeChunk}
+
+\begin{CodeChunk}\begin{CodeOutput}
+Jointness statistics (Modified Yule's Q Measure (MYQ)):
+             hscath      hsrural         grades        faminc     ...         
+hscath          nan      1.000000      1.000000      1.000000     ...       
+hsrural    1.000000           nan      1.000000      1.000000     ... 
+grades     1.000000      1.000000           nan      1.000000     ... 
+faminc     1.000000      1.000000      1.000000           nan     ...
+famsiz     0.961778      0.961778      0.961778      0.961778     ... 
+parsome    1.000000      1.000000      1.000000      1.000000     ...      
+parcoll    1.000000      1.000000      1.000000      1.000000     ...       
+female    -0.955333     -0.955333     -0.955333     -0.955333     ...
+asian     -0.812000     -0.812000     -0.812000     -0.812000     ...      
+hispan    -0.078667     -0.078667     -0.078667     -0.078667     ...      
+black      0.980444      0.980444      0.980444      0.980444     ... 
+grants     1.000000      1.000000      1.000000      1.000000     ...      
+loans      1.000000      1.000000      1.000000      1.000000     ... 
+\end{CodeOutput}
+\end{CodeChunk}
+
+In the binary dependent variable models, by default, we use a
+threshold of 0.5. It is also worth noting that  this threshold
+ value ($binary\_threshold = 0.5$) can be adjusted in \pkg{BACE}
+ package to achieve a desired recall and precision in the model setup.
+
+In the final step, the output provides maximum likelihood
+estimates (MLE) for the top estimated models. It provides
+inferences for the model  coefficients in the columns labeled
+\texttt{coefficient}, \texttt{std. error}, \texttt{z} statistics,
+and \texttt{p-value}. Additionally, it provides the type of
+information criterion used (in this case, \texttt{HBIC}) and the
+explanatory power (represented by the \texttt{posterior probability}).
+\begin{CodeChunk}\begin{CodeOutput}
+Best specifications (MLE estimates for ordered probit model):
+----------------------------------
+
+Model 1: HBIC: 9951.131386, posterior probability: 0.459889
+         coefficient    std. error       z       p-value 
+----------------------------------------------------------
+hscath      0.339743     0.0663548       5.120   3.05e-07  ***
+hsrural    -0.204022     0.0346748      -5.884   4.01e-09  ***
+grades     -0.228665     0.00819836    -27.89    3.38e-171 ***
+faminc      0.00769592   0.000517451    14.87    4.95e-50  ***
+famsiz     -0.0469671    0.0119120      -3.943   8.05e-05  ***
+parsome     0.327804     0.0401469       8.165   3.21e-16  ***
+parcoll     0.689699     0.0485704      14.20    9.16e-46  ***
+black       0.232157     0.0567165       4.093   4.25e-05  ***
+grants      0.799516     0.0403133      19.83    1.56e-87  ***
+loans       1.08691      0.0523804      20.75    1.22e-95  ***
+cut1       -1.68606      0.0919803     -18.33    4.71e-75  ***
+cut2       -0.531627     0.0900860      -5.901   3.61e-09  ***
+\end{CodeOutput}
+\end{CodeChunk}
+
+The structure of the results shown may vary slightly
+depending on the type of model and the settings of
+the parameters in \pkg{BACE}.
+
+As stated at the beginning of this section, the
+\pkg{BACE}\label{sec:bace_plots} package not only provides
+a printed summary of the results, but also includes graphs
+that serve as supplementary visual summaries of the results
+obtained. As the first step, we return the graph of the prior
+model probabilities  i.e. probabilities assigned to each of
+the candidate models before the data is observed and the
+model size -- prior and posterior number of independent variables
+in each candidate model being considered. Figure \ref{fig:NELS_prior_and_size}
+shows prior model probabilities and model size distributions
+for NELS example.
+
+\begin{figure}[h!]
+	\centering
+	\begin{subfigure}[b]{0.4\textwidth}
+	\includegraphics[width=1\textwidth]{PNG/NELS_prior_probabilities}
+	\caption{}
+	\label{fig:NELS_prior_probabilities}
+\end{subfigure}
+	\begin{subfigure}[b]{0.4\textwidth}
+		\includegraphics[width=1\textwidth]{PNG/NELS_model_size}
+		\caption{}
+		\label{fig:NELS_model_size}
+	\end{subfigure}
+\caption{Model probabilities and
+	model size distribution for NELS example.}
+   \label{fig:NELS_prior_and_size}
+\end{figure}
+
+In this case, we employed a Binomial distribution
+(\gretlcmd{"model_prior"=1}) with a default prior average
+model size ($W^\star=\frac{13}{2} = 6.5$), which, as noted
+in Section \ref{MA_basics}, leads to a Uniform distribution
+for all combinations of explanatory variables (graph on the
+left panel (\ref{fig:NELS_prior_probabilities})). It is easy
+to see that the assumption of a Uniform distribution focuses
+on combinations consisting of 6 or 7 explanatory variables as
+being the most likely a priori (panel (\ref{fig:NELS_model_size})).
+The analysis also shows that, under these assumptions, the data
+indicate that the most likely models consist of 10 and, further
+down, 11 independent variables, additionally, combinations
+consisting of 8 or less  elements are highly improbable.
+%\baceopts{scalar Options["model_prior"] = 2}: prior model
+%distribution to use; possible values are: 0---none,
+%1---Binomial, 2---Beta-Binomial
+%(see Equations~(\ref{eq:prior_model_size_binomial})
+%and (\ref{eq:prior_model_size_binomial-beta}));
+
+
+%Prior model probabilities with associated prior
+%model size for $K=7$ and $\E(\Xi)=\frac{K}{2}$
+%when model includes constant term
+%\baceopts{scalar Options["avg_model_size"] = avg_model_size_tmp}:
+%expected prior model size, where \gretlcmd{scalar avg_model_size_tmp}
+%is calculated according to the following formula:
+
+\begin{figure}[h!]%{0.4\textwidth}
+	\centering
+	\includegraphics[width=0.4\textwidth]{PNG/NELS_model_size_CDF}
+	\caption{Cumulative Model Probabilities.}
+	\label{fig:NELS_model_size_CDF}
+	\label{fig:CMP}
+\end{figure}
+
+The Figure \ref{fig:CMP} shows the Cumulative Model
+Probabilities (CMP) for a NELS example, where the output
+represents the accumulated probability of all models up to
+a certain point in the ranking. It is evident that the top
+5 ranked models account for over 90\% of the total
+probability in the model space.
+
+\begin{figure}[h!] 
+	\begin{center}
+	\begin{subfigure}[b]{0.4\textwidth}
+		\includegraphics[width=1\textwidth]{PNG/NELS_jointness_myq} 
+		\caption{}
+		\label{fig:NELS_jointness_myq}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.4\textwidth}
+		\includegraphics[width=1\textwidth]{PNG/NELS_inclusions}
+		\caption{}
+		\label{fig:NELS_inclusions}
+	\end{subfigure}
+	\caption{Jointness analysis and variables inclusions in the top models.}
+	\end{center}
+\end{figure} 
+
+The final two figures depict a heatmap of jointness analysis
+and highlight the explanatory variables identified in the
+top 5 most probable models. In the current example, the
+jointness analysis employs the default measure, modified
+Yule's Q (Equation \ref{YqM_jointness}). It is easily observed
+that there is a high complementarity between the most relevant
+variables. On the other hand, two variables (\texttt{female}
+and \texttt{asian}) are strongly substitutable for the others
+and rarely appear in the most likely models.
+%variables inclusions and jointness results

@@ -91,21 +91,18 @@ function void BACE_estimate (bundle *M)
                 fcast --out-of-sample --quiet
             endif            
             M.Yhat_predict = $fcast
-            if !M.limited_y && !M.censored_y
+            if !M.limited_y && ESTIMATOR != "tobit"
                 M.Yhat_predict_var = ($fcse*ols_to_mle_correct).^2 + $fcast.^2
             else
                 M.Yhat_predict_var = ones(M.Npredict)*NA
             endif
         endif
         if M.limited_y
-            /*
             if M.multinomial
                 M.Yhat = $allprobs
             else
                 M.Yhat = {$model.yhat}
             endif
-            */
-            M.Yhat = {$model.yhat}
         endif
 
         # We calculate log of marginal density

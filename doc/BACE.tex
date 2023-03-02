@@ -1,37 +1,49 @@
 \documentclass[a4paper]{BACE}
+\usepackage{pdflscape}
+\usepackage{longtable}
+\usepackage{xargs,xspace}
+\usepackage{caption,subcaption,tabulary,multirow,bigdelim}
+\usepackage{soul} %Do wywalenia!!!
+\usepackage[colorinlistoftodos,prependcaption,textsize=tiny,textwidth=2.8cm]{todonotes}
+\newcommandx{\odp}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
+
+\interfootnotelinepenalty=10000
+
+\newcommand{\MCcube}{MC$^3$\xspace}
+\newcommand{\gretlcmd}[1]{\lstinline!#1!\xspace}
+\newcommand{\gretlcmdf}[1]{\inline{#1}\xspace}
+\newcommand{\baceopts}[1]{\vspace*{10pt}\noindent\gretlcmd{#1}}
+\makeatletter
+\@mparswitchfalse%
+\makeatother
 
 \begin{document}
 	\pagestyle{headings}
 	\maketitle
 	
 	\begin{abstract}
-		This paper presents a software package that implements
-		Bayesian Averaging of Classical Estimates \pkg{BACE}~ver.~1.3 for the \pkg{gretl}
-		(the GNU regression, econometrics and time-series library).
-		% Bayesian model averaging is a model-building strategy that takes account of model uncertainty in
-		% conclusions about estimated parameters. It is an efficient tool for
-		% discovering the most probable models and obtaining estimates of
-		% their posterior characteristics. In recent years we have observed an
-		% increasing number of software packages devoted to Bayesian model
-		% averaging for different statistical and econometric software. In
-		% this paper, we propose the \pkg{BMA} package for \pkg{gretl}, which is an
-		% increasingly popular free, open-source software for econometric
-		% analysis with an easy-to-use graphical user interface. We introduce
-		% the \pkg{BACE} package for linear regression models with jointness measures
-		% proposed by \cite{LeySteel2007} and \cite{DoppelhoferWeeks2009}.
+		This paper presents a software package called \pkg{BACE}
+		(Bayesian Averaging of Classical Estimates) which offers model-building strategy
+		for various limited dependent variable models,
+		including logit and probit models, ordered logit and probit
+		models, multinomial logistic regression, Poisson regression, Tobit model, and interval regression.
+		\pkg{BACE} strategy is a model selection method that incorporates both classical estimation and Bayesian techniques. 
+		It solves the problem of computation speed and model uncertainty that arise when dealing with a large number of competing advanced statistical models.
+		Our \pkg{BACE}
+		package is both  fast and capable of delivering consistent results.
+		The package  also provides implementation of the latest proposals
+		of BIC variants,
+		and the latest measures of jointness. We use \pkg{gretl}
+		(GNU Regression, Econometrics, and Time-series Library),
+		a popular, free, and open-source software for econometric
+		analysis that features an easy-to-use graphical user interface (GUI).
 	\end{abstract}
-	\jelcodes{C11, C21, C51}
+%	\jelcodes{C11, C21, C51}
 	
 	\section*{Project's main page:}
 	\begin{quote}
 		\centering	
 		\url{https://sourceforge.net/projects/bace-for-gretl}
-	\end{quote}
-	
-	\section*{Warning}
-	\begin{quote}
-		\centering	
-		This PDF is outdated and needs to be updated.
 	\end{quote}
 	
 	\tableofcontents
@@ -40,22 +52,26 @@
 	\begin{description}
 		\item[1.3] Massive changes and improvements:
 		\begin{itemize}[label={--}]
+			\item Extra package speed-up.
+			\item New estimators added: logit (including ordered
+				and multinomial), probit (including ordered),
+				tobit, poisson, and intreg.
 			\item Fixed bug in checking collinearity of
 				independent variables -- now correct estimator
 				is used instead of hardwired OLS.
-			\item (to doc) Correct model priors for truncated distributions.
+			\item Correct model priors for truncated distributions.
 			\item New MC3 strategy: taken directly from BMA package.
 			\item New jointness measures.
 			\item New \texttt{BACE()} bundle-based interface (default).
-			\item Fix bug in \texttt{BACE\_GUI()} in constant type selection.
-			\item Fixed bug when ,,can be dropped'' option is used.
-			\item (to doc) New model types.
-			\item (to doc) Updated docs.
-			\item (to doc) Adding possibility for centering or
-			standardizing variables.
-			\item (do doc) New BIC versions.
-			\item (do doc) Graphs added.
-			\item (to doc) Overloading parameters in options bundle.
+			\item Fix bug in \texttt{BACE\_GUI()} in constant type
+				selection and general reorganization of GUI interface.
+			\item Fixed bug when "can be dropped" option is used.
+			\item New model types.
+			\item Updated docs.
+			\item Adding possibility for centering or standardizing variables.
+			\item New BIC versions.
+			\item Graphs added.
+			\item Overloading parameters in options bundle.
 			\item Clean up the code.
 		\end{itemize}	
 		\item[1.2] Several changes:
@@ -69,23 +85,26 @@
 			\item Documentation in PDF.
 			\item Fix of several issues and bugs for model with only one
 			explanatory variable and without constant.
-			\item Change the option of the constant type from ,,random'' to ,,can be dropped''.
+			\item Change the option of the constant type from "random"
+				to "can be dropped".
 		\end{itemize}
 		\item[1.0] Initial version.
 	\end{description}
+
+	\section*{To do}
+	\begin{itemize}
+		\item Simplify "if" condition for Y lags in \texttt{BACE\_estimate()}.
+		\item Simplify \texttt{BACE\_initial\_model()}.
+	\end{itemize}
 	
 	\input{Introduction}
+	\input{Model_averaging}
 	\input{BACE_theory}
-	\input{Implementation}	
-	
-	\section[Usage of the BACE package]{Usage of the \pkg{BACE} package}%
+	\input{Implementation}
+	\section{Usage of the \pkg{BACE} package}%
 		\label{sec:usage_of_the_BACE package}
 		\input{Usage}
-	%\input{UK_Wages}
-	
-	\section{Empirical examples}
-		\input{LinearModelsExamples}
-		\input{LogitModelsExamples}
+%	\input{Empirical_illustration}
 	
 	\bibliographystyle{jae}
 	\bibliography{BACE}

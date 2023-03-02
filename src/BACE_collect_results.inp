@@ -56,7 +56,11 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         Yhat_var_avg = zeros(M.Npredict)
     endif
     if M.limited_y
-        Yhat = zeros($nobs)
+        if M.multinomial
+            Yhat = zeros($nobs, yvals+1)
+        else
+            Yhat = zeros($nobs)
+        endif        
         if M.ordered
             matrix cutshat_avg = zeros(M.cuts)
             matrix cutsvar_avg = zeros(M.cuts)

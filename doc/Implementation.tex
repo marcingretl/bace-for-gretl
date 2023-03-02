@@ -1,112 +1,235 @@
 \section{Implementation in \pkg{gretl}}\label{sec:BACE_implementation}
-In this section, we describe the code of the \pkg{BACE}
-package. First, we will characterize our code and the use
-of both: the command line and the GUI interfaces, then we
-will present some examples of using the \pkg{BACE}.
-Finally, we will show the outputs that are returned.
+In this section, we will describe the basic idea of
+the \pkg{BACE} package. First, we will characterize our
+code and explain the use of both the command line and
+the GUI interfaces. Next, we will provide some examples
+of how to use the \pkg{BACE}. Finally, we will show the
+outputs that are returned.
 
 \subsection{The core of the \pkg{BACE} code}
-The \pkg{BACE} package consists of 4 public and 14
-private functions. The name of each function starts
-with the \cmd{BACE\_} prefix. The public functions are:
-\begin{enumerate}
-	\item \cmd{BACE()}~see~\ref{sec:BACE()}
-	\item \cmd{BACE\_GUI()}~see~\ref{sec:BACE_GUI()}
-	\item \cmd{BACE\_Print()}~see~\ref{sec:BACE_Print()}
-	\item \cmd{BACE\_Plot()}~see~\ref{sec:BACE_Plot()}
-\end{enumerate}
+The \pkg{BACE} package was written in the \proglang{Hansl}%
+\footnote{More information about \pkg{BACE} can be found
+	in \cite{cottrell_luchcetti_gretl_hansl}.}
+programming language and consists of 4 public and 14
+private functions\footnote{One note should be added here:
+	\pkg{BACE} provides analysis for ordered logit/probit
+	models, including prediction, and as such, depends on
+	one external gretl package called \texttt{oprobit\_predict}.}.
+The name of each function in the \pkg{BACE} package starts with
+the prefix \cmd{BACE\_}. The public functions are: \cmd{BACE()},
+\cmd{BACE\_GUI()}, \cmd{BACE\_Print()} and \cmd{BACE\_Plot()}.
+
+In order to install \pkg{BACE} one should start \pkg{gretl}
+and go to File $\rightarrow$ Function packages $\rightarrow$
+On server$\ldots$ and select \pkg{BACE} from a list. Another
+possible option is to use either \pkg{gretl's} console or
+script editor and type:
+\begin{lstlisting}
+pkg install BACE
+\end{lstlisting}
+or -- assuming installation from local file:
+\begin{lstlisting}
+pkg install /path/to/BACE.zip --local --quiet
+\end{lstlisting}
+where \texttt{/path/to/} is an absolute or relative
+path to the \texttt{BACE.zip} archive.
+
 
 \subsubsection{\cmd{BACE()}}\label{sec:BACE()}
-This is a core package function which runs and controls
-the main loop. As a consequence, it is a prime interface
-to the \pkg{BACE} package. The \cmd{BACE()} function
-returns a bundle with all information needed to print
-and/or plot results anytime. One can print the results
-by calling \cmd{BACE\_Print()} or plot graphs by calling
-\cmd{BACE\_Plot()}. The signature of \cmd{BACE()}
+This is a core function of the package that runs and
+controls the main loop. As a result, it is a primary
+interface to the \pkg{BACE} package, although it may
+also be called by \cmd{BACE\_GUI()}. The \cmd{BACE()}
+function returns a \pkg{gretl} \lstinline!bundle!%
+\footnote{A \pkg{gretl} bundle is a collection of
+	\pkg{gretl}'s regular objects, including other
+	bundles. For more information, please refer to
+	\cite{cottrell_luchcetti_gretl_manual}.} containing
+posterior results and all necessary information to print
+and/or plot results at any time. To print the results,
+one can call \cmd{BACE\_Print()}, and to plot graphs,
+one can call \cmd{BACE\_Plot()}. The signature of \cmd{BACE()}
 function is as follows:
 \begin{lstlisting}
-function bundle BACE (series Y "Dependent variable",
-  list X_list "List of indenpendent variables (X)",
-  bundle Options[null])	
+function bundle BACE (list Y "Dependent variable",
+ list X_list "List of indenpendent variables (X)",
+ bundle Options[null])	
 \end{lstlisting}
 The first two options are mandatory, while the last one
-is an optional collection of additional arguments. Those
-arguments are defined with the following default values:\label{sec:default_option_bundle}
-\begin{lstlisting}
-scalar Options["Y_AR_p"] = 0
-scalar Options["with_const"] = 1
-scalar Options["model_prior"] = 2
-scalar Options["avg_model_size"] = avg_model_size_tmp
-scalar Options["alpha"] = 0.6
-scalar Options["Nrank"] = xmin(2^(k+Y_AR_p_tmp-1), 40)
-scalar Options["do_joint"] = 0
-scalar Options["Npredict"] = 0
-scalar Options["Nrep"] = Nrep
-scalar Options["burn"] = 10
-scalar Options["verbosity"] = 2
-scalar Options["show_progress"] = do_show_progress
-scalar Options["do_plot"] = do_plot_tmp
-string Options["model_type"] = "linear"
-scalar Options["data_trans"] = 0
-scalar Options["bic_type"] = 1
-scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
-scalar Options["binary_threshold"] = 0.5
-scalar Options["low"] = 0
-scalar Options["high"] = NA
-scalar Options["_gui"] = 0	
-\end{lstlisting}
-where \textit{k} stands for the number of independent variables,
-\lstinline!scalar avg_model_size! is calculated according to
-the following formula:
+is an optional set of additional arguments%
+\footnote{Note, that in case of \gretlcmdf{intreg} estimator
+	the Y list must contain two series with \textit{minvar}
+	and \textit{maxvar} (left- and right- bounds respectively).}.
+These arguments are defined with the following default values%
+	\label{sec:default_option_bundle}%
+	\footnote{Some of the above-mentioned parameters are
+		over-loadable, which means that their value may be
+		passed either as an integer or as a string (case-insensitive).
+		These parameters are:\label{sec:over-loadable_options}
+		\texttt{bic\_type}, \texttt{model\_prior},
+		\texttt{with\_const}, \texttt{do\_joint},
+		\texttt{data\_trans}, and \texttt{model\_type}.}:
+
+\baceopts{string Options["model_type"] = "linear"}: 
+the type of model that should be applied to the data; possible options
+are: 1---linear, 2---logit, 3---probit, 4---poisson,
+5--tobit, 6--intreg, 7--mlogit;
+
+\baceopts{scalar Options["bic_type"] = 2}: the version
+of Bayesian Information Criterion that should be used;
+possible values are: 1---bic, 2---hbic, 3---ibic,
+4---ebic (see Equations~(\ref{eq: BIC}-\ref{eq: EBIC}));
+
+\baceopts{scalar Options["model_prior"] = 1}: the prior model
+size distribution to use; possible values are: 0---none,
+1---Binomial, 2---Beta-Binomial
+(see Equations~(\ref{eq:prior_model_size_binomial})
+and (\ref{eq:prior_model_size_binomial-beta}));
+
+\baceopts{scalar Options["with_const"] = 1}: the inclusion
+of a constant term in each estimated model;
+possible values are: 0---Never (without constant),
+1---Always (constant is always included),
+2---Can be dropped (constant may be dropped);
+
+\baceopts{scalar Options["avg_model_size"] = avg_model_size_tmp}: the
+expected prior model size $W^\star$ as defined on page
+\pageref{eq:W_star_definition}, where \gretlcmd{scalar avg_model_size_tmp}
+is calculated according to the following formula:
 \begin{equation}
-	\texttt{\lstinline!avg\_model\_size!} = \left\{
-	\begin{array}{lll}
-		\textrm{\lstinline!(k + Y\_AR\_p\_tmp)/2!} & \mathrm{if} & \textrm{\lstinline!with_const \!= 2!},\\
-		\textrm{\lstinline!(k + Y\_AR\_p\_tmp + 1)/2!} & \mathrm{elsewhere}, &\\
+	\texttt{\lstinline!avg\_model\_size_tmp!} = \left\{
+		\begin{array}{lll}
+			\textrm{\lstinline!K / 2!} & \mathrm{if} & \textrm{\lstinline!with_const \!= 2!},\\
+			\textrm{\lstinline!(K + 1) / 2!} & \mathrm{elsewhere}, &\\
+		\end{array}
+		\right.
+		\label{eq:avg_model_size_setup}
+	\end{equation}
+and \textit{K} stands for the number of independent variables% 
+\footnote{If model includes lagged depended variable
+	then \texttt{avg\_model\_size\_tmp} is increased by
+	\texttt{y\_lag/2}.};
+
+\baceopts{scalar Options["data_trans"] = 0}: the transformation of
+explanatory variables; possible options are: 0---none, 1---centering
+(i.e., subtracting the mean from each value of a variable),
+2---standarizing (centering a variable and additional dividing
+by its standard deviation);
+
+\baceopts{scalar Options["do_joint"] = 0}: the type of
+jointness analysis; possible values are: 0---none,
+1---DW1 (Doppelhofer-Weeks Measure 1), 2---DW2 (Doppelhofer-Weeks Measure 2),
+3---LS1 (Ley-Steel Measure 1), 4---LS2 (Ley-Steel Measure 2),
+5---SM (Strachan Measure), 6---YQ (Yule's Q Measure),
+7---YQM (Modified Yule's Q Measure)
+(see Section~\ref{sec:jointness_measures});
+
+\baceopts{scalar Options["alpha"] = alpha_tmp}: the significance
+level for the initial model, where \gretlcmd{scalar alpha_tmp}
+takes the following values:
+\begin{equation}
+	\texttt{\lstinline!alpha\_tmp!} = \left\{
+	\begin{array}{cll}
+		1.0 & \mathrm{if} & \textrm{\lstinline!model_type = "intreg"!},\\
+		0.6 & \mathrm{elsewhere}; &\\
 	\end{array}
 	\right.
-	\label{eq:avg_model_size_setup}
+	\label{eq:alpha_tmp_setup}
 \end{equation}
-\lstinline!scalar Nrep! takes the following values:
+
+\baceopts{scalar Options["Nrank"] = 5}:
+the number of top-ranked models to be printed, as
+described on page \pageref{top_ranked_models};
+
+\baceopts{scalar Options["Npredict"] = 0}: the number of
+out-of-sample forecasts\footnote{Note, that using this
+	option makes \pkg{BACE} to perform an analysis
+	on subsample.};
+
+\baceopts{scalar Options["y_lag"] = 0}: defines the
+lag order of the dependent variable used in dynamic models;
+
+\baceopts{scalar Options["hyperparameter"] = 0.5}:
+the hyperparameter for prior-based Bayesian information
+criterion; for now, it is interpreted as $\gamma$ for
+the extended Bayesian information criterion (EBIC)
+(see Equation~(\ref{eq: EBIC}));
+
+\baceopts{scalar Options["binary_threshold"] = 0.5}:
+this hyper-parameter is applicable only in models for
+binary-dependent variables; it indicates the lowest
+probability for which $\hat{y}_i$ should be considered as 1;
+
+\baceopts{scalar Options["low"] = 0}: this option is
+applicable only for the \gretlcmd{tobit} model; it
+controls the \gretlcmd{--llimit} flag of the tobit
+model, which sets the left bound in censoring;
+
+\baceopts{scalar Options["high"] = NA}: applicable only
+for \gretlcmd{tobit} model; this option controls tobit's
+\gretlcmd{--rlimit} flag for setting right bound in truncation;
+
+\baceopts{scalar Options["Nrep"] = Nrep}: the total number
+of Monte Carlo iterations (model draws) in \MCcube algorithm, where
+\gretlcmd{scalar Nrep} takes the following values:
 \begin{equation}
 	\texttt{\lstinline!Nrep!} = \left\{
 	\begin{array}{ccl}
-		10^4 & \mathrm{if} & k \leq 15,\\
-		10^5 & \mathrm{if} & k \in [16;19],\\
-		10^6 & \mathrm{if} & k \geq 20,\\
+		10^4 & \mathrm{if} & K \leq 15,\\
+		10^5 & \mathrm{if} & K \in [16;19],\\
+		10^6 & \mathrm{if} & K \geq 20;\\
 	\end{array}
 	\right.
 	\label{eq:Nrep_setup}
 \end{equation}
-\lstinline!scalar show_progress! takes the following values:
+
+\baceopts{scalar Options["burn"] = 10}: percentage
+of burn-in draws in \MCcube;
+
+\baceopts{scalar Options["verbosity"] = 2}: verbosity
+of the output: 1---basic results, 2---full results;
+this option controls what is printed as output by BACE
+(see Section~\ref{sec:outputs} for details): if set to 2,
+all possible results are printed, and if set to 1,
+printing of the initial model and models in ranking
+is suppressed;
+
+\baceopts{scalar Options["show_progress"] = do_show_progress}:
+this controls whether the overall progress is shown,
+where \gretlcmd{scalar do_show_progress} takes the following values:
 \begin{equation}
-	\texttt{\lstinline!show\_progress!} = \left\{
+	\texttt{\lstinline!do\_show\_progress!} = \left\{
 	\begin{array}{cll}
-		1 & \mathrm{if} & \textrm{\lstinline!$sysinfo!\texttt{\small.gui\_mode}},\\
-		0 & \mathrm{elsewhere}, &\\
+		1 & \mathrm{if} & \textrm{\lstinline!$sysinfo["gui_mode"]!},\\
+		0 & \mathrm{elsewhere}; &\\
 	\end{array}
 	\right.
 	\label{eq:show_progress_setup}
 \end{equation}
-and \lstinline!scalar do_plot! takes the following values:
+
+\baceopts{scalar Options["do_plot"] = do_plot_tmp}:
+this option controls whether to produce graphs as
+described on page \pageref{sec:bace_plots}, where
+\gretlcmd{scalar do_plot_tmp} takes the following values:
 \begin{equation}
-	\texttt{\lstinline!do\_plot!} = \left\{
+	\texttt{\lstinline!do\_plot\_tmp!} = \left\{
 	\begin{array}{cll}
-		1 & \mathrm{if} & \textrm{\lstinline!$sysinfo!\texttt{\small.gui\_mode}},\\
-		0 & \mathrm{elsewhere}. &\\
+		1 & \mathrm{if} & \textrm{\lstinline!$sysinfo["gui_mode"]!},\\
+		0 & \mathrm{elsewhere}; &\\
 	\end{array}
 	\right.
 	\label{eq:do_plot_setup}
 \end{equation}
+
+\baceopts{scalar Options["_gui"] = 0}: this parameter
+is for internal use only and must not be modified by
+the user under any circumstances.
+
 Most of the optional parameters listed above are of
-numerical type and they may be gathered into following
-groups according to what kind of numbers they can take%
-\footnote{Note, that the \lstinline!scalar _gui! is
-	for internal use only and must not be modified
-	by user at any rate.}:
+a numerical type and can be grouped into the following
+categories based on the type of numbers they can take:
 \begin{enumerate}
-	\item Integers: \lstinline!Y_AR_p!, \lstinline!with_const!,
+	\item Integers: \lstinline!y_lag!, \lstinline!with_const!,
 	\lstinline!model_prior!, \lstinline!Nrank!, \lstinline!do_joint!,
 	\lstinline!Npredict!, \lstinline!Nrep!, \lstinline!burn!,
 	\lstinline!verbosity!, \lstinline!data_trans!, \lstinline!bic_type!.
@@ -114,131 +237,106 @@ groups according to what kind of numbers they can take%
 	\item Scalars: \lstinline!avg_model_size!, \lstinline!alpha!,
 	\lstinline!binary_threshold!.
 \end{enumerate}
-Optional parameters control the following package options:
-\begin{enumerate}
-	\item \textbf{Y\_AR\_p}: autoregression order of variable Y.
-	\item \textbf{with\_const}: whether we include constant term
-		in each estimated model?; possible values are: 0---without
-		constant, 1---constant is always included, 2---constant
-		may be dropped.
-	\item \textbf{model\_prior}: model prior distribution to use;
-		possible values are: 0---none, 1---Binomial, 2---Beta-Binomial.
-	\item \textbf{avg\_model\_size}: expected average model size
-		for model prior.
-	\item \textbf{alpha}: significance level for the initial model.
-	\item \textbf{Nrank}: number of top ranked models.
-	\item \textbf{do\_joint}: do we perform jointness analysis?;
-		possible values are: 0---none, 1---Doppelhofer-Weeks
-		Measure (DW1), 2---Doppelhofer-Weeks Measure (DW2),
-		3---Ley-Steel Measure (LS1), 4---Ley-Steel Measure (LS2),
-		5---Strachan Measure, 6---Yule's Q Measure (YQ),
-		7---Modified Yule's Q Measure (YQM).
-	\item \textbf{Npredict}: number of out-of-sample forecasts.
-		Note, that using this option makes \pkg{BACE} to perform
-		an analysis on subsample.
-	\item \textbf{Nrep}: total number of Monte Carlo iterations
-		(model draws).
-	\item \textbf{burn}: percentage of burn-in draws in \MCcube.
-	\item \textbf{verbosity}: verbosity of the output: 1---basic
-		results, 2---full results.
-	\item \textbf{show\_progress}: do we show overall progress?
-	\item \textbf{do\_plot}: do we produce graphs?
-	\item \textbf{model\_type}: model type we should apply to
-		the data; possible options are: 1---linear, 2---logit,
-		3---probit, 4---poisson.
-	\item \textbf{data\_trans}: shall the \pkg{BACE} transform
-		data before analysis?; possible options are: 0---none,
-		1---centering, 2---standarizing.
-	\item \textbf{bic\_type}: Bayesian information criterion
-		version which should be used; possible values are:
-		1---bic, 2---hbic, 3---ibic, 4---ebic.
-	\item \textbf{hyperparameter}: hyperparameter for prior
-		setup; for now it is interpreted as $\gamma$ for ebic.
-	\item \textbf{binary\_threshold}: applicable only for
-		binary-dependent models; this value indicates the
-		lowest probability for which $\hat{y}_i$ should take 1.
-	\item \textbf{low}: applicable only for	\lstinline!tobit!
-		model; this option controls tobit's \lstinline!--llimit!
-		flag for setting left bound in censoring.
-	\item \textbf{high}: applicable only for \lstinline!tobit!
-		model; this option controls tobit's \lstinline!--rlimit!
-		flag for setting right bound in censoring.
-\end{enumerate}
-Some of the above-mentioned parameters are over-loadable, which
-means that their value may be passed either via an integer or
-via string (case insensitive). Those parameters (together with
-value-string mappings) are:\label{sec:over-loadable_options}
-\begin{description}
-	\item[\textbf{bic\_type}]: 'bic'=1, 'hbic'=2, 'ibic'=3, 'ebic'=4;
-	\item[\textbf{model\_prior}]: 'none'=0, 'binomial'=1,
-		'betabinomial'=2 (or 'beta-binomial'=2);
-	\item[\textbf{with\_const}]: 'never'=0, 'always'=1,
-		'canbedropped'=2 (or 'can be dropped'=2);
-	\item[\textbf{do\_joint}]: 'none'=0, 'dw1'=1, 'dw2'=2,
-		'ls1'=3, 'ls2'=4, 'sm'=5, 'yq'=6, 'myq'=7;
-	\item[\textbf{data\_trans}]: 'none'=0, 'centering'=1,
-		'standarizing'=2;
-	\item[\textbf{model\_type}]: 'linear'=1, 'logit'=2,
-		'probit'=3, 'poisson'=4;
-\end{description}
+
+%Some of the above-mentioned parameters are over-loadable, which
+%means that their value may be passed either via an integer or
+%via string (case insensitive). Those parameters (together with
+%value-string mappings) are:\label{sec:over-loadable_options}
+%\begin{description}
+%	\item[\textbf{bic\_type}]: 'bic'=1, 'hbic'=2, 'ibic'=3, 'ebic'=4;
+%	\item[\textbf{model\_prior}]: 'none'=0, 'binomial'=1,
+%	'betabinomial'=2 (or 'beta-binomial'=2);
+%	\item[\textbf{with\_const}]: 'never'=0, 'always'=1,
+%	'canbedropped'=2 (or 'can be dropped'=2);
+%	\item[\textbf{do\_joint}]: 'none'=0, 'dw1'=1, 'dw2'=2,
+%	'ls1'=3, 'ls2'=4, 'sm'=5, 'yq'=6, 'myq'=7;
+%	\item[\textbf{data\_trans}]: 'none'=0, 'centering'=1,
+%	'standarizing'=2;
+%	\item[\textbf{model\_type}]: 'linear'=1, 'logit'=2,
+%	'probit'=3, 'poisson'=4, 'tobit'=5, 'intreg'=6;
+%\end{description}
 
 
 \subsubsection{\cmd{BACE\_GUI()}}\label{sec:BACE_GUI()}
-The \cmd{BACE\_GUI()} function is an interface to
-the \cmd{BACE()} its signature is as follows:
+Instead of using the script method, another option to utilize
+the \pkg{BACE} package is through its GUI interface. Assuming
+that the package is already installed, to access the GUI,
+one should navigate to File $\rightarrow$ Function packages
+$\rightarrow$ On local machine, and select \pkg{BACE}.
+Figure~\ref{fig:Main window for BACE}
+presents \pkg{BACE} GUI window with default settings.
+
+The \cmd{BACE\_GUI()} function is a wrapper for the
+\cmd{BACE()} function, and its signature is as follows:
 \begin{lstlisting}
 function bundle BACE_GUI (
-  int model_type[1:5:1] "Model type" {"logit (including ordered)",
-  	"probit (including ordered)", "poisson", "tobit",
-  	"linear"},
-  series Y "Dependent variable",
-  int Y_AR_p[0::0] "Y lags (time-series only)",
-  list X_list[null] "List of independent variables (X)",
-  int with_const[0:2:1] "Constant in model" {"Never", "Always",
-  	"Can be dropped"},
-  int model_prior[0:2:1] "Model prior" {"none", "Binomial",
-  	"Beta-Binomial"},
-  int bic_type[1:4:1] "Bayesian information criterion" {"BIC",
-  	"HBIC", "IBIC", "EBIC"},
-  int do_joint[0:7:0] "Jointness analysis" {"None",
-  	"Doppelhofer-Weeks Measure (DW1)", "Doppelhofer-Weeks
-	Measure (DW2)", "Ley-Steel Measure (LS1)", "Ley-Steel
-	Measure (LS2)", "Strachan Measure (SM)", "Yule's Q
-	Measure (YQ)", "Modified Yule's Q Measure (MYQ)"},
-  int Npredict[0::0] "Number of out-of-sample forecasts",
-  int verbosity[1:2:2] "Verbosity",
-  bool show_progress[1] "Show overall progress",
-  bool do_plot[1] "Plot graphs?")
-\end{lstlisting}	
-Note, that although \cmd{BACE\_GUI()} is designed to be
-a wrapper to \cmd{BACE()} it does not allow for setting
-all possible parameters. This is partially because some
-of them are mutually exclusive, partially because we wanted
-to design GUI interface which is not very complicated.
+ int model_type[1:5:1] "Model type" {"logit", "probit",
+ 	"mlogit", "poisson", "tobit", "linear"},
+ series Y "Dependent variable",
+ list X_list[null] "List of independent variables (X)",
+ int with_const[0:2:1] "Constant in model" {"Never",
+ 	"Always", "Can be dropped"},
+ int model_prior[0:2:2] "Model prior" {"none",
+ 	"Binomial", "Beta-Binomial"},
+ int bic_type[1:4:2] "Bayesian information criterion"
+ 	{"BIC", "HBIC", "IBIC", "EBIC"},
+ int do_joint[0:7:0] "Jointness analysis" {"None",
+	"Doppelhofer-Weeks Measure (DW1)",
+	"Doppelhofer-Weeks Measure (DW2)",
+	"Ley-Steel Measure (LS1)", "Ley-Steel
+	Measure (LS2)", "Strachan Measure (SM)",
+	"Yule's Q Measure (YQ)", "Modified Yule's Q
+	Measure (MYQ)"},
+ int verbosity[1:2:2] "Verbosity",
+ bool show_progress[1] "Show overall progress",
+ bool do_plot[1] "Plot graphs?")
+\end{lstlisting}
 
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.7\columnwidth, keepaspectratio]{PNG/BACE_main_window}
+	\caption{The \pkg{BACE} GUI window interface.} 
+	\label{fig:Main window for BACE}
+\end{figure}
+
+Please note that, since \cmd{BACE\_GUI()} is designed to be
+a wrapper to \cmd{BACE()}, it does not offer an option
+to set all possible package parameters. This is partially
+because some of them are mutually exclusive, and
+partially because we wanted to design a GUI interface
+that is not too complicated.
 
 \subsubsection{\cmd{BACE\_Print()}}\label{sec:BACE_Print()}
-\cmd{BACE\_Print()} is a function for printing results
-of analysis performed by \pkg{BACE} package and its
+\cmd{BACE\_Print()} is a function for printing the results
+of the analysis performed by the \pkg{BACE} package, and its
 signature is as follows:
 \begin{lstlisting}
 function void BACE_Print (bundle *MODEL)
 \end{lstlisting}
-This function takes as an argument reference to the
-bundle \lstinline!MODEL! with \pkg{BACE} results and prints is
-according to \texttt{verbosity} settings.
-
+This function takes as an argument a reference to the
+bundle \lstinline!MODEL! with \pkg{BACE} results and
+prints information according to the \texttt{verbosity}
+settings. A detailed description of what is printed as
+output can be found in Section~\ref{sec:outputs}.
 
 \subsubsection{\cmd{BACE\_Plot()}}\label{sec:BACE_Plot()}
-\cmd{BACE\_Plot()} is a function for producing graphs
+\cmd{BACE\_Plot()} is a function for producing graphs,
 and its signature is as follows:
 \begin{lstlisting}
 function void BACE_Plot (const bundle *MODEL)
 \end{lstlisting}
-This function takes as an argument reference to the MODEL
-bundle with \pkg{BACE} results and plots graphs according
-to \lstinline!do_plot! settings. In non-GUI mode (when
-\lstinline!$sysinfo!\texttt{\small.gui\_mode == 0}), plots
-are generated as scripts for \texttt{gnuplot} program and
-saved on a disk. Names of generated files have their base
-set to \lstinline!strftime($now[1], "%Y%m%d%H%M%S")!. 
+This function takes as an argument a reference to the
+\lstinline!MODEL! bundle with \pkg{BACE} results and
+plots graphs according to the \lstinline!do_plot! setting,
+which includes the Prior model probabilities, model size
+distributions (Prior and Posterior), CDF of model size,
+predictive results (if forecasts are generated), and two
+heatmaps with variables inclusions and jointness results.
+In non-GUI mode (when \lstinline!$sysinfo["gui_mode"]! == 0),
+plots are generated as scripts for \texttt{gnuplot}%
+\footnote{See \url{http://www.gnuplot.info} for additional
+	information.} program and saved on a disk. Names of
+generated files have their base set to 
+\lstinline!strftime($now[1], "%Y%m%d%H%M%S")!.
+Example graphs are presented on
+Figures~\ref{fig:NELS_model_size}-\ref{fig:NELS_inclusions}.

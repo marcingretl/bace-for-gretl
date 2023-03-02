@@ -3,7 +3,7 @@
 \DeclareOption*{
 	\PassOptionsToClass{\CurrentOption}{article}}
 \ProcessOptions
-\LoadClass[a4paper,11pt,oneside]{article}
+\LoadClass[a4paper,11pt,twoside]{article}
 \RequirePackage[]{graphicx}
 \RequirePackage[utf8]{inputenc}
 \RequirePackage{enumitem}
@@ -13,9 +13,6 @@
 \RequirePackage{amsmath,amssymb,amsfonts,textcomp}
 \RequirePackage{listings}
 \RequirePackage{color,ae,fancyvrb}
-%\RequirePackage{rotating}
-\RequirePackage{pdflscape,longtable-2020-01-07}
-	\setlength{\LTcapwidth}{\paperheight}
 
 \usepackage{gretlwp}
 
@@ -31,7 +28,6 @@
 \newcommand{\COV}{\mathsf{COV}}
 \newcommand{\Prob}{\mathsf{P}}
 \newcommand{\Code}[1]{\texttt{#1}}
-\newcommand{\MCcube}{MC$^3$}
 
 \newenvironment{CodeChunk}{}{}
 
@@ -42,13 +38,13 @@
 \author{Marcin Błażejowski\\
 	{\small WSB University in Torun}\\
 	{\small \url{marcin.blazejowski@wsb.torun.pl}}\\\\
-	Jacek Kwiatkowski\\ 
+	Jacek Kwiatkowski\\
 	{\small Nicolaus Copernicus University in Toru\'{n}}\\
 	{\small \url{jkwiat@umk.pl}}}
-\title{Bayesian Averaging of Classical Estimates (BACE) for \pkg{gretl}}
+\title{BACE: A \pkg{gretl} Package for Model Averaging in Limited Dependent Variable Models}
 \prognum{6}
 
-\date{August 25, 2018}
+\date{\today}
 
 % Hansl syntax highlight
 \lstdefinelanguage{Hansl}{
@@ -63,7 +59,7 @@
 		qlrtest, qqplot, quantreg, quit, rename, reset, restrict, rmplot, run, runs, scatters,
 		sdiff, set, setinfo, setobs, setmiss, shell, smpl, spearman, sprintf, square, sscanf, store,
 		summary, system, tabprint, textplot, tobit, tsls, var, varlist, vartest, vecm, vif,
-		wls, xcorrgm, xtab, mpi, gibbs, return, params},  
+		wls, xcorrgm, xtab, mpi, gibbs, return, params, pkg},
 	morekeywords=[2]{abs, acos, acosh, aggregate, argname, asin, asinh, atan, atanh, bessel,
 		BFGSmax, bkfilt, boxcox, bwfilt, cdemean, cdf, cdiv, ceil, cholesky, chowlin,
 		cmult, cnorm, colname, colnames, cols, cos, cosh, cov,
@@ -88,11 +84,12 @@
 		transp, trimr, typestr, uniform, uniq, unvech, upper, urcpval, values,
 		varname, varnum, varsimul, vec, vech, weekday, wmean, wsd, wvar, xmax,
 		xmin, xpx, zeromiss, zeros, bwrite, bread, mpibcast, mpireduce, array, defbundle,
-		mat2list, strftime, _},
-	morekeywords=[3]{bool, int, list, matrix, scalar, series, string, bundle, void, bundles, null},
+		mat2list, strftime, fzero, _},
+	morekeywords=[3]{bool, int, list, matrix, scalar, series, string, bundle,
+		void, bundles, null, const},
 	morekeywords=[4]{\$nobs, \$stopwatch, \$sysinfo, \$now},
 	%   alsoletter={-},
-	sensitive=false,  
+	sensitive=false,
 	morecomment=[l]{\#},
 	morecomment=[l][\color{hanslgreen}]{--},
 	morecomment=[s]{/*}{*/},
@@ -105,7 +102,7 @@
 	xleftmargin=\parindent,
 	language=Hansl,
 	showstringspaces=false,
-	basicstyle={\footnotesize\ttfamily},
+	basicstyle={\normalsize\ttfamily},
 	keywordstyle={\bfseries\color{hanslred}},
 	keywordstyle=[2]{\color{hanslteal}},
 	keywordstyle=[3]{\bfseries\color{hanslgreen}},
@@ -114,6 +111,7 @@
 	stringstyle={\color{hanslmagenta}}
 }
 \lstset{escapechar=@,style=hansl}
+\def\inline{\lstinline[basicstyle={\footnotesize\ttfamily}]}
 % Definicja kolorów
 % \definecolor{hanslgreen}{cmyk}{.67,0,.37,.45}
 \definecolor{hanslgreen}{cmyk}{.87,0,.91,.45}

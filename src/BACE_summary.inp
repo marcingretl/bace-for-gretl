@@ -214,8 +214,11 @@ function void BACE_summary (bundle *M)
             xtab_l = Y Yhat
             xtab xtab_l --zeros --no-totals --quiet
             M.contingency = $result
-            M.correctly_predicted = sum(Y == Yhat)
+        else
+            M.Yhat = M.yvals[imaxr(M.Yhat)]
+            Yhat = M.Yhat
         endif
+        M.correctly_predicted = sum(Y == Yhat)
     endif
 
     # Forecasts
@@ -232,9 +235,14 @@ function void BACE_summary (bundle *M)
         M.Yhat_predict_var_avg = sqrt(M.Yhat_predict_var_avg - M.Yhat_predict_avg .^ 2)
         M.prediction = M.Y_mat_predict ~ M.Yhat_predict_avg ~ M.Yhat_predict_var_avg
         title = defarray(M.Y_name, "Mean", "Std.Dev")
-        if M.model_type == "intreg"
-            title[1] = "const"
-            M.prediction[,1] = 1
+        if M.censored_y
+            if M.model_type == "intreg"
+                title[1] = "const"
+                M.prediction[,1] = 1
+            elif M.model_type == "tobit"
+                M.prediction = M.prediction[,1:2]
+                title = title[1:2]
+            endif
         endif
         if M.limited_y
             if M.ordered || M.multinomial

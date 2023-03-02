@@ -151,7 +151,7 @@ function void BACE_Plot (const bundle *MODEL)
     # Predictive results
     if MODEL.Npredict
         plotmat = MODEL.prediction[,1:2]        
-        if MODEL.limited_y
+        if MODEL.limited_y || MODEL.model_type == "tobit"
             plot_title = "Predictive results"
             bars = MODEL.prediction[,2] ~ zeros(MODEL.Npredict, 1)
         else            
