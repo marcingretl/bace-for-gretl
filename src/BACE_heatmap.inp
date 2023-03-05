@@ -22,7 +22,7 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
    basename	- basename for gnuplot files
     */
     scalar nrows, ncols, tmp, height, width, minval, maxval, error
-    string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output
+    string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output, term_opts
     matrix m
     strings all_names_sp_m
 
@@ -123,13 +123,15 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
     # We check if we display or save plot
     if $sysinfo.gui_mode
         output = "display"
+        term_opts = sprintf("set term pngcairo font \"Vera,9\" size %d,%d noenhanced", width, height)
     else
         output = sprintf("%s%s", basename, output)
+        term_opts = sprintf("%s\n%s", "set terminal png", "set output '| display png:-'")
     endif
 
     # We plot heatmap
     catch plot
-        printf "set term pngcairo font \"Vera,9\" size %d,%d noenhanced", width, height
+        printf "%s", term_opts
         literal set encoding utf8
         literal set decimalsign '.'
         literal set nokey

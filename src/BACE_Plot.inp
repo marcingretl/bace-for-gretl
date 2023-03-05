@@ -21,6 +21,7 @@ function void BACE_Plot (const bundle *MODEL)
     */
     string legend, output, basename, xtics, plot_title
     string yrange = ""
+    string non_gui_opts = ""
     scalar avg_model_size = 0
     scalar idx, error
     strings title
@@ -29,6 +30,7 @@ function void BACE_Plot (const bundle *MODEL)
         basename = "display"
     else
         basename = strftime($now[1], "%Y%m%d%H%M%S")
+        non_gui_opts = sprintf("%s\n%s", "set terminal png", "set output '| display png:-'")
     endif
 
     # We set up avg_model_size
@@ -73,6 +75,7 @@ function void BACE_Plot (const bundle *MODEL)
         xtics = ""
     endif
     catch plot plotmat
+        printf "%s", non_gui_opts
         options with-lp fit=none
         literal set link y2 via y inverse y
         printf "%s", xtics
@@ -98,6 +101,7 @@ function void BACE_Plot (const bundle *MODEL)
         xtics = ""
     endif
     catch plot plotmat
+        printf "%s", non_gui_opts
         options with-line fit=none
         literal set grid
         printf "%s", xtics
@@ -131,6 +135,7 @@ function void BACE_Plot (const bundle *MODEL)
         xtics = ""
     endif
     catch plot plotmat
+        printf "%s", non_gui_opts
         options with-lp fit=none
         literal set link y2 via y inverse y
         printf "%s", xtics
@@ -150,11 +155,11 @@ function void BACE_Plot (const bundle *MODEL)
     #########################################################
     # Predictive results
     if MODEL.Npredict
-        plotmat = MODEL.prediction[,1:2]        
+        plotmat = MODEL.prediction[,1:2]
         if MODEL.limited_y || MODEL.model_type == "tobit"
             plot_title = "Predictive results"
             bars = MODEL.prediction[,2] ~ zeros(MODEL.Npredict, 1)
-        else            
+        else
             plot_title = "Predictive results (with +/- one standard deviations as bars)"
             bars = MODEL.prediction[,2:3]
         endif
@@ -173,6 +178,7 @@ function void BACE_Plot (const bundle *MODEL)
             endif
         endloop
         catch plot plotmat
+            printf "%s", non_gui_opts
             options time-series with-lines
             options with-line fit=none
             options band=bars,1 band-style=bars
