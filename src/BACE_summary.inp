@@ -199,25 +199,20 @@ function void BACE_summary (bundle *M)
         cnameset(M.cuts_avg, title)
         rnameset(M.cuts_avg, M.cuts_names)
     endif
+    
+    # Contingency table
     if M.limited_y
-        if nelem(instrings(M.DiscreteModelTypes[1:2], M.model_type))
-            if !M.ordered
-                M.Yhat = M.Yhat .>= M.binary_threshold
-            else
-                Yhat = M.Yhat
-                tmps = M.model_type == "logit" ? 1 : 0
-                M.Yhat = ordered_prediction(M.cuts_avg[,1], Yhat, M.yvalues[1], tmps, 1)
-            endif
-        endif
-        if !M.multinomial
-            Yhat = M.Yhat
-            xtab_l = Y Yhat
-            xtab xtab_l --zeros --no-totals --quiet
-            M.contingency = $result
-        else
+        if M.ordered
+            M.Yhat = M.yvalues[imaxr(M.Yhat)]
+        elif M.multinomial
             M.Yhat = M.yvals[imaxr(M.Yhat)]
-            Yhat = M.Yhat
+        else
+            M.Yhat = M.Yhat .>= M.binary_threshold
         endif
+        Yhat = M.Yhat
+        xtab_l = Y Yhat
+        xtab xtab_l --zeros --no-totals --quiet
+        M.contingency = $result
         M.correctly_predicted = sum(Y == Yhat)
     endif
 

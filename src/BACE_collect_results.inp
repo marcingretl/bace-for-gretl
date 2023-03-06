@@ -58,6 +58,8 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     if M.limited_y
         if M.multinomial
             Yhat = zeros($nobs, yvals+1)
+        elif M.ordered
+            Yhat = zeros($nobs, nelem(M.yvalues))
         else
             Yhat = zeros($nobs)
         endif        

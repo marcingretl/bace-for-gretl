@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.0-svn</version>
-<date>2023-03-03</date>
+<date>2023-03-06</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -11,8 +11,6 @@
 <help>
 pdfdoc:BACE.pdf
 </help>
-<depends count="1">
-oprobit_predict </depends>
 <gretl-function name="BACE" type="bundle">
  <params count="3">
   <param name="Y" type="list">
@@ -318,13 +316,9 @@ printf &quot;and numerical probabilities of the above models: %f\n&quot;, corr(M
 if M.limited_y
   printf &quot;\n&quot;
   print &quot;----------------------------------&quot;
-  if !M.multinomial
-    printf &quot;\n&quot;
-    print &quot;Contingency table (actual in rows, predicted in columns):&quot;
-    eval M.contingency
-  else
-    printf &quot;\n&quot;
-  endif
+  printf &quot;\n&quot;
+  print &quot;Contingency table (actual in rows, predicted in columns):&quot;
+  eval M.contingency
   printf &quot;Number of cases 'correctly predicted' = %d (accuracy %.1f%%)\n&quot;, M.correctly_predicted, 100*M.correctly_predicted/$nobs
 endif
 # Forecasts
@@ -1239,25 +1233,19 @@ if M.limited_y &amp;&amp; M.ordered
   cnameset(M.cuts_avg, title)
   rnameset(M.cuts_avg, M.cuts_names)
 endif
+# Contingency table
 if M.limited_y
-  if nelem(instrings(M.DiscreteModelTypes[1:2], M.model_type))
-    if !M.ordered
-      M.Yhat = M.Yhat .&gt;= M.binary_threshold
-    else
-      Yhat = M.Yhat
-      tmps = M.model_type == &quot;logit&quot; ? 1 : 0
-      M.Yhat = ordered_prediction(M.cuts_avg[,1], Yhat, M.yvalues[1], tmps, 1)
-    endif
-  endif
-  if !M.multinomial
-    Yhat = M.Yhat
-    xtab_l = Y Yhat
-    xtab xtab_l --zeros --no-totals --quiet
-    M.contingency = $result
-  else
+  if M.ordered
+    M.Yhat = M.yvalues[imaxr(M.Yhat)]
+  elif M.multinomial
     M.Yhat = M.yvals[imaxr(M.Yhat)]
-    Yhat = M.Yhat
+  else
+    M.Yhat = M.Yhat .&gt;= M.binary_threshold
   endif
+  Yhat = M.Yhat
+  xtab_l = Y Yhat
+  xtab xtab_l --zeros --no-totals --quiet
+  M.contingency = $result
   M.correctly_predicted = sum(Y == Yhat)
 endif
 # Forecasts
@@ -1724,7 +1712,7 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     endif
   endif
   if M.limited_y
-    if M.multinomial
+    if M.multinomial || M.ordered
       M.Yhat = $allprobs
     else
       M.Yhat = {$model.yhat}
@@ -1804,6 +1792,8 @@ endif
 if M.limited_y
   if M.multinomial
     Yhat = zeros($nobs, yvals+1)
+  elif M.ordered
+    Yhat = zeros($nobs, nelem(M.yvalues))
   else
     Yhat = zeros($nobs)
   endif

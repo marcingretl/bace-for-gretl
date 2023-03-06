@@ -242,13 +242,9 @@ function void BACE_Print (bundle *MODEL)
     if M.limited_y
         printf "\n"
         print "----------------------------------"
-        if !M.multinomial
-            printf "\n"
-            print "Contingency table (actual in rows, predicted in columns):"
-            eval M.contingency
-        else
-            printf "\n"
-        endif
+        printf "\n"
+        print "Contingency table (actual in rows, predicted in columns):"
+        eval M.contingency
         printf "Number of cases 'correctly predicted' = %d (accuracy %.1f%%)\n", M.correctly_predicted, 100*M.correctly_predicted/$nobs
     endif
 

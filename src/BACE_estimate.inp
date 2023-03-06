@@ -20,7 +20,7 @@ function void BACE_estimate (bundle *M)
    This function estimates and forecasts drawn models.
     */
     matrix mod_struct_new, mod_struct_new_Y_lags, vcv
-    list Y_lags    
+    list Y_lags
     string ESTIMATOR_OPTS
     scalar ols_to_mle_correct = 1
 
@@ -31,7 +31,7 @@ function void BACE_estimate (bundle *M)
     series Y = M.Y
     if ESTIMATOR == "intreg"
         series Y2 = M.Y2
-    endif    
+    endif
 
     # We create list with lagged Y if needed
     if M.y_lag > 0
@@ -89,7 +89,7 @@ function void BACE_estimate (bundle *M)
                 fcast --out-of-sample --all-probs --quiet
             else
                 fcast --out-of-sample --quiet
-            endif            
+            endif
             M.Yhat_predict = $fcast
             if !M.limited_y && ESTIMATOR != "tobit"
                 M.Yhat_predict_var = ($fcse*ols_to_mle_correct).^2 + $fcast.^2
@@ -98,7 +98,7 @@ function void BACE_estimate (bundle *M)
             endif
         endif
         if M.limited_y
-            if M.multinomial
+            if M.multinomial || M.ordered
                 M.Yhat = $allprobs
             else
                 M.Yhat = {$model.yhat}

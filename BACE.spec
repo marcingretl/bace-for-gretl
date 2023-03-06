@@ -1,7 +1,7 @@
 author = Marcin Błażejowski, Jacek Kwiatkowski
 email = marcin@gretlconference.org
 version = 3.0-svn
-date = 2023-03-03
+date = 2023-03-06
 description = This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.
 tags = C20 C52
 min-version = 2022c
@@ -13,4 +13,3 @@ bundle-plot = BACE_Plot
 public = BACE BACE_Print BACE_Plot BACE_GUI 
 help = BACE.pdf
 sample-script = examples/BACE_sample.inp
-depends = oprobit_predict
