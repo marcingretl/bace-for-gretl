@@ -107,12 +107,12 @@ function void BACE_summary (bundle *M)
     if M.prior_name == "none"
         M.mod_size_sd_prior = NA
     else
-        M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size) .^2 .* M.mod_sizes[,3]))
+        M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size).^2 .* M.mod_sizes[,3]))
     endif
     if M.prior_based_bic
         tmpm = tmpm / sum(tmpm)
         M.avg_model_size_bic = sum(M.mod_sizes[,1] .* tmpm)
-        M.mod_size_sd_prior_bic = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size_bic) .^2 .* tmpm))
+        M.mod_size_sd_prior_bic = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size_bic).^2 .* tmpm))
         M.mod_sizes = M.mod_sizes ~ tmpm
     endif
 

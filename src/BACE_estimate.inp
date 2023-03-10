@@ -59,7 +59,6 @@ function void BACE_estimate (bundle *M)
 
     # We estimate current model
     if nelem(X) > 0 || M.limited_y && M.ordered
-        # We estimate model
         if M.Y_censoring && ESTIMATOR == "tobit"
             ESTIMATOR_OPTS = M.estimator_opts
             tobit Y X @ESTIMATOR_OPTS --quiet
@@ -79,11 +78,13 @@ function void BACE_estimate (bundle *M)
             M.bhat_tmp = $coeff
             M.bvar_tmp = $stderr.^2
         endif
+
         # OLS to MLE correction
         if ESTIMATOR == "ols"
             ols_to_mle_correct = $df/$nobs
             M.bvar_tmp *= ols_to_mle_correct
         endif
+
         if M.Npredict
             if M.limited_y && (M.ordered || M.multinomial)
                 fcast --out-of-sample --all-probs --quiet
@@ -97,6 +98,7 @@ function void BACE_estimate (bundle *M)
                 M.Yhat_predict_var = ones(M.Npredict)*NA
             endif
         endif
+
         if M.limited_y
             if M.multinomial || M.ordered
                 M.Yhat = $allprobs

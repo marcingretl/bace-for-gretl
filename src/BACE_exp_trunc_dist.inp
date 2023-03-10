@@ -42,9 +42,3 @@ function scalar BACE_exp_trunc_dist (scalar x, const scalar n, const scalar avg,
 
     return Exp/(1-P0) - avg
 end function
-/*
-   Old fully "manual" version for Beta-Binomial based on Beta function
-   loop i=1..n --quiet
-   Exp += bincoeff(n,i)*Beta(i+a,n-i+x)/Beta(a,x) * i / (1-Beta(0+a,n-0+x)/Beta(a,x))
-   endloop
-*/

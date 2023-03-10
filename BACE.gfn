@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.0-svn</version>
-<date>2023-03-09</date>
+<date>2023-03-10</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -864,7 +864,6 @@ if M.Npredict
     smpl 1 M.N
   else
     if M.CPU_num == 1
-      #smpl M.first_obs+($nobs-M.N) M.last_obs #+($t1-1)
       smpl $t1 M.last_obs
     else
       smpl M.last_obs-M.N+1 M.last_obs
@@ -1150,12 +1149,12 @@ endloop
 if M.prior_name == &quot;none&quot;
   M.mod_size_sd_prior = NA
 else
-  M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size) .^2 .* M.mod_sizes[,3]))
+  M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size).^2 .* M.mod_sizes[,3]))
 endif
 if M.prior_based_bic
   tmpm = tmpm / sum(tmpm)
   M.avg_model_size_bic = sum(M.mod_sizes[,1] .* tmpm)
-  M.mod_size_sd_prior_bic = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size_bic) .^2 .* tmpm))
+  M.mod_size_sd_prior_bic = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size_bic).^2 .* tmpm))
   M.mod_sizes = M.mod_sizes ~ tmpm
 endif
 # Models size distribution
@@ -1360,11 +1359,6 @@ BACE_print_status(null, 1, 10)
 <code>/*
 This function creates BUNDLE holding all BACE information
 */
-printf &quot;\n#############################################################################\n&quot;
-printf &quot;To do:&quot;
-printf &quot;\n * Delete unneeded entries in result bundle.&quot;
-printf &quot;\n * Clean up the code.&quot;
-printf &quot;\n#############################################################################\n&quot;
 BACE_print_status(&quot;BACE setup&quot;)
 scalar tmp
 string tmp_str = &quot;&quot;
@@ -1388,7 +1382,7 @@ if M.limited_y
   matrix M.contingency = {}
   matrix M.yvals = {}
   strings M.cuts_names = null
-  # we check if we have ordered version
+  # We check if we have ordered version
   tmp_str = M.estimator
   if M.model_type == &quot;mlogit&quot;
     @tmp_str Y X_list --multinomial --quiet
@@ -1620,7 +1614,7 @@ BACE_print_status(null, 1, 11)
 Function prints overall progress.
 */
 string bar, sign
-x = ceil(100 * iter/N)
+x = ceil(100*iter/N)
 x4 = int(x/4)
 bar = &quot;[&quot;
 loop j=1..25 --quiet
@@ -1678,7 +1672,6 @@ if M.with_const == 1
 endif
 # We estimate current model
 if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
-  # We estimate model
   if M.Y_censoring &amp;&amp; ESTIMATOR == &quot;tobit&quot;
     ESTIMATOR_OPTS = M.estimator_opts
     tobit Y X @ESTIMATOR_OPTS --quiet
@@ -1882,7 +1875,7 @@ loop i=1..nelem(models_counter) --quiet
   weight = models_counter[i]
   mod_struct = models_structure[i]
   mod_struct_sum = sum(mod_struct)
-  ## Original BACE
+  # We set up vector with variables IDs
   if M.with_const == 1
     var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
   else
@@ -1928,7 +1921,6 @@ loop i=1..nelem(models_counter) --quiet
       else
         Yhat_avg += weight * models_forecasts[i][,1]
       endif
-      #Yhat_var_avg += weight * models_forecasts[i][,2]
       Yhat_var_avg += weight * models_forecasts[i][,end]
     endif
   endif
@@ -2071,7 +2063,7 @@ This is main BACE function with complete MC3 simulation procedure.
 */
 # Local variables
 BACE_print_status(&quot;MC3 setup&quot;)
-scalar percentage = 0 #M.progress # percentage of progress of MC3
+scalar percentage = 0 # percentage of progress of MC3
 scalar rep = 1
 string model_id # string containing model id (0-1 'image')
 scalar model_nr	# iteration number under which model's data are stored in matrices/arrays
@@ -2082,7 +2074,7 @@ matrix models_lprob = zeros(M.Nrep+1)
 matrices models_estimates = array(M.Nrep+1)
 matrices models_structure = array(M.Nrep+1)
 matrix mod_struct_draw
-if M.Npredict &gt; 0
+if M.Npredict
   matrices models_forecasts = array(M.Nrep+1)
 else
   matrices models_forecasts = null
@@ -2093,7 +2085,7 @@ else
   matrices models_yhat = null
 endif
 # Sample setting for prediction
-if M.Npredict &gt; 0
+if M.Npredict
   smpl M.first_obs M.last_obs
 endif
 set loop_maxiter M.loop_maxiter
@@ -2136,6 +2128,7 @@ loop while rep &lt;= M.Nrep --quiet
     mod_struct_draw = M.mod_struct_old
     mod_struct_draw[potential_var] = !mod_struct_draw[potential_var]
     M.k_new = sum(mod_struct_draw)
+    # We decide if to reject current draw
     if M.with_const != 1 &amp;&amp; !M.k_new &amp;&amp; !(M.limited_y &amp;&amp; M.ordered)
       M.n_drop_draws += 1
       continue
@@ -2536,8 +2529,8 @@ endif
 <code>/*
 Function prints current execution status and flushes screen.
 message - text to be printed
-done	- if this is end of stage
-pspaces	- number of prior paces
+done	- if this is the end of stage
+pspaces	- number of prior spaces
 spacesp	- number of post spaces
 */
 string pSPACE = &quot;&quot;

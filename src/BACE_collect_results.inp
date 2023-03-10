@@ -151,7 +151,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         mod_struct = models_structure[i]
         mod_struct_sum = sum(mod_struct)
 
-        ## Original BACE
+        # We set up vector with variables IDs
         if M.with_const == 1
             var_idx = { 1 } ~ selifc(M.var_numbers2[2,], mod_struct)
         else
@@ -200,8 +200,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                     Yhat_avg += weight * models_forecasts[i][,1:end-1]
                 else
                     Yhat_avg += weight * models_forecasts[i][,1]
-                endif                
-                #Yhat_var_avg += weight * models_forecasts[i][,2]
+                endif
                 Yhat_var_avg += weight * models_forecasts[i][,end]
             endif
         endif

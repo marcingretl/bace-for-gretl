@@ -52,7 +52,6 @@ function void BACE_initial_model (bundle *M)
             smpl 1 M.N
         else
             if M.CPU_num == 1
-                #smpl M.first_obs+($nobs-M.N) M.last_obs #+($t1-1)
                 smpl $t1 M.last_obs
             else
                 smpl M.last_obs-M.N+1 M.last_obs

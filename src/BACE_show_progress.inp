@@ -24,7 +24,7 @@ function void BACE_show_progress (const scalar iter,
     */
     string bar, sign
     
-    x = ceil(100 * iter/N)
+    x = ceil(100*iter/N)
     x4 = int(x/4)
     bar = "["
     loop j=1..25 --quiet
