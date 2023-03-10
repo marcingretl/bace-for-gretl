@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.0-svn</version>
-<date>2023-03-06</date>
+<date>2023-03-09</date>
 <description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -435,7 +435,7 @@ BACE result bundle plot function.
 */
 string legend, output, basename, xtics, plot_title
 string yrange = &quot;&quot;
-string non_gui_opts = &quot;&quot;
+string terminal_opts = &quot;&quot;
 scalar avg_model_size = 0
 scalar idx, error
 strings title
@@ -443,7 +443,11 @@ if $sysinfo.gui_mode
   basename = &quot;display&quot;
 else
   basename = strftime($now[1], &quot;%Y%m%d%H%M%S&quot;)
-  non_gui_opts = sprintf(&quot;%s\n%s&quot;, &quot;set terminal png&quot;, &quot;set output '| display png:-'&quot;)
+  if $sysinfo[&quot;os&quot;] == &quot;windows&quot;
+    terminal_opts = sprintf(&quot;%s&quot;, &quot;set terminal windows&quot;)
+  else
+    terminal_opts = sprintf(&quot;%s\n%s&quot;, &quot;set terminal png&quot;, &quot;set output '| display png:-'&quot;)
+  endif
 endif
 # We set up avg_model_size
 if MODEL.prior_name == &quot;none&quot; &amp;&amp; MODEL.prior_based_bic
@@ -483,7 +487,7 @@ else
   xtics = &quot;&quot;
 endif
 catch plot plotmat
-  printf &quot;%s&quot;, non_gui_opts
+  printf &quot;%s&quot;, terminal_opts
   options with-lp fit=none
   literal set link y2 via y inverse y
   printf &quot;%s&quot;, xtics
@@ -508,7 +512,7 @@ else
   xtics = &quot;&quot;
 endif
 catch plot plotmat
-  printf &quot;%s&quot;, non_gui_opts
+  printf &quot;%s&quot;, terminal_opts
   options with-line fit=none
   literal set grid
   printf &quot;%s&quot;, xtics
@@ -541,7 +545,7 @@ else
   xtics = &quot;&quot;
 endif
 catch plot plotmat
-  printf &quot;%s&quot;, non_gui_opts
+  printf &quot;%s&quot;, terminal_opts
   options with-lp fit=none
   literal set link y2 via y inverse y
   printf &quot;%s&quot;, xtics
@@ -583,7 +587,7 @@ if MODEL.Npredict
     endif
   endloop
   catch plot plotmat
-    printf &quot;%s&quot;, non_gui_opts
+    printf &quot;%s&quot;, terminal_opts
     options time-series with-lines
     options with-line fit=none
     options band=bars,1 band-style=bars
@@ -2383,7 +2387,7 @@ M - BACE result bundle, MODE - string indicating image mode {&quot;inclusions&qu
 basename	- basename for gnuplot files
 */
 scalar nrows, ncols, tmp, height, width, minval, maxval, error
-string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output, term_opts
+string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output, terminal_opts
 matrix m
 strings all_names_sp_m
 # If we have model with const we ommit the first element
@@ -2479,14 +2483,18 @@ endloop
 # We check if we display or save plot
 if $sysinfo.gui_mode
   output = &quot;display&quot;
-  term_opts = sprintf(&quot;set term pngcairo font \&quot;Vera,9\&quot; size %d,%d noenhanced&quot;, width, height)
+  terminal_opts = sprintf(&quot;set term pngcairo font \&quot;Vera,9\&quot; size %d,%d noenhanced&quot;, width, height)
 else
   output = sprintf(&quot;%s%s&quot;, basename, output)
-  term_opts = sprintf(&quot;%s\n%s&quot;, &quot;set terminal png&quot;, &quot;set output '| display png:-'&quot;)
+  if $sysinfo[&quot;os&quot;] == &quot;windows&quot;
+    terminal_opts = sprintf(&quot;%s&quot;, &quot;set terminal windows&quot;)
+  else
+    terminal_opts = sprintf(&quot;%s\n%s&quot;, &quot;set terminal png&quot;, &quot;set output '| display png:-'&quot;)
+  endif
 endif
 # We plot heatmap
 catch plot
-  printf &quot;%s&quot;, term_opts
+  printf &quot;%s&quot;, terminal_opts
   literal set encoding utf8
   literal set decimalsign '.'
   literal set nokey

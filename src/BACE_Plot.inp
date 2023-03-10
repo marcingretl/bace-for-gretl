@@ -21,7 +21,7 @@ function void BACE_Plot (const bundle *MODEL)
     */
     string legend, output, basename, xtics, plot_title
     string yrange = ""
-    string non_gui_opts = ""
+    string terminal_opts = ""
     scalar avg_model_size = 0
     scalar idx, error
     strings title
@@ -30,7 +30,11 @@ function void BACE_Plot (const bundle *MODEL)
         basename = "display"
     else
         basename = strftime($now[1], "%Y%m%d%H%M%S")
-        non_gui_opts = sprintf("%s\n%s", "set terminal png", "set output '| display png:-'")
+        if $sysinfo["os"] == "windows"
+            terminal_opts = sprintf("%s", "set terminal windows")
+        else
+            terminal_opts = sprintf("%s\n%s", "set terminal png", "set output '| display png:-'")
+        endif        
     endif
 
     # We set up avg_model_size
@@ -75,7 +79,7 @@ function void BACE_Plot (const bundle *MODEL)
         xtics = ""
     endif
     catch plot plotmat
-        printf "%s", non_gui_opts
+        printf "%s", terminal_opts
         options with-lp fit=none
         literal set link y2 via y inverse y
         printf "%s", xtics
@@ -101,7 +105,7 @@ function void BACE_Plot (const bundle *MODEL)
         xtics = ""
     endif
     catch plot plotmat
-        printf "%s", non_gui_opts
+        printf "%s", terminal_opts
         options with-line fit=none
         literal set grid
         printf "%s", xtics
@@ -135,7 +139,7 @@ function void BACE_Plot (const bundle *MODEL)
         xtics = ""
     endif
     catch plot plotmat
-        printf "%s", non_gui_opts
+        printf "%s", terminal_opts
         options with-lp fit=none
         literal set link y2 via y inverse y
         printf "%s", xtics
@@ -178,7 +182,7 @@ function void BACE_Plot (const bundle *MODEL)
             endif
         endloop
         catch plot plotmat
-            printf "%s", non_gui_opts
+            printf "%s", terminal_opts
             options time-series with-lines
             options with-line fit=none
             options band=bars,1 band-style=bars
