@@ -1,0 +1,49 @@
+\subsection{Examples}
+The zip archive with \pkg{BACE} distribution includes
+the following examples:
+\begin{enumerate}
+	\item \texttt{BACE\_sample.inp} -- simple example which
+		consists of NELS dataset used in \cite{HillGriffithsLim_principles_2017}.
+		This dataset concerns longitudinal study on eight-grade
+		students in USA and -- thanks to Lee Adkins' work -- is
+		available at: \url{http://www.learneconometrics.com/gretl/index.html}.
+		In this example we assume ordered probit and logit analysis
+		for psechoice variable with default values of BACE parameters.\newline
+		\textbf{results}: \texttt{BACE\_sample.txt}\newline
+		\textbf{dataset}: \texttt{nels.gdt}
+	\item \texttt{FLS\_41t72.inp} -- replication of classical
+		paper by \cite{fernandezleysteel2001b}. Original data
+		and results can be found at:
+		\url{http://qed.econ.queensu.ca/jae/2001-v16.5/fernandez-ley-steel)}.\newline		
+		We run BMA analysis with the following non-default parameters:
+		\begin{enumerate}
+			\item number of Monte Carlo draws: 3000000
+			\item percentage of burn-in draws: 33
+			\item number of top-ranked models: 20
+			\item jointness analysis as modified Yule's Q measure			
+		\end{enumerate}	
+		\textbf{Note}: on machine with 4 Intel(R) Core(TM)
+		i7-8550U CPU @1.80GHz and 16 GB RAM execution takes
+		+/- 138 sec.\newline
+		\textbf{results}: \texttt{FLS\_41t72.txt}\newline
+		\textbf{dataset}: \texttt{FLS.gdt}
+	\item \texttt{UK\_Inflation\_1875-1991.inp} -- example
+		which replicates results published in \cite{Kufel_jae_2020}.\newline
+		\textbf{results}: \texttt{UK\_Inflation\_1875-1991.txt}\newline
+		\textbf{dataset}: \texttt{UK\_Inflation\_1875-1991.gdt}
+	\item \texttt{UKM1.inp} -- UK M1 model by David F. Hendry
+		in the version published in \cite{KrolzigHendry-Computer_automation-2001}.
+		This example closely replicates results published
+		in \cite{econometrics8020021}.\newline
+		\textbf{results}: \texttt{UKM1.txt}\newline
+		\textbf{dataset}: \texttt{UKM1.gdt}
+	\item \texttt{interval.inp} -- interval regression
+		based on Verbeek's "willingness to pay" analysis.\newline
+		\textbf{results}: \texttt{interval.txt}\newline
+		\textbf{dataset}: \texttt{interval.gdt}
+	\item \texttt{tobit.inp} -- tobit regression example
+		for measure of academic aptitude based on example
+		available at: \url{https://stats.oarc.ucla.edu/r/dae/tobit-models/}.\newline
+		\textbf{results}: \texttt{tobit.txt}\newline
+		\textbf{dataset}: \texttt{tobit.gdt}
+\end{enumerate}

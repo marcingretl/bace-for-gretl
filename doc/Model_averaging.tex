@@ -1,12 +1,5 @@
 \section{Methodological background}\label{sec:Method_back}
 \subsection{Model averaging and marginal data density approximation}\label{MA_basics}
-%In the Bayesian approach of comparing models, it is considered useful
-%to employ probabilities to represent the degree of belief associated
-%with the alternative models. For the normal linear regression models
-%we can easily test two mutually exclusive (non-nested) and jointly
-%exhaustive models with different subset of variables.  Using Bayes'
-%theorem, the posterior odds ratio for a model $M_l$ against model
-%$M_n$ is given by
 As we know, probability can be used to describe the degree
 of belief associated with different specifications when
 comparing them using the Bayesian approach. For example,
@@ -21,14 +14,11 @@ using the following formula:
 \end{equation}
 where $\frac{\Prob(M_l)}{\Prob(M_n)}$ is the prior odds ratio,
 $\frac{p(y \mid M_l)}{p(y \mid M_n)}$ is the Bayes factor,
-$p(y \mid M_j)$ and $p(y \mid M_n)$ are marginal data densities.
-%If the
-%ratio $\frac{\Prob(M_l \mid y)}{\Prob(M_n \mid y)}$ is larger than 1,
-%we can say that the data supports model $M_l$ over model $M_n$. 
+$p(y \mid M_j)$ and $p(y \mid M_n)$ are marginal data densities. 
 
 If the posterior ratio $\frac{\Prob(M_l \mid y)}{\Prob(M_n \mid y)}$
 is greater than one, it indicates that the data supports
-model $M_l$ over model $M_n$. %To compute the Bayes factor, we must first compute the normalizing constants for H0 and H1.
+model $M_l$ over model $M_n$.
 
 As we can easily see, the key element needed to calculate
 the Bayes factor is the normalizing constant, which is given
@@ -42,16 +32,7 @@ $p(y|\theta_r, M_r)$ can be interpreted as likelihood function
 under model $M_r$, and $p(\theta_r|M_r)$ is a prior
 distribution of the parameters $\theta_r$.
 
-%$M_r$ for $r = 1,\ldots, 2^K$ denotes the $2^K$ different models under consideration,  $K$ is the number of  potential explanatory variables,
-
-%In our
-%package, we use two popular model priors.
-
-%It is easy to show that the posterior probability of model $M_l$ is given by
-%\begin{equation*}
-%	\Prob(M_l \mid y)= \frac{\Prob(M_l)p(y \mid M_l)}{\sum_{r=1}^{2^K} \Prob(M_r)p(y \mid M_r)}.
-%\end{equation*}
-In some simple models, such as linear regression, the marginal
+In some relatively simple models, such as linear regression, the marginal
 data density can be represented by a closed-form analytic
 expression \citep[][]{zellner1971, fernandezleysteel2001b, koop2003}.
 However, in many situations, even though it is a simple concept,
@@ -72,9 +53,6 @@ density approximation. Additionally, it is worth noting that
 the \pkg{BACE} method also provides a good approximation of
 estimated characteristics  and it is capable of replicating
 the complex reduction strategy \citep{Kufel_jae_2020}.
-
-
-%Our approach follows directly ideas presented in \cite{, KassRaftery-BayesFactors-1995,SalaMartinDoppelhoferMiller_BACE, Bollen_2014}, where authors use Schwarz criterion  to  calculate approximation of the marginal data density and the odds ratio.
 
 In our \pkg{BACE} package, we use the latest approximations
 of $p(y \mid M_r)$, which are popular in the frequentist
@@ -118,26 +96,6 @@ approach, and we briefly present them further in this paper
 		\end{equation}
 \end{enumerate}
 
-%The posterior density of vector $\beta$ is the average
-%of the posterior densities $p(\beta_r \mid y, M_r)$ conditional on the models
-%\begin{equation*}
-%	p(\beta \mid y)=\sum_{r=1}^{2^K} \Prob(M_r \mid y)p(\beta_r \mid y, M_r).
-%\end{equation*}
-
-%Once the model posterior probabilities have been calculated, we can also easily
-%evaluate the mean and variance of the posterior distribution of slope parameters
-%(see \citealt{Leamer1978}).
-%\begin{equation}
-%	\E(\beta \mid y)=\sum_{r=1}^{2^K} \Prob(M_r \mid y)\E(\beta_r \mid y, M_r)
-%	\label{eq:mean_averaging}
-%\end{equation} 
-%and
-%\begin{multline}
-%	\VAR(\beta \mid y) = \\\sum_{r=1}^{2^K}\Prob(M_r \mid y)\VAR(\beta_r \mid y, M_r)+
-%	\sum_{r=1}^{2^K} \Prob(M_r \mid y) \left (\E(\beta_r \mid y, M_r)-\E(\beta \mid y) \right)^2
-%	\label{eq:variance_averaging}
-%\end{multline}
-
 Using \pkg{BACE}, we can also easily evaluate the mean and
 variance of the parameters $\theta$ across the entire model
 space \citep[][]{Leamer1978}:
@@ -173,7 +131,7 @@ of prior model size $(W)$ distribution
 		and expected model size $\E(W) = K\theta$;
 	\item Beta-binomial~\citep{wakefield2013bayesian}:
 		\begin{equation}
-			\Prob(W=k_r) = \binom{K}{k_r}\Prob(M_r), %\frac{B\left(k_r+a,K-k_r+b\right)}{B\left(a,b\right)},
+			\Prob(W=k_r) = \binom{K}{k_r}\Prob(M_r),
 			\label{eq:prior_model_size_binomial-beta}
 		\end{equation}
 		where we assume that $\theta$ follows a Beta
@@ -192,11 +150,6 @@ of prior model size $(W)$ distribution
 		Furthermore, following \cite{Ley_Steel_jae_2009},
 		we use fixed value of $a = 1$.
 \end{itemize}
-
-%We assume that user can specify just one hyperparameter for
-%model prior, i.e. expected model size $\E(W) = W^\star \in(0,K)$,\label{eq:W_star_definition}
-%and our \pkg{BACE} package will automatically calculate prior
-%probabilities for all competitive models. 
 
 We assume that the user can specify just one hyperparameter
 for the model prior, i.e., the expected model size
@@ -249,8 +202,6 @@ shown in Figure~\ref{fig:model_priors:subfig:beta-binomial}.
 		model size for $K=7$ and $W^\star=\frac{K}{2}$,
 		when model includes constant term}
 \end{figure}
-
-%\vspace{10pt}\noindent\emph{Non-standard case---model does not include constant term}
 
 Sometimes, in a regression model, we do not include a constant
 term \citep[see][]{KrolzigHendry-Computer_automation-2001,Kufel_jae_2020}.
@@ -334,10 +285,6 @@ variable $x_i$ is relevant in explaining the dependent variable
 PIP is calculated using Monte Carlo integration, as the sum of
 the posterior model probabilities for all models that include
 the specific independent variable \citep{Forte_Garcia_Steel_2018}.
-%\begin{equation}
-%	\Pr\left( \gamma_i = 1 \mid  y\right) = \sum_{X_i\in M_{r}}^{}\Pr\left(M_r \mid y\right),
-%\end{equation}
-%where $\gamma_i$ is an element of binary vector $\gamma = \left( \gamma_1, \ldots, \gamma_p\right)$ and $\gamma_i=1$ if independent variable $X_i$ is included in the model $M_r$ and zero otherwise, $p$ is a  number of possible independent variables. 
 
 Although posterior characteristics are often of interest,
 predicting future values of the dependent variable can be

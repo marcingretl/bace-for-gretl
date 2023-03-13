@@ -37,11 +37,11 @@
 
 \author{Marcin Błażejowski\\
 	{\small WSB University in Torun}\\
-	{\small \url{marcin.blazejowski@wsb.torun.pl}}\\\\
+	{\small \url{marcin@gretlconference.org}}\\\\
 	Jacek Kwiatkowski\\
 	{\small Nicolaus Copernicus University in Toru\'{n}}\\
 	{\small \url{jkwiat@umk.pl}}}
-\title{BACE: A \pkg{gretl} Package for Model Averaging in Limited Dependent Variable Models}
+\title{\pkg{BACE}: A Package for Bayesian Averaging of Classical Estimates}
 \prognum{6}
 
 \date{\today}

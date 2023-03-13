@@ -1,0 +1,22 @@
+set verbose off
+open UK_Inflation_1875-1991.gdt --quiet
+include BACE.gfn
+
+# We create additional variables
+series p0p = po - p
+
+# We create first differences for variables
+diff pe Ur w c m n Rs Rl po
+
+# We create laggs of variables
+lags 1 ; yd md nd Ud er c S p po Rl d_pe d_Ur d_w d_c d_m d_n d_Rs d_Rl d_po pistar cstar p0p
+
+# Lists definition
+list GUMFinal = yd_1 md_1 nd_1 Ud_1 S_1 Rl_1 d_pe d_pe_1 d_Ur_1 \
+  d_w_1 d_c_1 d_m_1 d_n_1 d_Rs_1 d_Rl_1 d_po_1 Id pistar_1
+
+set seed 1000000
+set stopwatch
+BACE_GUMFinal = BACE(d_p, GUMFinal, _(y_lag=1, with_const=2,\
+ model_prior="binomial", bic_type="bic", burn=25, Nrep=10^6))
+printf "\nBACE for GUMFinal took %.2f sec.\n", $stopwatch

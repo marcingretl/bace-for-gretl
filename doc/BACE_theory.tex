@@ -7,14 +7,13 @@ as logit and probit models, as well as their ordered
 specifications and multinomial logistic regression.
 Additionally, the package provides support for Poisson
 regression, Tobit model, and interval regression%
-\footnote{The \pkg{BACE} package also includes \st{standard}linear
+\footnote{The \pkg{BACE} package also includes linear
 	regression models. However, since the dependent variable
-	is not bounded in these models, \st{simple} regression is
+	is not bounded in these models, linear regression is
 	not the main focus of our interest.}.
 In all of these cases, the dependent variable is either
 dichotomous (i.e., taking the values zero or one),
 categorical, a count, or censored.
-%In all these cases we do not observe latent dependent variable but instead, we observe the value of binary or discrete variable. 
 In the remainder of this subsection, we present the standard
 and popular models for limited dependent variable included
 in our \pkg{BACE} package, which are also discussed in
@@ -66,7 +65,7 @@ the ordered probit model, whereas the logistic distribution
 gives the ordered logit model.
 
 The latest considered model of this kind is multinomial logistic
-regression. It s an extension of logistic regression modelling
+regression. It s an extension of logistic regression modeling
 for cases where the dependent variable is not binary but can
 take the values $0,1, \ldots, p$ and the categories are nominal,
 meaning they do not have a natural order.
@@ -77,9 +76,12 @@ The model can be written in the following form:
 	\Pr\left(y_i= 0\mid x_i\right) &= \frac{1} {1+\sum_{j=1}^{p}x_i\beta_j}.
 \end{align}
 
-Poisson regression is a model used to predict count data occurrences. That is, a dependent variable $y$ takes values $k=0,1, 2\ldots$ from the Poisson distribution. Under this assumption, the probability of the outcome variable $y$ conditional upon regressors is given by:
+Poisson regression is a model used to predict count data
+occurrences. That is, a dependent variable $y$ takes values
+$k=0,1, 2\ldots$ from the Poisson distribution. Under this
+assumption, the probability of the outcome variable $y$
+conditional upon regressors is given by:
 \begin{equation}
-%	\Pr\left(y_i= j \mid X_r\right) = \frac{\exp \left\{-\lambda_r \right\} \lambda_r^j}{j!},
 	\Pr\left(y_i= k\mid x_i\right)  = \frac{\exp \left\{-\lambda_{i} \right\} \lambda_{i}^k}{k!},
 \end{equation}
 where $\lambda_i= \exp(\sum_{j=1}^{k_r}x_{ij}\beta_{j})$ in model $M_r$.
@@ -130,28 +132,8 @@ All of the mentioned models are available in the \pkg{BACE}
 package. Through the use of model averaging analysis, it is
 possible to estimate parameters, identify the key determinants,
 and make predictions.
-%\subsection{BACE in regression models}
-%Our package focuses mainly on models with discrete dependent variable however it is also possible to estimate linear regression parameters as well. Consider simple regression model $M_r$: 
-%\begin{equation}
-%	y = X_r\beta_r + \epsilon
-%\end{equation}
-%where $y$ is $(N x 1)$ vector of observations,  $X_r$ is  $(N x k_r)$ matrix containing the set of independent variables and constant, $\beta_r$ is a $(k_r x 1)$ vector of unknown parameters, $\epsilon$ is a $(N x 1)$ vector of errors which are assumed to be normally distributed i.e. $\epsilon \sim N(0_N, \sigma^2I_N)$, $N(\mu, \Sigma)$ denotes a normal distribution
-%with location $\mu$ and covariance $\Sigma$.
 
 
-%In case of standard BIC defined in (\ref{eq: BIC}) and by applying Ordinary Least Squares (OLS) estimates \citep[][]{KassRaftery-BayesFactors-1995,SalaMartinDoppelhoferMiller_BACE} we can also 
-%calculate approximation of posterior probability of model $M_j$ i.e.  $\Pr(M_j|y)$ using the following simplified
-%formula:
-
-%\begin{equation}
-%	\Pr(M_j|y) \approx \frac{\Pr(M_j)N^{-k_j/2}SSE_j^{-N/2}}
-%	{\sum_{r=1}^{2^K}\Pr(M_r)N^{-k_r/2}SSE_r^{-N/2}},
-%\end{equation}
-%where  $SSE_j$ and $SSE_r$ are the OLS sum of squared errors, $2^K$ denotes the total number of potential combinations of the \textit{K} independent variables, $k_j$ and $k_r$ are the number of regression parameters $\beta_j$ and $\beta_r$. 
-%Doppelhofer-Weeks Measure (DW1)
-%\begin{equation}
-%J_{DW1}(A,B)=\ln \left( \frac{p(A \cap B|y)}{p(A|y)p(B|y)} \right)
-%\end{equation}
 
 \subsection{Jointness measures}\label{sec:jointness_measures}
 The main implementations of  model averaging are concerned
@@ -178,9 +160,7 @@ in the literature. In \pkg{BACE} we have:
 	\label{tab:GeneralContingencyTable}
 \end{table}
 
-%Based on  the information included  in  Table \ref{tab:GeneralContingencyTable}, we can easily calculate a number of jointness measures considered in the literature:
-
-\label{sec:jointess_numbers}\begin{itemize}
+\begin{itemize}\label{sec:jointess_numbers}
 	\item The jointness measure $J_{\mathit{DW1}}$, first
 		proposed in the \cite{DoppelhoferWeeks2005}:
 		\begin{align}
@@ -251,88 +231,3 @@ in the literature. In \pkg{BACE} we have:
 Information on the properties of these listed measures
 and their interpretations can be found in the publication
 of \cite{Hofmarcher2018}.
-
-%According to \cite{DoppelhoferWeeks2009}, we use the classification
-%of jointness among the variables given in Table~\ref{tab1}. 
-%\begin{table}[hbt!]
-%	\centering
-%	\caption{Classification of strength of jointness measures.}\label{tab1}	
-%	\begin{tabular}{lc}\hline
-%		Evidence & Jointness statistics \\ \hline
-%		strong substitutes & $J_{\mathit{LS}}, J_{\mathit{DW}} \le -2 $ \\
-%		significant substitutes & $-2 <J_{\mathit{LS}}, J_{\mathit{DW}} \le-1 $ \\
-%		not significantly related & $-1< J_{\mathit{LS}}, J_{\mathit{DW}} <1 $ \\
-%		significant complements & $ 1\ge J_{\mathit{LS}}, J_{\mathit{DW}} <2 $ \\
-%		strong complements & $ J_{\mathit{LS}}, J_{\mathit{DW}} \ge 2 $ \\ \hline
-%	\end{tabular}	
-%\end{table} 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%% OLD %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\cite{DoppelhoferWeeks2009}(DW2)
-%\begin{equation}
-%J_{DW2}(i,j)=\ln \left( \frac{p(i\cap j|y)p(\overline i \cap \overline j|y)}{p (i \cap \overline j|y) p(\overline i \cap j|y)} \right)
-%\end{equation}
-%
-%
-%\cite{LeySteel2007}(LS2)
-%\begin{equation}
-%J_{LS1}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i|y)+p(j|y) - 2p(i \cap j|y)} \right)
-%\end{equation}
-%%
-%%\cite{LeySteel2007} (LS2)
-%%\begin{equation}
-%%J_{LS2}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)+p(\overline i \cap j|y)} \right)
-%%\end{equation}
-%
-%Strachan Measure \cite{Strachan2009}
-%\begin{equation}
-%J_{St}(i,j)=\ p(i|y)p(j|y) \ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)p(\overline i \cap j|y)} \right)
-%\end{equation}
-%
-%%Yule's Q Measure (YQ) \cite{}
-%%\begin{equation}
-%%J_{YQ}(A,B)=\ln \left( \frac{p(A \cap B|y)p(\overline A \cap \overline B|y) - p(A \cap \overline B|y)p(\overline A \cap  B|y)}{p(A \cap %B|y)p(\overline A \cap \overline B|y) + p(A \cap \overline B|y)p(\overline A \cap  B|y)} \right)
-%%\end{equation}
-%
-%Modified Yule's Q Measure (YQM) \cite{Hofmarcher2018}
-%\begin{equation}
-%J_{YQ}(i,j)=\ln \left( \frac{\left(p(i \cap j|y)+ \frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) - \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right)}
-%{\left(p(i \cap j|y)+\frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) + \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right) -\frac{1}{2}} \right)
-%\end{equation}
-%
-%A (B ) indicates that event A (B) did not occur.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%\cite{DoppelhoferWeeks2009}(DW2)
-%\begin{equation}
-%J_{DW2}(i,j)=\ln \left( \frac{p(i\cap j|y)p(\overline i \cap \overline j|y)}{p (i \cap \overline j|y) p(\overline i \cap j|y)} \right)
-%\end{equation}
-
-
-%\cite{LeySteel2007}(LS2)
-%\begin{equation}
-%J_{LS1}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i|y)+p(j|y) - 2p(i \cap j|y)} \right)
-%\end{equation}
-%
-%\cite{LeySteel2007} (LS2)
-%\begin{equation}
-%J_{LS2}(i,j)=\ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)+p(\overline i \cap j|y)} \right)
-%\end{equation}
-
-%Strachan Measure \cite{Strachan2009}
-%\begin{equation}
-%J_{St}(i,j)=\ p(i|y)p(j|y) \ln \left( \frac{P(i \cap j |y)}{p(i \cap \overline j |y)p(\overline i \cap j|y)} \right)
-%\end{equation}
-
-%Yule's Q Measure (YQ) \cite{}
-%\begin{equation}
-%J_{YQ}(A,B)=\ln \left( \frac{p(A \cap B|y)p(\overline A \cap \overline B|y) - p(A \cap \overline B|y)p(\overline A \cap  B|y)}{p(A \cap %B|y)p(\overline A \cap \overline B|y) + p(A \cap \overline B|y)p(\overline A \cap  B|y)} \right)
-%\end{equation}
-
-%Modified Yule's Q Measure (YQM) \cite{Hofmarcher2018}
-%\begin{equation}
-%J_{YQ}(i,j)=\ln \left( \frac{\left(p(i \cap j|y)+ \frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) - \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right)}
-%{\left(p(i \cap j|y)+\frac{1}{2}\right) \left(p(\overline i \cap \overline j|y)+\frac{1}{2}\right) + \left(p(i \cap \overline j|y)+\frac{1}{2}\right)\left(p(\overline i \cap  j|y)+\frac{1}{2}\right) -\frac{1}{2}} \right)
-%\end{equation}
-
-%A (B ) indicates that event A (B) did not occur.

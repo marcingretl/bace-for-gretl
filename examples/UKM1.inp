@@ -1,0 +1,21 @@
+set verbose off
+open UKM1.gdt --quiet
+include BACE.gfn
+
+# We add lags
+lags 4 ; m p y Rn
+
+# We define GUM for UKM1 as ADL(4,4) following Hendry, Krolzig 2001
+list UKM1_GUM = p p_1 p_2 p_3 p_4 y y_1 y_2 y_3 y_4 \
+  Rn Rn_1 Rn_2 Rn_3 Rn_4
+
+# We set up sample size
+smpl --permanent 1963:1 1989:2
+
+set seed 1000000
+set stopwatch
+UKM1 = BACE(m, UKM1_GUM, _(y_lag=4, with_const=2, \
+  model_prior="binomial", bic_type="hbic", \
+  Nrank=20, Npredict=16, Nrep=500000, burn=50))
+printf "\nAnalysis took %.2f sec.\n", $stopwatch
+

@@ -1,0 +1,43 @@
+set verbose off
+set seed 1000000
+
+# We load packages
+include BACE.gfn
+
+# We load wtp dataset
+open wtp.gdt --quiet
+
+# We construct the two bounds variables
+series lo = NA
+series hi = NA
+
+smpl depvar == 1 --restrict
+hi = bidl
+smpl depvar == 2 --restrict --replace
+lo = bidl
+hi = bid1
+smpl depvar == 3 --restrict --replace
+lo = bid1
+hi = bidh
+smpl depvar == 4 --restrict --replace
+lo = bidh
+
+/*
+   Re-establish the full sample range and run two variants
+   of interval regression; a likelihood-ratio test is also
+   computed.
+*/
+smpl full
+
+# We specify list with Y bounds
+list Y = lo hi
+
+# We specify list of explanatory variables
+list X = 1 2 9 10 11
+
+#########################################################################
+#	BACE 																#
+#########################################################################
+set stopwatch
+BACE(Y, X, _(model_type="intreg"))
+printf "Total execution time: %.2f sec.\n", $stopwatch

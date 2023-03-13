@@ -1,0 +1,19 @@
+set verbose off
+set seed 1000000
+
+# We load packages
+include BACE.gfn
+
+# We open Growth dataset
+open FLS_41t72.gdt --quiet
+
+# We specify list of explanatory variables
+list X = 2..42
+
+# We set number of MC3 draws
+scalar N = 3*10^6
+
+set stopwatch
+BACE(Growth, X, _(model_prior="binomial", bic_type="bic", \
+  avg_model_size=7, Nrank=20, Nrep=N, burn=33, do_joint="myq"))
+printf "Total execution time: %.2f sec.\n", $stopwatch

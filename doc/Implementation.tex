@@ -238,24 +238,6 @@ categories based on the type of numbers they can take:
 	\lstinline!binary_threshold!.
 \end{enumerate}
 
-%Some of the above-mentioned parameters are over-loadable, which
-%means that their value may be passed either via an integer or
-%via string (case insensitive). Those parameters (together with
-%value-string mappings) are:\label{sec:over-loadable_options}
-%\begin{description}
-%	\item[\textbf{bic\_type}]: 'bic'=1, 'hbic'=2, 'ibic'=3, 'ebic'=4;
-%	\item[\textbf{model\_prior}]: 'none'=0, 'binomial'=1,
-%	'betabinomial'=2 (or 'beta-binomial'=2);
-%	\item[\textbf{with\_const}]: 'never'=0, 'always'=1,
-%	'canbedropped'=2 (or 'can be dropped'=2);
-%	\item[\textbf{do\_joint}]: 'none'=0, 'dw1'=1, 'dw2'=2,
-%	'ls1'=3, 'ls2'=4, 'sm'=5, 'yq'=6, 'myq'=7;
-%	\item[\textbf{data\_trans}]: 'none'=0, 'centering'=1,
-%	'standarizing'=2;
-%	\item[\textbf{model\_type}]: 'linear'=1, 'logit'=2,
-%	'probit'=3, 'poisson'=4, 'tobit'=5, 'intreg'=6;
-%\end{description}
-
 
 \subsubsection{\cmd{BACE\_GUI()}}\label{sec:BACE_GUI()}
 Instead of using the script method, another option to utilize
@@ -335,7 +317,8 @@ heatmaps with variables inclusions and jointness results.
 In non-GUI mode (when \lstinline!$sysinfo["gui_mode"]! == 0),
 plots are generated as scripts for \texttt{gnuplot}%
 \footnote{See \url{http://www.gnuplot.info} for additional
-	information.} program and saved on a disk. Names of
+	information.} program and saved on a disk in path
+specified under \gretlcmd{\$workdir} entry. Names of
 generated files have their base set to 
 \lstinline!strftime($now[1], "%Y%m%d%H%M%S")!.
 Example graphs are presented on

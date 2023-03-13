@@ -1,4 +1,4 @@
-
+\section{Usage of the \pkg{BACE} package}\label{sec:usage_of_the_BACE package}
 The main interface to the \pkg{BACE} package
 is \cmd{BACE()} function described in \ref{sec:BACE()}.
 Calling this function is available from both:
@@ -7,9 +7,10 @@ the package via \lstinline!include! command.
 As an
 example we use so-called NELS dataset used in
 \cite{HillGriffithsLim_principles_2017}
-which concerns longitudinal study on eigth-grade students
+which concerns longitudinal study on eight-grade students
 in USA\footnote{This dataset is available at
-	\url{http://www.principlesofeconometrics.com/poe5/poe5data.html}. It is also included in the standard \pkg{gretl} distribution thanks to the work of Lee Adkins:
+	\url{http://www.principlesofeconometrics.com/poe5/poe5data.html}.
+	It is also available for \pkg{gretl} thanks to the work of Lee Adkins:
 	\url{http://www.learneconometrics.com/gretl/index.html}.}.
 Table~\ref{tab:nels_dataset_description} includes basic
 characteristics of this dataset.
@@ -17,7 +18,7 @@ characteristics of this dataset.
 \begin{table}[htb!]
 	\centering
 	\caption{NELS dataset variables definition}%
-	\label{tab:nels_dataset_description}%\multirow{3}{*}{Hendrys' selection}\ldelim\{{7}{20pt}[]
+	\label{tab:nels_dataset_description}
 	\begin{footnotesize}\begin{tabulary}{0.9\textwidth}{lCL}\hline\hline
 		\multirow[c]{3}{*}{psechoice}&\multirow[c]{3}{*}{=}&%
 			\hspace*{-9pt}\multirow[t]{3}{*}{\ldelim\{{3}{*}}%
@@ -38,7 +39,8 @@ characteristics of this dataset.
 		grants	  &=& 1 if student had a grant/scholarship or fellowship when attending college\\
 		loans	  &=& 1 if student received a loan while attending college\\\hline
 	\end{tabulary}\newline
-	Source: \url{http://www.principlesofeconometrics.com/poe5/data/def/nels.def}\end{footnotesize}
+	Source: \url{http://www.principlesofeconometrics.com/poe5/data/def/nels.def}
+	\end{footnotesize}
 \end{table}
 
 We assume analysis for ordered probit model for \texttt{psechoice} with
@@ -46,8 +48,10 @@ default values of \pkg{BACE} parameters. The only
 non-default setting will be jointness analysis by
 modified Yule's~Q Measure (Equation~\ref{YqM_jointness}).
 A very minimal code would be as follows%
-\footnote{Total execution time on machine with 4 Intel Core
-	i7-8550U CPU @1.80GHz and 16~GB RAM took $\approx$~8 sec.}:
+\footnote{Total execution time on Debian bookworm/sid machine
+	with 4 Intel Core i7-8550U CPU @1.80GHz and 16~GB RAM with
+	gretl compiled by gcc 12.2.0 and linked against libopenblas
+	0.3.21 took $\approx$~8 sec.}:
 \begin{lstlisting}
 open nels.gdt --quiet
 include BACE.gfn
@@ -170,7 +174,6 @@ several important sections, such as the initial settings and
 basic summary of random sampling, an initial (starting) model
 estimates, posterior results—summary of the most common model
 averaging metrics, jointness measures, and estimates for the top models.
-%[Principles of Econometrics 5th Ed, example 16.3.4]
 
 When you run the script with the initial set (a complete script
 is described on page \pageref{sc:initial_script_example}):
@@ -267,7 +270,10 @@ extended with additional information:
   	the number of left-- and right--unbounded, bounded, and
   	point observations will be printed.
   \item When it comes to models with a censored dependent
-  variable, the results of the normality test are displayed.
+  	variable, the results of the normality test are displayed.
+  \item Note that in case of a multinomial \gretlcmd{logit},
+  	the output in starting model output is multiplied as many
+  	times as the number of cases of dependent variable minus 1.
 \end{itemize}
 
 One of the first pieces of information displayed about
@@ -317,7 +323,9 @@ metrics: \texttt{PIP} (Posterior Inclusion Probabilities),
 means and standard deviations of parameters), \texttt{Cond.Mean}
 and \texttt{Cond.Std.Dev.} (the posterior mean and standard
 deviation of each coefficient, conditional on the variable being
-included in the model).
+included in the model). And again, in case of a multinomial
+\gretlcmd{logit}, the posterior results are printed as many
+times as the number of cases of dependent variable minus 1.
 
 In ordered probit and logit models, the values of the
 cut points are used to measure the effects of the
@@ -377,11 +385,11 @@ approximations \ref{eq: BIC}--\ref{eq: EBIC}.
 Contingency table (actual in rows, predicted in columns):
              1            2            3 
 
-1          896          375          124 
-2          375          610          816 
-3          129          496         2828 
+1          876          404          115 
+2          355          660          786 
+3          123          534         2796 
 
-Number of cases 'correctly predicted' = 4334 (accuracy 65.2%)		
+Number of cases 'correctly predicted' = 4332 (accuracy 65.2%)		
 \end{CodeOutput}
 \end{CodeChunk}
 
@@ -437,8 +445,8 @@ loans      1.000000      1.000000      1.000000      1.000000     ...
 
 In the binary dependent variable models, by default, we use a
 threshold of 0.5. It is also worth noting that  this threshold
- value ($binary\_threshold = 0.5$) can be adjusted in \pkg{BACE}
- package to achieve a desired recall and precision in the model setup.
+value ($binary\_threshold = 0.5$) can be adjusted in \pkg{BACE}
+package to achieve a desired recall and precision in the model setup.
 
 In the final step, the output provides maximum likelihood
 estimates (MLE) for the top estimated models. It provides
@@ -447,6 +455,9 @@ inferences for the model  coefficients in the columns labeled
 and \texttt{p-value}. Additionally, it provides the type of
 information criterion used (in this case, \texttt{HBIC}) and the
 explanatory power (represented by the \texttt{posterior probability}).
+Note that in case of a multinomial \gretlcmd{logit},
+the output of model estimates is multiplied as many times
+as the number of cases of dependent variable minus 1.
 \begin{CodeChunk}\begin{CodeOutput}
 Best specifications (MLE estimates for ordered probit model):
 ----------------------------------
@@ -515,19 +526,6 @@ The analysis also shows that, under these assumptions, the data
 indicate that the most likely models consist of 10 and, further
 down, 11 independent variables, additionally, combinations
 consisting of 8 or less  elements are highly improbable.
-%\baceopts{scalar Options["model_prior"] = 2}: prior model
-%distribution to use; possible values are: 0---none,
-%1---Binomial, 2---Beta-Binomial
-%(see Equations~(\ref{eq:prior_model_size_binomial})
-%and (\ref{eq:prior_model_size_binomial-beta}));
-
-
-%Prior model probabilities with associated prior
-%model size for $K=7$ and $\E(\Xi)=\frac{K}{2}$
-%when model includes constant term
-%\baceopts{scalar Options["avg_model_size"] = avg_model_size_tmp}:
-%expected prior model size, where \gretlcmd{scalar avg_model_size_tmp}
-%is calculated according to the following formula:
 
 \begin{figure}[h!]%{0.4\textwidth}
 	\centering
@@ -569,4 +567,3 @@ that there is a high complementarity between the most relevant
 variables. On the other hand, two variables (\texttt{female}
 and \texttt{asian}) are strongly substitutable for the others
 and rarely appear in the most likely models.
-%variables inclusions and jointness results
