@@ -1,6 +1,8 @@
 set verbose off
-open UK_Inflation_1875-1991.gdt --quiet
 include BACE.gfn
+
+# We open UK inflation dataset by Hendry (2001)
+open UK_Inflation_1875-1991.gdt --frompkg=BACE --quiet
 
 # We create additional variables
 series p0p = po - p

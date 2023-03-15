@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gretl-functions>
-<gretl-function-package name="BACE" minver="2022c" lives-in-subdir="true">
+<gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.0</version>
-<date>2023-03-13</date>
-<description>This package provides BACE (Bayesian Averaging of Classical Estimates) procedure.</description>
+<date>2023-03-15</date>
+<description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
 <menu-attachment>MAINWIN/Model</menu-attachment>
@@ -2591,7 +2591,7 @@ return Exp/(1-P0) - avg
 set verbose off
 
 # Usage:
-open nels.gdt --quiet
+open nels.gdt --frompkg=BACE --quiet
 include BACE.gfn
 
 # We specify list of explanatory variables

@@ -1,6 +1,8 @@
 set verbose off
-open UKM1.gdt --quiet
 include BACE.gfn
+
+# We open UK M1 dataset
+open UKM1.gdt --frompkg=BACE --quiet
 
 # We add lags
 lags 4 ; m p y Rn

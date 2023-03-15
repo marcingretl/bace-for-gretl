@@ -5,7 +5,7 @@ set seed 1000000
 include BACE.gfn
 
 # We load tobit dataset [https://stats.oarc.ucla.edu/r/dae/tobit-models/]
-open tobit.gdt --quiet
+open tobit.gdt --frompkg=BACE --quiet
 
 # We specify list of explanatory variables
 list X = read math proggeneral progvocational

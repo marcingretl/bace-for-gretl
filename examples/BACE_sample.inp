@@ -1,7 +1,7 @@
 set verbose off
 
 # Usage:
-open nels.gdt --quiet
+open nels.gdt --frompkg=BACE --quiet
 include BACE.gfn
 
 # We specify list of explanatory variables

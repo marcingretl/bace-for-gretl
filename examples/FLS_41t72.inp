@@ -2,10 +2,10 @@ set verbose off
 set seed 1000000
 
 # We load packages
-include BACE.gfn
+include BACE.gfn 
 
 # We open Growth dataset
-open FLS_41t72.gdt --quiet
+open FLS_41t72.gdt --frompkg=BACE --quiet
 
 # We specify list of explanatory variables
 list X = 2..42
