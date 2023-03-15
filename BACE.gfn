@@ -614,7 +614,7 @@ endif
   <param name="Y" type="series">
 <description>Dependent variable</description>
   </param>
-  <param name="X_list" type="list" optional="true">
+  <param name="X_list" type="list">
 <description>List of independent variables (X)</description>
   </param>
   <param name="with_const" type="int" min="0" max="2" default="1">
@@ -718,6 +718,10 @@ scalar err_nr
 #################################################################################
 #	Critical problems 															#
 #################################################################################
+# We check if we have at least two possible explanatory variables
+if k &lt; 2
+  err = &quot;We must have at least 2 explanatory variables to run BACE analysis&quot;
+endif
 # We check if Y variable &quot;is discrete&quot; or &quot;count data&quot; in case of non-OLS model
 if M.limited_y &amp;&amp; sum(Y_uniq - int(Y_uniq)) &gt; 0
   err = &quot;The dependent variable is not discrete&quot;
@@ -2589,10 +2593,10 @@ return Exp/(1-P0) - avg
 </gretl-function>
 <sample-script filename="examples/BACE_sample.inp">
 set verbose off
-
-# Usage:
-open nels.gdt --frompkg=BACE --quiet
 include BACE.gfn
+
+# NELS dataset available at http://www.learneconometrics.com/gretl/index.htm
+open nels.gdt --frompkg=BACE --quiet
 
 # We specify list of explanatory variables
 list X = 2..14
@@ -2603,25 +2607,6 @@ set seed 1000000
 set stopwatch
 BACE(psechoice, X, _(model_type=&quot;probit&quot;))
 printf &quot;Total execution time: %.2f sec.\n&quot;, $stopwatch
-/*
-Suppose we want to run ordered logit instead of probit analysis.
-What's more, we want to use Beta-Binomial prior over model size
-and perform jointness analysis using modified Yule's Q Measure.
-W'd like to switch off ploting grahs. Finally, we also want to save
-results of the BACE analysis under thr RES bundle:
-*/
-RES = BACE(psechoice, X, _(model_type=&quot;logit&quot;, model_prior=&quot;beta-binomial&quot;,\
- do_joint=&quot;MYQ&quot;, do_plot=0))
-printf &quot;Total execution time: %.2f sec.\n&quot;, $stopwatch
-/*
-Suppose we want to calculate Doppelhofer-Weeks Measure instead of
-already computed Ley-Steel Measure. Since the type of jointness measure
-is controlled by do_join field in the result bundle, the only thing
-we have to do is to set the value of do_join to 2 and print BACE
-results again. The code should be as follows:
-*/
-RES[&quot;do_joint&quot;] = 1
-BACE_Print(&amp;RES)
 </sample-script>
 </gretl-function-package>
 </gretl-functions>

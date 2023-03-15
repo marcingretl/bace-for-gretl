@@ -18,7 +18,7 @@
 function bundle BACE_GUI (
     int model_type[1:6:1] "Model type" {"logit", "probit", "mlogit", "poisson", "tobit", "linear"},
       series Y "Dependent variable",
-      list X_list[null] "List of independent variables (X)",
+      list X_list "List of independent variables (X)",
       int with_const[0:2:1] "Constant in model" {"Never", "Always", "Can be dropped"},
       int model_prior[0:2:1] "Model prior" {"none", "Binomial", "Beta-Binomial"},
       int bic_type[1:4:2] "Bayesian information criterion" {"BIC", "HBIC", "IBIC", "EBIC"},

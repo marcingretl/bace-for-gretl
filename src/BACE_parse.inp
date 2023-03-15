@@ -58,6 +58,11 @@ function string BACE_parse (bundle *M,
     #################################################################################
     #	Critical problems 															#
     #################################################################################
+    # We check if we have at least two possible explanatory variables
+    if k < 2
+        err = "We must have at least 2 explanatory variables to run BACE analysis"
+    endif    
+
     # We check if Y variable "is discrete" or "count data" in case of non-OLS model
     if M.limited_y && sum(Y_uniq - int(Y_uniq)) > 0
         err = "The dependent variable is not discrete"

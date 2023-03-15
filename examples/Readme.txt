@@ -18,7 +18,7 @@ Journal of Applied Econometrics, Vol. 16, No. 5, pp. 563-576
 (original data and results can be found at:
 http://qed.econ.queensu.ca/jae/2001-v16.5/fernandez-ley-steel).
 
-We run BMA analysis with the following non-default parameters:
+We run BACE analysis with the following non-default parameters:
   a. number of Monte Carlo draws: 3000000
   b. percentage of burn-in draws: 33
   c. number of top-ranked models: 20
@@ -49,3 +49,6 @@ DOI: 10.3390/econometrics8020021.
 6. tobit.inp - tobit regression example for measure of academic
 aptitude based on example available at:
 https://stats.oarc.ucla.edu/r/dae/tobit-models/
+
+7. logit.inp - binary logit example, where we set
+'binary_threshold' parameter to 0.6 (instead of default 0.5).
