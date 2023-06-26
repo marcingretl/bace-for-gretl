@@ -22,6 +22,10 @@ function bundle BACE (list Y "Dependent variable(s)",
        Bundle-based to carry out BMA analysis.
        Function returns bundle MODEL with (formatted) results.
     */
+
+    # We need to force use of locale-specific decimal point
+    set force_decpoint on
+    
     bundle MODEL
     string err
     series Y1, Y2
