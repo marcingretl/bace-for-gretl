@@ -34,7 +34,7 @@ function void BACE_Plot (const bundle *MODEL)
             terminal_opts = sprintf("%s", "set terminal windows")
         else
             terminal_opts = sprintf("%s\n%s", "set terminal png", "set output '| display png:-'")
-        endif        
+        endif
     endif
 
     # We set up avg_model_size
@@ -47,11 +47,7 @@ function void BACE_Plot (const bundle *MODEL)
     endif
 
     # We decide where the legend should be placed
-    if MODEL.mod_size_av > avg_model_size
-        legend = "left"
-    else
-        legend = "right"
-    endif
+    legend = MODEL.mod_size_av > avg_model_size ? "left" : "right"
 
     #########################################################
     #						Heatmaps						#
@@ -73,11 +69,7 @@ function void BACE_Plot (const bundle *MODEL)
     if !$sysinfo.gui_mode
         output = output ~ "-MSD.plt"
     endif
-    if rows(plotmat) < 20
-        xtics = "set xtics 1"
-    else
-        xtics = ""
-    endif
+    xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
     catch plot plotmat
         printf "%s", terminal_opts
         options with-lp fit=none
@@ -99,11 +91,7 @@ function void BACE_Plot (const bundle *MODEL)
     if !$sysinfo.gui_mode
         output = output ~ "-CDF.plt"
     endif
-    if rows(plotmat) < 20
-        xtics = "set xtics 1"
-    else
-        xtics = ""
-    endif
+    xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
     catch plot plotmat
         printf "%s", terminal_opts
         options with-line fit=none
@@ -133,11 +121,7 @@ function void BACE_Plot (const bundle *MODEL)
     if !$sysinfo.gui_mode
         output = output ~ "-MPD.plt"
     endif
-    if rows(plotmat) < 20
-        xtics = "set xtics 1"
-    else
-        xtics = ""
-    endif
+    xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
     catch plot plotmat
         printf "%s", terminal_opts
         options with-lp fit=none
