@@ -104,7 +104,7 @@ function void BACE_summary (bundle *M)
             tmpm[i] = tmpm[i] * factor
         endif
     endloop
-    if M.prior_name == "none"
+    if instring("none custom", M.prior_name)
         M.mod_size_sd_prior = NA
     else
         M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size).^2 .* M.mod_sizes[,3]))

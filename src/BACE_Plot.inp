@@ -47,7 +47,9 @@ function void BACE_Plot (const bundle *MODEL)
     endif
 
     # We decide where the legend should be placed
-    legend = MODEL.mod_size_av > avg_model_size ? "left" : "right"
+    if MODEL.prior_name != "custom"
+        legend = MODEL.mod_size_av > avg_model_size ? "left" : "right"
+    endif    
 
     #########################################################
     #						Heatmaps						#
@@ -70,12 +72,20 @@ function void BACE_Plot (const bundle *MODEL)
         output = output ~ "-MSD.plt"
     endif
     xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
+    if MODEL.prior_name == "custom"
+        title = cnameget(plotmat)[2:3]
+        plotmat = plotmat[,2:3]
+        cnameset(plotmat, title)
+        plot_title = "Posterior Model Size Distribution"
+    else
+        plot_title = "Model Size Distribution"
+    endif
     catch plot plotmat
         printf "%s", terminal_opts
         options with-lp fit=none
         literal set link y2 via y inverse y
         printf "%s", xtics
-        printf "set title \"%s\"", "Model Size Distribution"
+        printf "set title \"%s\"", plot_title
         printf "set xlabel \"%s\"", "Model Size"
         printf "set ylabel \"%s\"", "Density"
         printf "set key %s top", legend

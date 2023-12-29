@@ -51,7 +51,7 @@ function void BACE_Print (bundle *MODEL)
     endif
 
     # We set up real prior avg_model_size
-    if M.prior_name == "none"
+    if instring("none custom", M.prior_name)
         avg_model_size = NA
     else
         avg_model_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,3])

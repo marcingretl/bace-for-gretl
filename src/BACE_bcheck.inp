@@ -27,6 +27,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     string err = ""
     string separator = ", "
     scalar avg_model_size_tmp = 0
+    scalar model_prior_tmp = 1
     scalar err2, arg_val, do_plot_tmp, do_show_progress, alpha_tmp
     bundle Options, Overloadable
     string arg_name, parameter_value
@@ -36,7 +37,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     strings Scalars = defarray("avg_model_size", "alpha", "binary_threshold")
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson", "tobit", "intreg", "mlogit")
     strings BicTypes = defarray("BIC", "HBIC", "IBIC", "EBIC")
-    strings ModelPriorTypes = defarray("none", "Binomial", "Beta-Binomial")
+    strings ModelPriorTypes = defarray("none", "Binomial", "Beta-Binomial", "custom")
     strings ConstTypes = defarray("Never", "Always", "Can be dropped")
     strings DataTransTypes = defarray("none", "centering", "standarizing")
     strings OverloadableKeys
@@ -48,7 +49,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         do_show_progress = 0
     endif
     Overloadable["bic_type"] = _(bic=1, hbic=2, ibic=3, ebic=4, valid=tolower(flatten(BicTypes, separator)))
-    Overloadable["model_prior"] = _(none=0, binomial=1, betabinomial=2, valid=tolower(flatten(ModelPriorTypes, separator)))
+    Overloadable["model_prior"] = _(none=0, binomial=1, betabinomial=2, custom=3, valid=tolower(flatten(ModelPriorTypes, separator)))
     Overloadable["with_const"] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
     Overloadable["do_joint"] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid="none, DW1, DW2, LS1, LS2, SM, YQ, MYQ")
     Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
@@ -106,18 +107,29 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         with_const_tmp = UserOpts["with_const"]
         avg_model_size_tmp = (k + y_lag_tmp + (with_const_tmp == 2)) / 2
     endif
-    
+
     # We set default alpha
     if inbundle(UserOpts, "model_type") && UserOpts["model_type"] == "intreg"
         alpha_tmp = 1.0
     else
         alpha_tmp = 0.6
-    endif    
+    endif
+
+    # We check if given theta is scalar or matrix and set its temporal value (if needed)
+    if inbundle(UserOpts, "theta") && !(typeof(UserOpts["theta"]) == 1 || typeof(UserOpts["theta"]) == 3)
+        err += sprintf("Theta must be either scalar or matrix, is: %s", typestr(typeof(UserOpts["theta"])))
+        return err
+    elif inbundle(UserOpts, "theta") && typeof(UserOpts["theta"]) == 1
+        UserOpts["theta"] = -1 * UserOpts["theta"]
+        model_prior_tmp = 3
+    elif inbundle(UserOpts, "theta") && typeof(UserOpts["theta"]) == 3
+        model_prior_tmp = 3
+    endif
 
     # Template bundle with default values
     string Options["model_type"] = "linear"
     scalar Options["bic_type"] = 2
-    scalar Options["model_prior"] = 1
+    scalar Options["model_prior"] = model_prior_tmp
     scalar Options["with_const"] = 1
     scalar Options["avg_model_size"] = avg_model_size_tmp
     scalar Options["data_trans"] = 0
@@ -135,6 +147,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar Options["verbosity"] = 2
     scalar Options["show_progress"] = do_show_progress
     scalar Options["do_plot"] = do_plot_tmp
+    matrix Options["theta"] = {NA}
     scalar Options["_gui"] = 0
 
     # General checking, but still needs some manual work later
@@ -175,8 +188,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         err += "Y lags (y_lag) takes the integer values"
     elif Options.with_const < 0 || Options.with_const > 2
         err += "Constant in model takes the integer values in the range [0; 2]"
-    elif Options.model_prior < 0 || Options.model_prior > 2
-        err += "Model prior takes the integer values in the range [0; 2]"
+    elif Options.model_prior < 0 || Options.model_prior > 3
+        err += "Model prior takes the integer values in the range [0; 3]"
     elif Options.alpha < 0 || Options.alpha > 1
         err += "The significance level (alpha) takes the real values in the range [0; 1]"
     elif Options.do_joint < 0 || Options.do_joint > 7
@@ -199,8 +212,12 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         err += "Hyperparameter for EBIC (gamma) takes the real values in the range [0; 1]"
     elif Options.binary_threshold <= 0 || Options.binary_threshold >= 1
         err += "Threshold for binary dependent models (binary_threshold) takes the real values in the range (0; 1)"
+    elif sum(ok(Options.theta)) && (min(Options.theta) <= 0 || max(Options.theta) >= 1) && typeof(UserOpts["theta"]) == 3
+        err += "Prior Inclusion Probabilities (theta) takes the real values in the range (0; 1)"
+    elif sum(ok(Options.theta)) && Options.model_prior < 3
+        err += sprintf("You may not mix %s model prior with Prior Inclusion Probabilities (theta)", ModelPriorTypes[Options.model_prior+1])
     endif
-
+    
     # We save options in M
     M = Options
     M.ModelTypes = ModelTypes
@@ -212,6 +229,6 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     strings M.CensoredModelTypes = M.ModelTypes[5:6]
     scalar M.limited_y = nelem(instrings(M.DiscreteModelTypes, M.model_type)) > 0 ? 1 : 0
     scalar M.censored_y = nelem(instrings(M.CensoredModelTypes, M.model_type)) > 0 ? 1 : 0
-    
+
     return err
 end function

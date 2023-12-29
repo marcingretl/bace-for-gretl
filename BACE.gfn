@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gretl-functions>
-<gretl-function-package name="BACE" no-data-ok="true" minver="2023a" lives-in-subdir="true">
+<gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
-<version>3.01-svn</version>
-<date>2023-06-26</date>
+<version>3.1-svn</version>
+<date>2023-12-29</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -24,7 +24,7 @@ examples </data-files>
   <param name="Options" type="bundle" optional="true"/>
  </params>
 <code>/*
-Bundle-based to carry out BMA analysis.
+Bundle-based BACE analysis.
 Function returns bundle MODEL with (formatted) results.
 */
 
@@ -57,7 +57,7 @@ endif
 
 # Bundle check and setting default values (if needed)
 err = BACE_bcheck(Options, &amp;MODEL, nelem(X_list))
-if strlen(err) != 0
+if strlen(err)
   funcerr &quot;@err !!!&quot;
   return MODEL
 endif
@@ -149,7 +149,7 @@ if M.Npredict &gt; 0
 endif
 
 # We set up real prior avg_model_size
-if M.prior_name == &quot;none&quot;
+if instring(&quot;none custom&quot;, M.prior_name)
   avg_model_size = NA
 else
   avg_model_size = sum(M.mod_sizes[,1] .* M.mod_sizes[,3])
@@ -488,10 +488,8 @@ elif MODEL.prior_name != &quot;none&quot; &amp;&amp; MODEL.prior_based_bic
 endif
 
 # We decide where the legend should be placed
-if MODEL.mod_size_av &gt; avg_model_size
-  legend = &quot;left&quot;
-else
-  legend = &quot;right&quot;
+if MODEL.prior_name != &quot;custom&quot;
+  legend = MODEL.mod_size_av &gt; avg_model_size ? &quot;left&quot; : &quot;right&quot;
 endif
 
 #########################################################
@@ -514,17 +512,21 @@ output = basename
 if !$sysinfo.gui_mode
   output = output ~ &quot;-MSD.plt&quot;
 endif
-if rows(plotmat) &lt; 20
-  xtics = &quot;set xtics 1&quot;
+xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
+if MODEL.prior_name == &quot;custom&quot;
+  title = cnameget(plotmat)[2:3]
+  plotmat = plotmat[,2:3]
+  cnameset(plotmat, title)
+  plot_title = &quot;Posterior Model Size Distribution&quot;
 else
-  xtics = &quot;&quot;
+  plot_title = &quot;Model Size Distribution&quot;
 endif
 catch plot plotmat
   printf &quot;%s&quot;, terminal_opts
   options with-lp fit=none
   literal set link y2 via y inverse y
   printf &quot;%s&quot;, xtics
-  printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Model Size Distribution&quot;
+  printf &quot;set title \&quot;%s\&quot;&quot;, plot_title
   printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
   printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Density&quot;
   printf &quot;set key %s top&quot;, legend
@@ -540,11 +542,7 @@ output = basename
 if !$sysinfo.gui_mode
   output = output ~ &quot;-CDF.plt&quot;
 endif
-if rows(plotmat) &lt; 20
-  xtics = &quot;set xtics 1&quot;
-else
-  xtics = &quot;&quot;
-endif
+xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
 catch plot plotmat
   printf &quot;%s&quot;, terminal_opts
   options with-line fit=none
@@ -574,11 +572,7 @@ output = basename
 if !$sysinfo.gui_mode
   output = output ~ &quot;-MPD.plt&quot;
 endif
-if rows(plotmat) &lt; 20
-  xtics = &quot;set xtics 1&quot;
-else
-  xtics = &quot;&quot;
-endif
+xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
 catch plot plotmat
   printf &quot;%s&quot;, terminal_opts
   options with-lp fit=none
@@ -850,8 +844,8 @@ if inlist(X_list, const) != 0
 endif
 
 # We check if given variables are not co-linear
-if nelem(X_list) &gt; 0
-  if M.y_lag &gt; 0
+if nelem(X_list)
+  if M.y_lag
     catch @ESTIMATOR Y Y(-1 to -M.y_lag) X_list const --quiet
     err_nr = $error
   else
@@ -871,13 +865,51 @@ if nelem(X_list) &gt; 0
   endif
   if $ncoeff &lt; k + 1
     X_list = $xlist - const
-    if M.y_lag &gt; 0
+    if M.y_lag
       loop i=1..M.y_lag --quiet
         X_list = X_list - Y_$i
       endloop
     endif
     print &quot;Some of the independent variables were colinear and were dropped.&quot;
   endif
+endif
+
+#################################################################################
+#	Critical problems 															#
+#################################################################################
+# We look for Prior Inclusion Probabilities
+if M.model_prior == 3
+  list X_list_tmp = M.with_const == 2 ? X_list const : X_list
+  theta_tmp = transp(ones(nelem(X_list_tmp)))
+  cnameset(theta_tmp, X_list_tmp)
+  if nelem(M.theta) == 1 &amp;&amp; isnan(M.theta)
+    theta_tmp *= 0.5
+  elif nelem(M.theta) == 1 &amp;&amp; !isnan(M.theta)
+    theta_tmp *= -M.theta
+  else
+    theta_tmp *= NA
+    thata_names = rows(M.theta) == 1 ? cnameget(M.theta) : rnameget(M.theta)
+    if !nelem(thata_names)
+      return &quot;Prior Inclusion Probabilities (theta) does not have variables names&quot;
+    endif
+    loop foreach x X_list_tmp --quiet
+      loop i=1..nelem(thata_names) --quiet
+        if thata_names[i] == &quot;$x&quot;
+          theta_tmp[inlist(X_list_tmp, &quot;$x&quot;)] = M.theta[i]
+          break
+        endif
+      endloop
+    endloop
+    if sum(ok(theta_tmp)) != nelem(theta_tmp)
+      if sum(!ok(theta_tmp)) == 1
+        err = rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))]
+      else
+        err = flatten(rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))], &quot;,&quot;)
+      endif
+      return sprintf(&quot;Prior Inclusion Probabilities (theta) matrix does not have value(s) for (%s)&quot;, err)
+    endif
+  endif
+  M.theta = theta_tmp
 endif
 
 series M.Y = Y
@@ -1220,7 +1252,7 @@ loop i=1..rows(M.mod_sizes) --quiet
     tmpm[i] = tmpm[i] * factor
   endif
 endloop
-if M.prior_name == &quot;none&quot;
+if instring(&quot;none custom&quot;, M.prior_name)
   M.mod_size_sd_prior = NA
 else
   M.mod_size_sd_prior = sqrt(sum((M.mod_sizes[,1] - M.avg_model_size).^2 .* M.mod_sizes[,3]))
@@ -1653,6 +1685,8 @@ elif M.prior_name == &quot;Beta-Binomial&quot;
   loop i=0..M.k --quiet
     M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
   endloop
+elif M.prior_name == &quot;custom&quot;
+  M.avg_model_size = NA
 else
   M.avg_model_size = NA
   M.model_prior_log += 1
@@ -1844,7 +1878,11 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
   endif
 
   # We calculate log of model probability
-  M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
+  if M.model_prior == 3
+    M.lprob_new = M.lprob_new + sum(mod_struct_new ? log(M.theta) : log(1-M.theta))
+  else
+    M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
+  endif
 else
   M.bhat_tmp = {}
   M.bvar_tmp = {}
@@ -1976,7 +2014,11 @@ loop i=1..M.Nrank --quiet
       var_idx = transp(mshape(var_idx', yvals*nelem(var_idx), 1))
     endif
     M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
-    M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
+    if M.model_prior == 3
+      M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - sum(mod_struct ? log(M.theta) : log(1-M.theta)))
+    else
+      M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
+    endif
     if M.limited_y &amp;&amp; M.ordered
       M.mod_rank_cuts_estimates[i] = cuts_estimates_rank[i][,1] ~ sqrt(cuts_estimates_rank[i][,2])
     endif
@@ -2346,6 +2388,7 @@ k - number of independent variables
 string err = &quot;&quot;
 string separator = &quot;, &quot;
 scalar avg_model_size_tmp = 0
+scalar model_prior_tmp = 1
 scalar err2, arg_val, do_plot_tmp, do_show_progress, alpha_tmp
 bundle Options, Overloadable
 string arg_name, parameter_value
@@ -2354,7 +2397,7 @@ strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
 strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
 strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;, &quot;mlogit&quot;)
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
-strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;)
+strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;, &quot;custom&quot;)
 strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
 strings DataTransTypes = defarray(&quot;none&quot;, &quot;centering&quot;, &quot;standarizing&quot;)
 strings OverloadableKeys
@@ -2366,7 +2409,7 @@ else
   do_show_progress = 0
 endif
 Overloadable[&quot;bic_type&quot;] = _(bic=1, hbic=2, ibic=3, ebic=4, valid=tolower(flatten(BicTypes, separator)))
-Overloadable[&quot;model_prior&quot;] = _(none=0, binomial=1, betabinomial=2, valid=tolower(flatten(ModelPriorTypes, separator)))
+Overloadable[&quot;model_prior&quot;] = _(none=0, binomial=1, betabinomial=2, custom=3, valid=tolower(flatten(ModelPriorTypes, separator)))
 Overloadable[&quot;with_const&quot;] = _(never=0, always=1, canbedropped=2, valid=tolower(flatten(ConstTypes, separator)))
 Overloadable[&quot;do_joint&quot;] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5, yq=6, myq=7, valid=&quot;none, DW1, DW2, LS1, LS2, SM, YQ, MYQ&quot;)
 Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
@@ -2432,10 +2475,21 @@ else
   alpha_tmp = 0.6
 endif
 
+# We check if given theta is scalar or matrix and set its temporal value (if needed)
+if inbundle(UserOpts, &quot;theta&quot;) &amp;&amp; !(typeof(UserOpts[&quot;theta&quot;]) == 1 || typeof(UserOpts[&quot;theta&quot;]) == 3)
+  err += sprintf(&quot;Theta must be either scalar or matrix, is: %s&quot;, typestr(typeof(UserOpts[&quot;theta&quot;])))
+  return err
+elif inbundle(UserOpts, &quot;theta&quot;) &amp;&amp; typeof(UserOpts[&quot;theta&quot;]) == 1
+  UserOpts[&quot;theta&quot;] = -1 * UserOpts[&quot;theta&quot;]
+  model_prior_tmp = 3
+elif inbundle(UserOpts, &quot;theta&quot;) &amp;&amp; typeof(UserOpts[&quot;theta&quot;]) == 3
+  model_prior_tmp = 3
+endif
+
 # Template bundle with default values
 string Options[&quot;model_type&quot;] = &quot;linear&quot;
 scalar Options[&quot;bic_type&quot;] = 2
-scalar Options[&quot;model_prior&quot;] = 1
+scalar Options[&quot;model_prior&quot;] = model_prior_tmp
 scalar Options[&quot;with_const&quot;] = 1
 scalar Options[&quot;avg_model_size&quot;] = avg_model_size_tmp
 scalar Options[&quot;data_trans&quot;] = 0
@@ -2453,6 +2507,7 @@ scalar Options[&quot;burn&quot;] = 10
 scalar Options[&quot;verbosity&quot;] = 2
 scalar Options[&quot;show_progress&quot;] = do_show_progress
 scalar Options[&quot;do_plot&quot;] = do_plot_tmp
+matrix Options[&quot;theta&quot;] = {NA}
 scalar Options[&quot;_gui&quot;] = 0
 
 # General checking, but still needs some manual work later
@@ -2493,8 +2548,8 @@ if Options.y_lag &lt; 0
   err += &quot;Y lags (y_lag) takes the integer values&quot;
 elif Options.with_const &lt; 0 || Options.with_const &gt; 2
   err += &quot;Constant in model takes the integer values in the range [0; 2]&quot;
-elif Options.model_prior &lt; 0 || Options.model_prior &gt; 2
-  err += &quot;Model prior takes the integer values in the range [0; 2]&quot;
+elif Options.model_prior &lt; 0 || Options.model_prior &gt; 3
+  err += &quot;Model prior takes the integer values in the range [0; 3]&quot;
 elif Options.alpha &lt; 0 || Options.alpha &gt; 1
   err += &quot;The significance level (alpha) takes the real values in the range [0; 1]&quot;
 elif Options.do_joint &lt; 0 || Options.do_joint &gt; 7
@@ -2517,6 +2572,10 @@ elif Options.hyperparameter &lt; 0 || Options.hyperparameter &gt; 1
   err += &quot;Hyperparameter for EBIC (gamma) takes the real values in the range [0; 1]&quot;
 elif Options.binary_threshold &lt;= 0 || Options.binary_threshold &gt;= 1
   err += &quot;Threshold for binary dependent models (binary_threshold) takes the real values in the range (0; 1)&quot;
+elif sum(ok(Options.theta)) &amp;&amp; (min(Options.theta) &lt;= 0 || max(Options.theta) &gt;= 1) &amp;&amp; typeof(UserOpts[&quot;theta&quot;]) == 3
+  err += &quot;Prior Inclusion Probabilities (theta) takes the real values in the range (0; 1)&quot;
+elif sum(ok(Options.theta)) &amp;&amp; Options.model_prior &lt; 3
+  err += sprintf(&quot;You may not mix %s model prior with Prior Inclusion Probabilities (theta)&quot;, ModelPriorTypes[Options.model_prior+1])
 endif
 
 # We save options in M
