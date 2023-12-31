@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.1-svn</version>
-<date>2023-12-29</date>
+<date>2023-12-31</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -874,44 +874,6 @@ if nelem(X_list)
   endif
 endif
 
-#################################################################################
-#	Critical problems 															#
-#################################################################################
-# We look for Prior Inclusion Probabilities
-if M.model_prior == 3
-  list X_list_tmp = M.with_const == 2 ? X_list const : X_list
-  theta_tmp = transp(ones(nelem(X_list_tmp)))
-  cnameset(theta_tmp, X_list_tmp)
-  if nelem(M.theta) == 1 &amp;&amp; isnan(M.theta)
-    theta_tmp *= 0.5
-  elif nelem(M.theta) == 1 &amp;&amp; !isnan(M.theta)
-    theta_tmp *= -M.theta
-  else
-    theta_tmp *= NA
-    thata_names = rows(M.theta) == 1 ? cnameget(M.theta) : rnameget(M.theta)
-    if !nelem(thata_names)
-      return &quot;Prior Inclusion Probabilities (theta) does not have variables names&quot;
-    endif
-    loop foreach x X_list_tmp --quiet
-      loop i=1..nelem(thata_names) --quiet
-        if thata_names[i] == &quot;$x&quot;
-          theta_tmp[inlist(X_list_tmp, &quot;$x&quot;)] = M.theta[i]
-          break
-        endif
-      endloop
-    endloop
-    if sum(ok(theta_tmp)) != nelem(theta_tmp)
-      if sum(!ok(theta_tmp)) == 1
-        err = rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))]
-      else
-        err = flatten(rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))], &quot;,&quot;)
-      endif
-      return sprintf(&quot;Prior Inclusion Probabilities (theta) matrix does not have value(s) for (%s)&quot;, err)
-    endif
-  endif
-  M.theta = theta_tmp
-endif
-
 series M.Y = Y
 string M.Y_name = Y_name
 matrix M.X_list = X_list
@@ -1481,6 +1443,7 @@ scalar tmp
 string tmp_str = &quot;&quot;
 list X_list = M.X_list
 series Y = M.Y
+matrix theta_tmp
 
 ###############################################
 # Global variables (given by user of default) #
@@ -1686,7 +1649,37 @@ elif M.prior_name == &quot;Beta-Binomial&quot;
     M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
   endloop
 elif M.prior_name == &quot;custom&quot;
+  theta_tmp = transp(ones(M.k))
+  cnameset(theta_tmp, X_list)
+  if nelem(M.theta) == 1 &amp;&amp; isnan(M.theta)
+    theta_tmp *= 0.5
+  elif nelem(M.theta) == 1 &amp;&amp; !isnan(M.theta)
+    theta_tmp *= -M.theta
+  else
+    theta_tmp *= NA
+    thata_names = rows(M.theta) == 1 ? cnameget(M.theta) : rnameget(M.theta)
+    if !nelem(thata_names)
+      return &quot;Prior Inclusion Probabilities (theta) does not have variables names&quot;
+    endif
+    loop foreach x X_list --quiet
+      loop i=1..nelem(thata_names) --quiet
+        if thata_names[i] == &quot;$x&quot;
+          theta_tmp[inlist(X_list, &quot;$x&quot;)] = M.theta[i]
+          break
+        endif
+      endloop
+    endloop
+    if sum(ok(theta_tmp)) != nelem(theta_tmp)
+      if sum(!ok(theta_tmp)) == 1
+        err = rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))]
+      else
+        err = flatten(rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))], &quot;,&quot;)
+      endif
+      return sprintf(&quot;Prior Inclusion Probabilities (theta) matrix does not hold value(s) for (%s)&quot;, err)
+    endif
+  endif
   M.avg_model_size = NA
+  M.theta = theta_tmp
 else
   M.avg_model_size = NA
   M.model_prior_log += 1
@@ -1878,7 +1871,7 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
   endif
 
   # We calculate log of model probability
-  if M.model_prior == 3
+  if M.prior_name == &quot;custom&quot;
     M.lprob_new = M.lprob_new + sum(mod_struct_new ? log(M.theta) : log(1-M.theta))
   else
     M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]

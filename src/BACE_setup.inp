@@ -25,6 +25,7 @@ function void BACE_setup (bundle *M, int Norig)
     string tmp_str = ""
     list X_list = M.X_list
     series Y = M.Y
+    matrix theta_tmp
 
     ###############################################
     # Global variables (given by user of default) #
@@ -230,7 +231,37 @@ function void BACE_setup (bundle *M, int Norig)
             M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
         endloop
     elif M.prior_name == "custom"
+        theta_tmp = transp(ones(M.k))
+        cnameset(theta_tmp, X_list)
+        if nelem(M.theta) == 1 && isnan(M.theta)
+            theta_tmp *= 0.5
+        elif nelem(M.theta) == 1 && !isnan(M.theta)
+            theta_tmp *= -M.theta
+        else
+            theta_tmp *= NA
+            thata_names = rows(M.theta) == 1 ? cnameget(M.theta) : rnameget(M.theta)
+            if !nelem(thata_names)
+                return "Prior Inclusion Probabilities (theta) does not have variables names"
+            endif
+            loop foreach x X_list --quiet
+                loop i=1..nelem(thata_names) --quiet
+                    if thata_names[i] == "$x"
+                        theta_tmp[inlist(X_list, "$x")] = M.theta[i]
+                        break
+                    endif
+                endloop
+            endloop
+            if sum(ok(theta_tmp)) != nelem(theta_tmp)
+                if sum(!ok(theta_tmp)) == 1
+                    err = rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))]
+                else
+                    err = flatten(rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))], ",")
+                endif
+                return sprintf("Prior Inclusion Probabilities (theta) matrix does not hold value(s) for (%s)", err)
+            endif
+        endif
         M.avg_model_size = NA
+        M.theta = theta_tmp
     else
         M.avg_model_size = NA
         M.model_prior_log += 1

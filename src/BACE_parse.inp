@@ -176,45 +176,7 @@ function string BACE_parse (bundle *M,
             print "Some of the independent variables were colinear and were dropped."
         endif
     endif
-
-    #################################################################################
-    #	Critical problems 															#
-    #################################################################################
-    # We look for Prior Inclusion Probabilities
-    if M.model_prior == 3
-        list X_list_tmp = M.with_const == 2 ? X_list const : X_list
-        theta_tmp = transp(ones(nelem(X_list_tmp)))
-        cnameset(theta_tmp, X_list_tmp)
-        if nelem(M.theta) == 1 && isnan(M.theta)
-            theta_tmp *= 0.5
-        elif nelem(M.theta) == 1 && !isnan(M.theta)
-            theta_tmp *= -M.theta
-        else
-            theta_tmp *= NA
-            thata_names = rows(M.theta) == 1 ? cnameget(M.theta) : rnameget(M.theta)
-            if !nelem(thata_names)
-                return "Prior Inclusion Probabilities (theta) does not have variables names"
-            endif
-            loop foreach x X_list_tmp --quiet
-                loop i=1..nelem(thata_names) --quiet
-                    if thata_names[i] == "$x"
-                        theta_tmp[inlist(X_list_tmp, "$x")] = M.theta[i]
-                        break
-                    endif
-                endloop
-            endloop
-            if sum(ok(theta_tmp)) != nelem(theta_tmp)
-                if sum(!ok(theta_tmp)) == 1
-                    err = rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))]
-                else
-                    err = flatten(rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))], ",")
-                endif
-                return sprintf("Prior Inclusion Probabilities (theta) matrix does not have value(s) for (%s)", err)
-            endif
-        endif
-        M.theta = theta_tmp
-    endif
-
+    
     series M.Y = Y
     string M.Y_name = Y_name
     matrix M.X_list = X_list
