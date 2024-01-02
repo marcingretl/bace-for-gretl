@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.1-svn</version>
-<date>2023-12-31</date>
+<date>2024-01-02</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -460,7 +460,7 @@ printf &quot;\n\n&quot;
 <code>/*
 BACE result bundle plot function.
 */
-string legend, output, basename, xtics, plot_title
+string legend, output, basename, xtics, plot_title, plotmat_str
 string yrange = &quot;&quot;
 string terminal_opts = &quot;&quot;
 scalar avg_model_size = 0
@@ -538,55 +538,87 @@ endif
 
 # Models size CDF
 plotmat = MODEL.models_probs_cdf
-output = basename
-if !$sysinfo.gui_mode
-  output = output ~ &quot;-CDF.plt&quot;
-endif
-xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
-catch plot plotmat
-  printf &quot;%s&quot;, terminal_opts
-  options with-line fit=none
-  literal set grid
-  printf &quot;%s&quot;, xtics
-  printf &quot;set title \&quot;%s\&quot;&quot;, &quot;CDF of Model Size&quot;
-  printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Number of Models&quot;
-  printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Posterior Probability Mass&quot;
-end plot --output=@output
-error = $error
-if error
-  printf &quot;CDF of Model Size: %s\n&quot;, errmsg(error)
+if rows(plotmat) &gt; 1
+  output = basename
+  if !$sysinfo.gui_mode
+    output = output ~ &quot;-CDF.plt&quot;
+  endif
+  xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
+  catch plot plotmat
+    printf &quot;%s&quot;, terminal_opts
+    options with-line fit=none
+    literal set grid
+    printf &quot;%s&quot;, xtics
+    printf &quot;set title \&quot;%s\&quot;&quot;, &quot;CDF of Model Size&quot;
+    printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Number of Models&quot;
+    printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Posterior Probability Mass&quot;
+  end plot --output=@output
+  error = $error
+  if error
+    printf &quot;CDF of Model Size: %s\n&quot;, errmsg(error)
+  endif
+else
+  printf &quot;CDF of Model Size: there is just one model in ranking.&quot;
 endif
 
-# Model prior distribution values
-idx = 1 + (MODEL.with_const != 1 &amp;&amp; !(MODEL.limited_y &amp;&amp; MODEL.ordered))
-title = defarray(MODEL.prior_name, &quot;Size&quot;)
-plotmat = exp(MODEL.model_prior_log)[idx:end] ~ MODEL.mod_sizes[,1]
-if MODEL.prior_based_bic
-  plotmat = exp(MODEL.model_prior_bic_log)[idx:end] ~ plotmat
-  plotmat = sumr(plotmat[,1:2]) ~ plotmat
-  yrange = sprintf(&quot;set yrange [0:%f]&quot;, 1.1*max(plotmat[,1:end-1]))
-  title = defarray(&quot;Effective&quot;, MODEL.bic_type_name) + title
-endif
-cnameset(plotmat, title)
+# Priors
 output = basename
 if !$sysinfo.gui_mode
   output = output ~ &quot;-MPD.plt&quot;
 endif
-xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
-catch plot plotmat
-  printf &quot;%s&quot;, terminal_opts
-  options with-lp fit=none
-  literal set link y2 via y inverse y
-  printf &quot;%s&quot;, xtics
-  printf &quot;%s&quot;, yrange
-  printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Prior Model Probabilities&quot;
-  printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
-  printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Value&quot;
-  printf &quot;set key %s top&quot;, legend
-end plot --output=@output
-error = $error
-if error
-  printf &quot;Prior Model Probabilities: %s\n&quot;, errmsg(error)
+if MODEL.prior_name == &quot;custom&quot;
+  plotmat = MODEL.theta ~ MODEL.Post_Results[,1]
+  outfile --buffer=plotmat_str
+    printf &quot;% .16f&quot;, plotmat
+  end outfile
+  catch plot
+    printf &quot;%s&quot;, terminal_opts
+    literal set title 'Inclusion Probabilities'
+    literal set boxwidth 0.9 absolute
+    literal set style fill solid 1.00 border lt -1
+    literal set style histogram clustered gap 1 title textcolor lt -1
+    literal set style data histograms
+    literal set datafile missing '-'
+    literal set key outside below center
+    literal set xtics border in scale 0,0 nomirror rotate by -45 autojustify
+    literal set yrange [ 0 : 1.05 ] noreverse writeback
+    printf &quot;$map &lt;&lt; EOD&quot;
+    printf &quot;%s&quot;, plotmat_str
+    printf &quot;EOD&quot;
+    literal plot $map using 2:xtic(1) title 'Prior', '' u 3 title 'Posterior'
+  end plot --output=@output
+  error = $error
+  if error
+    printf &quot;Prior and Posterior Inclusion Probabilities: %s\n&quot;, errmsg(error)
+  endif
+else
+  # Model prior distribution values
+  idx = 1 + (MODEL.with_const != 1 &amp;&amp; !(MODEL.limited_y &amp;&amp; MODEL.ordered))
+  title = defarray(MODEL.prior_name, &quot;Size&quot;)
+  plotmat = exp(MODEL.model_prior_log)[idx:end] ~ MODEL.mod_sizes[,1]
+  if MODEL.prior_based_bic
+    plotmat = exp(MODEL.model_prior_bic_log)[idx:end] ~ plotmat
+    plotmat = sumr(plotmat[,1:2]) ~ plotmat
+    yrange = sprintf(&quot;set yrange [0:%f]&quot;, 1.1*max(plotmat[,1:end-1]))
+    title = defarray(&quot;Effective&quot;, MODEL.bic_type_name) + title
+  endif
+  cnameset(plotmat, title)
+  xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
+  catch plot plotmat
+    printf &quot;%s&quot;, terminal_opts
+    options with-lp fit=none
+    literal set link y2 via y inverse y
+    printf &quot;%s&quot;, xtics
+    printf &quot;%s&quot;, yrange
+    printf &quot;set title \&quot;%s\&quot;&quot;, &quot;Prior Model Probabilities&quot;
+    printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
+    printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Value&quot;
+    printf &quot;set key %s top&quot;, legend
+  end plot --output=@output
+  error = $error
+  if error
+    printf &quot;Prior Model Probabilities: %s\n&quot;, errmsg(error)
+  endif
 endif
 
 #########################################################
@@ -1140,6 +1172,11 @@ list xtab_l
 scalar yvals = M.model_type == &quot;mlogit&quot; ? nelem(M.yvals)-1 : 1
 M.bhat_avg = transp(M.bhat_avg)
 M.bvar_avg = transp(M.bvar_avg)
+if M.prior_name == &quot;custom&quot;
+  title = cnameget(M.theta)
+  M.theta = transp(M.theta)
+  rnameset(M.theta, title)
+endif
 
 # Restoring values of model_prior to 0 if we have 'none'
 if M.prior_name == &quot;none&quot;

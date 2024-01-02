@@ -30,6 +30,11 @@ function void BACE_summary (bundle *M)
     scalar yvals = M.model_type == "mlogit" ? nelem(M.yvals)-1 : 1
     M.bhat_avg = transp(M.bhat_avg)
     M.bvar_avg = transp(M.bvar_avg)
+    if M.prior_name == "custom"
+        title = cnameget(M.theta)
+        M.theta = transp(M.theta)
+        rnameset(M.theta, title)
+    endif    
 
     # Restoring values of model_prior to 0 if we have 'none'
     if M.prior_name == "none"
