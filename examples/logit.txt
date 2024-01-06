@@ -1,7 +1,7 @@
-gretl version 2023b-git
-Current session: 2023-03-15 14:36
+gretl version 2024a-git
+Current session: 2024-01-06 17:17
 
-BACE 3.0, 2023-03-15 (Marcin Błażejowski, Jacek Kwiatkowski)
+BACE 3.1-svn, 2024-01-06 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
@@ -192,7 +192,7 @@ Model 5: HBIC: 229.452650, posterior probability: 0.023667
 ----------------------------------
 
 
-Total execution time: 1.04 sec.
+Total execution time: 0.98 sec.
 
 
 
@@ -379,3 +379,206 @@ Model 5: HBIC: 229.452650, posterior probability: 0.023667
 ----------------------------------
 
 
+
+BACE setup:           done!
+MC3 setup:            done!
+MC3 overall progress: [#########################] 100.0%
+Collecting results:
+           averaging: [#########################] 100.0%
+                      done!
+Summarizing:          done!
+----------------------------------
+Model type: logit
+Constant type: Always
+Prior: custom
+Prior average model size: NA
+Significance level for the initial model: 0.600000
+Bayesian information criterion used: HBIC
+Data transformation: none
+Threshold for binary dependent variable: 0.600000
+Total number of iterations: 10000
+Number of burn-in draws: 1000
+Total number of possible models: 512
+Number of models visited: 414
+Number of models accepted: 278
+
+----------------------------------
+The initial model: logit, dependent variable: low
+
+             coefficient   std. error      z      p-value
+  -------------------------------------------------------
+  const       0.464403     1.20470       0.3855   0.6999 
+  age        -0.0270698    0.0364526    -0.7426   0.4577 
+  lwt        -0.0151826    0.00692790   -2.192    0.0284  **
+  Drace_2     1.26322      0.526468      2.399    0.0164  **
+  Drace_3     0.861635     0.439197      1.962    0.0498  **
+  smoke       0.923349     0.400858      2.303    0.0213  **
+  ptl         0.541755     0.346267      1.565    0.1177 
+  ht          1.83370      0.691770      2.651    0.0080  ***
+  ui          0.758597     0.459392      1.651    0.0987  *
+
+----------------------------------
+
+Prior:
+	average model size: NA
+	standard deviation: NA
+Posterior:
+	average model size: 4.828000
+	standard deviation: 1.305618
+
+----------------------------------
+
+Posterior moments (unconditional and conditional on inclusion):
+                    PIP           Mean       Std.Dev.      Cond.Mean  Cond.Std.Dev.
+  const        1.000000      -0.222797       1.337978      -0.222797       1.337978
+     ht        0.908333       1.524829       0.839209       1.678711       0.719042
+     ui        0.814111       0.706633       0.529094       0.867981       0.451457
+    ftv        0.637778      -0.028377       0.136091      -0.044494       0.168292
+    ptl        0.594111       0.375367       0.408005       0.631813       0.343761
+  smoke        0.587222       0.454442       0.489290       0.773885       0.400598
+    lwt        0.554111      -0.009246       0.009783      -0.016685       0.006969
+Drace_2        0.355889       0.358285       0.578408       1.006733       0.535950
+Drace_3        0.350889       0.265089       0.452877       0.755479       0.462633
+    age        0.025556      -0.001098       0.008911      -0.042954       0.036188
+
+Inclusion Probabilities
+                  Prior      Posterior
+     ht        0.700000       0.908333
+     ui        0.800000       0.814111
+    ftv        0.900000       0.637778
+    ptl        0.600000       0.594111
+  smoke        0.500000       0.587222
+    lwt        0.200000       0.554111
+Drace_2        0.300000       0.355889
+Drace_3        0.400000       0.350889
+    age        0.100000       0.025556
+
+----------------------------------
+
+Posterior probability of models:
+Best 5	 models account for 0.1607 of mass
+Best 25	 models account for 0.5051 of mass
+Best 50	 models account for 0.7244 of mass
+Best 75	 models account for 0.8300 of mass
+Best 100 models account for 0.8929 of mass
+Best 101 models account for 0.8948 of mass
+Best 104 models account for 0.9004 of mass
+Best 140 models account for 0.9501 of mass
+Best 216 models account for 0.9900 of mass
+Best 278 models account for 1.0000 of mass
+
+Best models ranking:
+Model 1:	0.045111
+Model 2:	0.035556
+Model 3:	0.027111
+Model 4:	0.026778
+Model 5:	0.026111
+Total probability of the models in ranking (numerical): 0.160667
+
+Correlation coefficient between the analytical
+and numerical probabilities of the above models: 0.679115
+
+----------------------------------
+
+Contingency table (actual in rows, predicted in columns):
+                0            1 
+
+   0          128            2 
+   1           53            6 
+
+Number of cases 'correctly predicted' = 134 (accuracy 70.9%)
+----------------------------------
+
+Posterior joint probability of variables:
+                    age            lwt        Drace_2        Drace_3          smoke            ptl             ht             ui            ftv
+    age        0.000000       0.012556       0.010000       0.004889       0.015333       0.016889       0.025000       0.022667       0.017000
+    lwt        0.012556       0.000000       0.227778       0.151444       0.303222       0.309889       0.534444       0.448444       0.344222
+Drace_2        0.010000       0.227778       0.000000       0.176111       0.228222       0.200333       0.323778       0.290333       0.222667
+Drace_3        0.004889       0.151444       0.176111       0.000000       0.276333       0.207222       0.308444       0.278667       0.226889
+  smoke        0.015333       0.303222       0.228222       0.276333       0.000000       0.311000       0.528667       0.476444       0.381222
+    ptl        0.016889       0.309889       0.200333       0.207222       0.311000       0.000000       0.546333       0.457556       0.374667
+     ht        0.025000       0.534444       0.323778       0.308444       0.528667       0.546333       0.000000       0.740333       0.575889
+     ui        0.022667       0.448444       0.290333       0.278667       0.476444       0.457556       0.740333       0.000000       0.518222
+    ftv        0.017000       0.344222       0.222667       0.226889       0.381222       0.374667       0.575889       0.518222       0.000000
+
+Jointness statistics (Modified Yule's Q Measure (MYQ)):
+                    age            lwt        Drace_2        Drace_3          smoke            ptl             ht             ui            ftv
+    age             nan      -0.109587       0.272562       0.253330      -0.159730      -0.164512      -0.759996      -0.577512      -0.251567
+    lwt       -0.109587            nan       0.123954      -0.234926      -0.091970      -0.077092       0.252039       0.045253      -0.020555
+Drace_2        0.272562       0.123954            nan       0.320283       0.053314      -0.098850      -0.215879      -0.155871      -0.086830
+Drace_3        0.253330      -0.234926       0.320283            nan       0.299752      -0.052138      -0.282280      -0.201040      -0.052544
+  smoke       -0.159730      -0.091970       0.053314       0.299752            nan      -0.157161       0.105701       0.087119       0.072092
+    ptl       -0.164512      -0.077092      -0.098850      -0.052138      -0.157161            nan       0.179031      -0.033659       0.021596
+     ht       -0.759996       0.252039      -0.215879      -0.282280       0.105701       0.179031            nan       0.492870       0.190136
+     ui       -0.577512       0.045253      -0.155871      -0.201040       0.087119      -0.033659       0.492870            nan       0.146653
+    ftv       -0.251567      -0.020555      -0.086830      -0.052544       0.072092       0.021596       0.190136       0.146653            nan
+
+
+Best specifications (MLE estimates for logit model):
+----------------------------------
+
+Model 1: HBIC: 233.370624, posterior probability: 0.045111
+             coefficient   std. error      z      p-value
+  -------------------------------------------------------
+  const       0.854236     0.854265      1.000    0.3173 
+  lwt        -0.0158097    0.00665648   -2.375    0.0175  **
+  ptl         0.626687     0.337734      1.856    0.0635  *
+  ht          1.92925      0.702154      2.748    0.0060  ***
+  ui          0.767591     0.446548      1.719    0.0856  *
+  ftv        -0.0434157    0.169798     -0.2557   0.7982 
+
+
+----------------------------------
+
+Model 2: HBIC: 233.225015, posterior probability: 0.035556
+             coefficient   std. error      z      p-value
+  -------------------------------------------------------
+  const       0.733923     0.854391      0.8590   0.3903 
+  lwt        -0.0162215    0.00657909   -2.466    0.0137  **
+  smoke       0.649583     0.336432      1.931    0.0535  *
+  ht          1.91057      0.685881      2.786    0.0053  ***
+  ui          0.892759     0.443728      2.012    0.0442  **
+  ftv        -0.0261899    0.169644     -0.1544   0.8773 
+
+
+----------------------------------
+
+Model 3: HBIC: 236.383619, posterior probability: 0.027111
+             coefficient   std. error      z      p-value 
+  --------------------------------------------------------
+  const      -1.12653       0.238781    -4.718    2.38e-06 ***
+  ptl         0.699612      0.332001     2.107    0.0351   **
+  ht          1.39429       0.622095     2.241    0.0250   **
+  ui          0.873165      0.439621     1.986    0.0470   **
+  ftv        -0.0795111     0.161122    -0.4935   0.6217  
+
+
+----------------------------------
+
+Model 4: HBIC: 230.032610, posterior probability: 0.026778
+             coefficient   std. error      z      p-value
+  -------------------------------------------------------
+  const       0.832459     0.848411      0.9812   0.3265 
+  lwt        -0.0159141    0.00663324   -2.399    0.0164  **
+  ptl         0.627375     0.337280      1.860    0.0629  *
+  ht          1.94472      0.700715      2.775    0.0055  ***
+  ui          0.773244     0.445822      1.734    0.0828  *
+
+
+----------------------------------
+
+Model 5: HBIC: 234.117534, posterior probability: 0.026111
+             coefficient   std. error      z      p-value
+  -------------------------------------------------------
+  const       0.574730     0.865354      0.6642   0.5066 
+  lwt        -0.0154207    0.00662568   -2.327    0.0199  **
+  smoke       0.560667     0.343212      1.634    0.1023 
+  ptl         0.534041     0.341772      1.563    0.1182 
+  ht          1.89549      0.688929      2.751    0.0059  ***
+  ui          0.766520     0.453631      1.690    0.0911  *
+  ftv        -0.0239844    0.169622     -0.1414   0.8876 
+
+----------------------------------
+
+
+Total execution time: 0.91 sec.
