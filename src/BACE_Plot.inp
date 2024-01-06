@@ -126,7 +126,8 @@ function void BACE_Plot (const bundle *MODEL)
         output = output ~ "-MPD.plt"
     endif
     if MODEL.prior_name == "custom"
-        plotmat = MODEL.theta ~ MODEL.Post_Results[,1]
+        plotmat = MODEL.IncProbs
+        cnameset(plotmat, "")
         outfile --buffer=plotmat_str
             printf "% .16f", plotmat
         end outfile
@@ -137,10 +138,10 @@ function void BACE_Plot (const bundle *MODEL)
             literal set style fill solid 1.00 border lt -1
             literal set style histogram clustered gap 1 title textcolor lt -1
             literal set style data histograms
-            literal set datafile missing '-'
             literal set key outside below center
             literal set xtics border in scale 0,0 nomirror rotate by -45 autojustify
-            literal set yrange [ 0 : 1.05 ] noreverse writeback
+            literal set yrange [ 0 : 1.00 ] noreverse writeback
+            literal set grid
             printf "$map << EOD"
             printf "%s", plotmat_str
             printf "EOD"

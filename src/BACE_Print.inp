@@ -217,6 +217,11 @@ function void BACE_Print (bundle *MODEL)
             printf "\n%15f", M.cuts_avg
         endif
     endif
+    if M.prior_name == "custom"
+        printf "\n"
+        print "Inclusion Probabilities"
+        printf "%15f", M.IncProbs
+    endif    
     printf "\n"
     print "----------------------------------"
     printf "\n"

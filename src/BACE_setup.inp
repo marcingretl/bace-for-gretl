@@ -253,15 +253,17 @@ function void BACE_setup (bundle *M, int Norig)
             endloop
             if sum(ok(theta_tmp)) != nelem(theta_tmp)
                 if sum(!ok(theta_tmp)) == 1
-                    err = rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))]
+                    err = cnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp))]
                 else
-                    err = flatten(rnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp'))], ",")
+                    err = flatten(cnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp))], ",")
                 endif
-                return sprintf("Prior Inclusion Probabilities (theta) matrix does not hold value(s) for (%s)", err)
+                err = sprintf("Prior Inclusion Probabilities (theta) matrix does not hold value(s) for (%s)!!!", err)
+                funcerr err
             endif
         endif
         M.avg_model_size = NA
         M.theta = theta_tmp
+        matrix M.IncProbs = {}
     else
         M.avg_model_size = NA
         M.model_prior_log += 1
