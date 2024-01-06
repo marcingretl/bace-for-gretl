@@ -11,9 +11,6 @@ lags 4 ; m p y Rn
 list UKM1_GUM = p p_1 p_2 p_3 p_4 y y_1 y_2 y_3 y_4 \
   Rn Rn_1 Rn_2 Rn_3 Rn_4
 
-# We set up sample size
-smpl --permanent 1963:1 1989:2
-
 set seed 1000000
 set stopwatch
 UKM1 = BACE(m, UKM1_GUM, _(y_lag=4, with_const=2, \

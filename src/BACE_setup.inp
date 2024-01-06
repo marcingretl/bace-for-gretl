@@ -25,6 +25,7 @@ function void BACE_setup (bundle *M, int Norig)
     string tmp_str = ""
     list X_list = M.X_list
     series Y = M.Y
+    matrix theta_tmp
 
     ###############################################
     # Global variables (given by user of default) #
@@ -38,7 +39,7 @@ function void BACE_setup (bundle *M, int Norig)
     ###############################################
     if M.limited_y
         scalar M.ordered = 0
-        scalar M.cuts = 0        
+        scalar M.cuts = 0
         scalar M.multinomial = 0
         scalar M.correctly_predicted = NA
         matrix M.Yhat = {}
@@ -51,7 +52,7 @@ function void BACE_setup (bundle *M, int Norig)
             @tmp_str Y X_list --multinomial --quiet
         else
             @tmp_str Y X_list --quiet
-        endif        
+        endif
         if inbundle($model, "ordered")
             M.ordered = 1
             M.cuts = $model["ncoeff"] - $model["nx"]
@@ -229,6 +230,40 @@ function void BACE_setup (bundle *M, int Norig)
         loop i=0..M.k --quiet
             M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
         endloop
+    elif M.prior_name == "custom"
+        theta_tmp = transp(ones(M.k))
+        cnameset(theta_tmp, X_list)
+        if nelem(M.theta) == 1 && isnan(M.theta)
+            theta_tmp *= 0.5
+        elif nelem(M.theta) == 1 && !isnan(M.theta)
+            theta_tmp *= -M.theta
+        else
+            theta_tmp *= NA
+            thata_names = rows(M.theta) == 1 ? cnameget(M.theta) : rnameget(M.theta)
+            if !nelem(thata_names)
+                return "Prior Inclusion Probabilities (theta) does not have variables names"
+            endif
+            loop foreach x X_list --quiet
+                loop i=1..nelem(thata_names) --quiet
+                    if thata_names[i] == "$x"
+                        theta_tmp[inlist(X_list, "$x")] = M.theta[i]
+                        break
+                    endif
+                endloop
+            endloop
+            if sum(ok(theta_tmp)) != nelem(theta_tmp)
+                if sum(!ok(theta_tmp)) == 1
+                    err = cnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp))]
+                else
+                    err = flatten(cnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp))], ",")
+                endif
+                err = sprintf("Prior Inclusion Probabilities (theta) matrix does not hold value(s) for (%s)!!!", err)
+                funcerr err
+            endif
+        endif
+        M.avg_model_size = NA
+        M.theta = theta_tmp
+        matrix M.IncProbs = {}
     else
         M.avg_model_size = NA
         M.model_prior_log += 1
@@ -237,8 +272,8 @@ function void BACE_setup (bundle *M, int Norig)
         M.model_prior_log[2:] /= (1 - M.model_prior_log[1])
         if min(M.model_prior_log) < 0
             funcerr "The convergence criterion was not met"
-        endif        
-    endif    
+        endif
+    endif
     M.model_prior_log = log(M.model_prior_log)
 
     # Jointness stuff
@@ -254,22 +289,22 @@ function void BACE_setup (bundle *M, int Norig)
 
     # Data transformation
     M.data_trans_name = M.DataTransTypes[M.data_trans+1]
-    
+
     # Tobit model
     if !(M.low == 0 && isnan(M.high))
         if !isnan(M.low)
             M.estimator_opts = sprintf("--llimit=%f ", M.low)
-        endif        
+        endif
         if !isnan(M.high)
             M.estimator_opts = sprintf("%s--rlimit=%f", M.estimator_opts, M.high)
-        endif        
+        endif
         M.Y_censoring = 1
     endif
-    
+
     # Multinomial Logit
     if M.model_type == "mlogit"
         M.estimator_opts = "--multinomial"
-    endif    
+    endif
 
     # Verbosity setting
     if M.verbosity == 1

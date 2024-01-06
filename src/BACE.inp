@@ -19,7 +19,7 @@ function bundle BACE (list Y "Dependent variable(s)",
       list X_list "List of indenpendent variables (X)",
       bundle Options[null])
     /*
-       Bundle-based to carry out BMA analysis.
+       Bundle-based BACE analysis.
        Function returns bundle MODEL with (formatted) results.
     */
 
@@ -52,7 +52,7 @@ function bundle BACE (list Y "Dependent variable(s)",
 
     # Bundle check and setting default values (if needed)
     err = BACE_bcheck(Options, &MODEL, nelem(X_list))
-    if strlen(err) != 0
+    if strlen(err)
         funcerr "@err !!!"
         return MODEL
     endif

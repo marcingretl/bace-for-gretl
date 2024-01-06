@@ -90,7 +90,6 @@ approach, and we briefly present them further in this paper
 		with additional expression  that penalizes a model
 		based on the number of candidate models of the same size:
 		\begin{equation}
-			%		\ln p(y \mid M_r) \approx \ln p(y \mid \hat \theta_r, M_r) - \frac{k_r}{2}\ln N - \gamma \ln \binom{K}{k_r},
 			\text{EBIC} = \text{BIC} - \gamma \ln \binom{K}{k_r}.
 			\label{eq: EBIC}
 		\end{equation}
@@ -110,13 +109,16 @@ where $E(\theta_r \mid y,M_r)$ and $Var(\theta_r \mid y,M_r)$
 are the OLS (or MLE) estimates of $\theta_r$
 from model $M_r$ and $2^K$ denotes total model space.
 
-Following \cite{Ley_Steel_jae_2009} let us assume that
+Following \cite{Ley_Steel_jae_2009}, let us assume that
 each regressor enters a model independently of the others
-with prior probability $\theta \in [0, 1]$ (the prior
-probability of inclusion).
-In our \pkg{BACE} package we use two popular variants
-of prior model size $(W)$ distribution
-\citep[see][]{Ley_Steel_jae_2009,steel2011}:
+with a prior probability $\theta \in [0, 1]$ (the prior
+probability of inclusion). We offer two options here:
+either the user provides a $\theta$ vector with individual
+prior inclusion probabilities for each variable manually
+(see \gretlcmd{Options["theta"]} on page~\pageref{opts:theta}),
+or we use the theoretical prior model size $(W)$ distribution.
+In our \pkg{BACE} package, we provide two popular variants
+of such distributions \citep[see][]{Ley_Steel_jae_2009,steel2011}:
 \begin{itemize}
 	\item Binomial~\citep{Forsyth_2018}:
 		\begin{equation}
