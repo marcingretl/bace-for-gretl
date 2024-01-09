@@ -901,7 +901,7 @@ if nelem(X_list)
   if err_nr
     return sprintf(&quot;We could not estimate %s model: %s&quot;, M.model_type, errmsg(err_nr))
   endif
-  if $ncoeff &lt; k + 1
+  if $ncoeff &lt; k + 1 - (M.with_const == 2)
     X_list = $xlist - const
     if M.y_lag
       loop i=1..M.y_lag --quiet
@@ -1358,7 +1358,7 @@ if M.prior_name == &quot;custom&quot;
   else
     tmp = M.Post_Results[,1]
   endif
-  if M.multinomial
+  if M.model_type == &quot;mlogit&quot;
     tmp = tmp[1:M.k,]
   endif
   tmp = M.theta ~ tmp

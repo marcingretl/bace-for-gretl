@@ -210,7 +210,7 @@ function void BACE_summary (bundle *M)
         else
             tmp = M.Post_Results[,1]
         endif
-        if M.multinomial
+        if M.model_type == "mlogit"
             tmp = tmp[1:M.k,]
         endif        
         tmp = M.theta ~ tmp
