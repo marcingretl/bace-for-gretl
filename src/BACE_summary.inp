@@ -34,7 +34,7 @@ function void BACE_summary (bundle *M)
         title = cnameget(M.theta)
         M.theta = transp(M.theta)
         rnameset(M.theta, title)
-    endif    
+    endif
 
     # Restoring values of model_prior to 0 if we have 'none'
     if M.prior_name == "none"
@@ -206,15 +206,19 @@ function void BACE_summary (bundle *M)
     endif
     if M.prior_name == "custom"
         if M.with_const == 1
-            tmp = M.theta ~ M.Post_Results[2:end,1]
+            tmp = M.Post_Results[2:end,1]
         else
-            tmp = M.theta ~ M.Post_Results[,1]
+            tmp = M.Post_Results[,1]
         endif
+        if M.multinomial
+            tmp = tmp[1:M.k,]
+        endif        
+        tmp = M.theta ~ tmp
         title = defarray("Prior", "Posterior")
         cnameset(tmp, title)
         M.IncProbs = mreverse(msortby(tmp, 2))
-    endif   
-    
+    endif
+
     # Contingency table
     if M.limited_y
         if M.ordered

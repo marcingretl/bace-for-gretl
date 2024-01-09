@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.1-svn</version>
-<date>2024-01-06</date>
+<date>2024-01-09</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -1354,10 +1354,14 @@ if M.limited_y &amp;&amp; M.ordered
 endif
 if M.prior_name == &quot;custom&quot;
   if M.with_const == 1
-    tmp = M.theta ~ M.Post_Results[2:end,1]
+    tmp = M.Post_Results[2:end,1]
   else
-    tmp = M.theta ~ M.Post_Results[,1]
+    tmp = M.Post_Results[,1]
   endif
+  if M.multinomial
+    tmp = tmp[1:M.k,]
+  endif
+  tmp = M.theta ~ tmp
   title = defarray(&quot;Prior&quot;, &quot;Posterior&quot;)
   cnameset(tmp, title)
   M.IncProbs = mreverse(msortby(tmp, 2))
@@ -1957,11 +1961,8 @@ matrix idx, var_idx, bhat, bvar, mod_struct, models_probs, tmp_var_idx
 matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank
 scalar nr, mod_struct_sum
 scalar weight = 0
-scalar yvals = 1
 scalar with_const = 0
-if M.model_type == &quot;mlogit&quot;
-  yvals = nelem(M.yvals)-1
-endif
+scalar yvals = M.model_type == &quot;mlogit&quot; ? nelem(M.yvals)-1 : 1
 if M.with_const == 1
   matrix bhat_avg = zeros(M.k+1, yvals)
   matrix bvar_avg = zeros(M.k+1, yvals)

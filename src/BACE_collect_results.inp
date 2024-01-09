@@ -27,11 +27,8 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     matrices models_structure_rank, models_estimates_rank, cuts_estimates, cuts_estimates_rank
     scalar nr, mod_struct_sum
     scalar weight = 0
-    scalar yvals = 1
     scalar with_const = 0
-    if M.model_type == "mlogit"
-        yvals = nelem(M.yvals)-1
-    endif
+    scalar yvals = M.model_type == "mlogit" ? nelem(M.yvals)-1 : 1
     if M.with_const == 1
         matrix bhat_avg = zeros(M.k+1, yvals)
         matrix bvar_avg = zeros(M.k+1, yvals)
