@@ -84,7 +84,7 @@ function void BACE_Print (bundle *MODEL)
     printf "Significance level for the initial model: %f\n", M.alpha
     printf "Bayesian information criterion used: %s\n", M.bic_type_name
     if M.bic_type_name == "EBIC"
-        printf "Hyperparameter for EBIC (gamma): %f\n", M.hyperparameter
+        printf "Hyperparameter for EBIC (gamma): %1.8f\n", M.gamma
     endif
     printf "Data transformation: %s\n", M.data_trans_name
     if M.limited_y && !M.ordered
@@ -217,11 +217,17 @@ function void BACE_Print (bundle *MODEL)
             printf "\n%15f", M.cuts_avg
         endif
     endif
+    if inbundle(M, "oddsratios")
+        printf "\n"
+        print "Posterior odds ratios:"
+        odds_avg = mreverse(msortby(M.oddsratios, 1))
+        printf "%15f", odds_avg
+    endif
     if M.prior_name == "custom"
         printf "\n"
         print "Inclusion Probabilities"
         printf "%15f", M.IncProbs
-    endif    
+    endif
     printf "\n"
     print "----------------------------------"
     printf "\n"

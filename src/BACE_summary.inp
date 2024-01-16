@@ -184,7 +184,9 @@ function void BACE_summary (bundle *M)
     M.Post_Results = M.Post_Results ~ tmp
     tmp = M.Post_Results[,2] ./ M.Post_Results[,1]
     M.Post_Results = M.Post_Results ~ tmp
-    tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
+    #tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
+    #printf "\n Różnica: %f \n",sum(tmp - sqrt((M.Post_Results[,3].^2 .+ M.Post_Results[,2].^2) ./ M.Post_Results[,1] .- M.Post_Results[,4].^2))
+    tmp = sqrt((M.Post_Results[,3].^2 .+ M.Post_Results[,2].^2) ./ M.Post_Results[,1] .- M.Post_Results[,4].^2)
     M.Post_Results = M.Post_Results ~ tmp
     title = defarray("PIP", "Mean", "Std.Dev.", "Cond.Mean", "Cond.Std.Dev.")
     cnameset(M.Post_Results, title)
@@ -204,6 +206,26 @@ function void BACE_summary (bundle *M)
         cnameset(M.cuts_avg, title)
         rnameset(M.cuts_avg, M.cuts_names)
     endif
+    if M.model_type == "logit" && !(M.ordered || M.multinomial)
+        # Delta method: sqrt(gradient^2 \times variance)
+        bvar = M.bvar_avg - M.bhat_avg.^2
+        M.oddsratios = M.Post_Results[,1] ~ (M.bhat_avg' ~ bvar') ./ M.Post_Results[,1]
+        M.oddsratios[,2] = exp(M.oddsratios[,2])
+        M.oddsratios[,3] = sqrt((M.oddsratios[,2].^2 .* M.oddsratios[,3]) .* M.oddsratios[,1])
+        M.oddsratios[,2] = M.oddsratios[,2] .* M.oddsratios[,1]
+        if M.with_const == 1
+            M.oddsratios = M.oddsratios[2:end,]
+            title = rnameget(M.Post_Results)[2:end]
+        elif M.with_const == 2
+            M.oddsratios = M.oddsratios[1:end-1,]
+            title = rnameget(M.Post_Results)[1:end-1]
+        else
+            title = rnameget(M.Post_Results)
+        endif
+        rnameset(M.oddsratios, title)
+        title = defarray("PIP", "odds ratio", "std. error")
+        cnameset(M.oddsratios, title)
+    endif
     if M.prior_name == "custom"
         if M.with_const == 1
             tmp = M.Post_Results[2:end,1]
@@ -212,7 +234,7 @@ function void BACE_summary (bundle *M)
         endif
         if M.model_type == "mlogit"
             tmp = tmp[1:M.k,]
-        endif        
+        endif
         tmp = M.theta ~ tmp
         title = defarray("Prior", "Posterior")
         cnameset(tmp, title)

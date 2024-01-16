@@ -57,12 +57,10 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
             Yhat = zeros($nobs, yvals+1)
         elif M.ordered
             Yhat = zeros($nobs, nelem(M.yvalues))
-        else
-            Yhat = zeros($nobs)
-        endif        
-        if M.ordered
             matrix cutshat_avg = zeros(M.cuts)
             matrix cutsvar_avg = zeros(M.cuts)
+        else
+            Yhat = zeros($nobs)
         endif
     endif
 
@@ -133,10 +131,10 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                 M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - sum(mod_struct ? log(M.theta) : log(1-M.theta)))
             else
                 M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
-            endif            
+            endif
             if M.limited_y && M.ordered
                 M.mod_rank_cuts_estimates[i] = cuts_estimates_rank[i][,1] ~ sqrt(cuts_estimates_rank[i][,2])
-            endif
+            endif            
         endif
     endloop
 
@@ -180,7 +178,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                     bhat = cuts_estimates[i][,1]
                     cutshat_avg += weight * bhat
                     cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
-                endif
+                endif  
             endif
 
             if mod_struct_sum

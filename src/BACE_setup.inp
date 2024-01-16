@@ -153,8 +153,8 @@ function void BACE_setup (bundle *M, int Norig)
     matrix M.bvar_tmp = {} # temporary column vector containing the variances of the coefficients for the current model (candidates)
     matrix M.X_new_num = {} # vector containing numbers of variables in the new model
     matrix M.X_old_num = {} # vector containing numbers of variables in the old model
-    matrix M.mod_struct_new = zeros(1,M.k) # 0-1 vector containing the structure of the current model
-    matrix M.mod_struct_old = zeros(1,M.k) # 0-1 vector containing the structure of the current model
+    matrix M.mod_struct_new = zeros(1, M.k) # 0-1 vector containing the structure of the current model
+    matrix M.mod_struct_old = zeros(1, M.k) # 0-1 vector containing the structure of the current model
 
     # Posterior results
     scalar M.consthat_avg = 0
@@ -194,7 +194,7 @@ function void BACE_setup (bundle *M, int Norig)
         scalar M.avg_model_size_bic = NA
         matrix M.model_prior_bic_log = zeros(M.k+1)
         loop i=0..M.k --quiet
-            M.model_prior_bic_log[i+1] = M.hyperparameter * log(bincoeff(M.k,i)) * 0.5 # We divide by 2 bacause we need 0.5*BIC!!!
+            M.model_prior_bic_log[i+1] = M.gamma * log(bincoeff(M.k,i)) * 0.5 # We divide by 2 bacause we need 0.5*BIC!!!
         endloop
     endif
 
@@ -216,6 +216,7 @@ function void BACE_setup (bundle *M, int Norig)
         M.a = 1
         if M.with_const == 1 || M.limited_y && M.ordered
             M.b = (M.k - M.avg_model_size)/M.avg_model_size
+            #M.b = M.a*(M.k/M.avg_model_size - 1)
         else
             loop while M.toler > 0
                 catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.avg_model_size, M.prior_name, M.a), {100, -.00001}, M.toler)

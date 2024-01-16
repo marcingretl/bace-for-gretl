@@ -22,6 +22,7 @@ function void BACE_Plot (const bundle *MODEL)
     string legend, output, basename, xtics, plot_title, plotmat_str
     string yrange = ""
     string terminal_opts = ""
+    string line_opts = ""
     scalar avg_model_size = 0
     scalar idx, error
     strings title
@@ -55,7 +56,11 @@ function void BACE_Plot (const bundle *MODEL)
     #						Heatmaps						#
     #########################################################
     # Heatmap for variable inclusion
-    BACE_heatmap(MODEL, "inclusions", basename)
+    if rows(MODEL.models_probs_percents) == 1
+        printf "Variables Inclusions: there is just one model in ranking, nothing to plot.\n"
+    else
+        BACE_heatmap(MODEL, "inclusions", basename)
+    endif
 
     # Heatmap for jointness
     if MODEL.do_joint
@@ -77,11 +82,13 @@ function void BACE_Plot (const bundle *MODEL)
         plotmat = plotmat[,2:3]
         cnameset(plotmat, title)
         plot_title = "Posterior Model Size Distribution"
+        line_opts = "set linetype 1 pt 7  lc rgb \"#D95F02\""
     else
         plot_title = "Model Size Distribution"
     endif
     catch plot plotmat
         printf "%s", terminal_opts
+        printf "%s", line_opts
         options with-lp fit=none
         literal set link y2 via y inverse y
         printf "%s", xtics
@@ -95,9 +102,11 @@ function void BACE_Plot (const bundle *MODEL)
         printf "Model Size Distribution: %s\n", errmsg(error)
     endif
 
-    # Models size CDF
-    plotmat = MODEL.models_probs_cdf
-    if rows(plotmat) > 1
+    # Models size CDF    
+    if rows(MODEL.models_probs_percents) == 1
+        printf "CDF of Model Size: there is just one model in ranking, nothing to plot.\n"
+    else
+        plotmat = MODEL.models_probs_cdf
         output = basename
         if !$sysinfo.gui_mode
             output = output ~ "-CDF.plt"
@@ -116,8 +125,6 @@ function void BACE_Plot (const bundle *MODEL)
         if error
             printf "CDF of Model Size: %s\n", errmsg(error)
         endif
-    else
-        printf "CDF of Model Size: there is just one model in ranking."
     endif
 
     # Priors

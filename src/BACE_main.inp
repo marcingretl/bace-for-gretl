@@ -66,11 +66,11 @@ function void BACE_main (bundle *M)
     models_structure[model_nr] = M.mod_struct_new
     models_lprob[model_nr] = M.lprob_new
     models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-    if M.Npredict && M.k_new
-        models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
-    endif
     if M.limited_y
         models_yhat[model_nr] = M.Yhat
+    endif
+    if M.Npredict && M.k_new
+        models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
     endif
 
     BACE_print_status(null, 1, 12)
@@ -112,11 +112,11 @@ function void BACE_main (bundle *M)
                 models_structure[model_nr] = M.mod_struct_new
                 models_lprob[model_nr] = M.lprob_new
                 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-                if M.Npredict && M.k_new
-                    models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
-                endif
                 if M.limited_y
                     models_yhat[model_nr] = M.Yhat
+                endif
+                if M.Npredict && M.k_new
+                    models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
                 endif
             endif
 

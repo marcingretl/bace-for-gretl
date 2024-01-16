@@ -138,7 +138,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar Options["Nrank"] = xmin(2^(k+y_lag_tmp-1), 5)
     scalar Options["Npredict"] = 0
     scalar Options["y_lag"] = 0
-    scalar Options["hyperparameter"] = 0.5 # gamma for EBIC
+    scalar Options["gamma"] = 0.5 # for EBIC
     scalar Options["binary_threshold"] = 0.5
     scalar Options["low"] = 0
     scalar Options["high"] = NA
@@ -208,8 +208,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         err += "Parameter data_trans takes the integer values in the range [0; 2]"
     elif Options.bic_type < 1 || Options.bic_type > 4
         err += "BIC type takes the integer values in the range [1; 4]"
-    elif Options.hyperparameter < 0 || Options.hyperparameter > 1
-        err += "Hyperparameter for EBIC (gamma) takes the real values in the range [0; 1]"
+    elif Options.gamma < 0 || Options.gamma > 1
+        err += "Gamma for EBIC takes the real values in the range [0; 1]"
     elif Options.binary_threshold <= 0 || Options.binary_threshold >= 1
         err += "Threshold for binary dependent models (binary_threshold) takes the real values in the range (0; 1)"
     elif sum(ok(Options.theta)) && (min(Options.theta) <= 0 || max(Options.theta) >= 1) && typeof(UserOpts["theta"]) == 3

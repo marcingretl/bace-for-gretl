@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.1-svn</version>
-<date>2024-01-09</date>
+<date>2024-01-16</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -182,7 +182,7 @@ printf &quot;Prior average model size: %f\n&quot;, M.avg_model_size
 printf &quot;Significance level for the initial model: %f\n&quot;, M.alpha
 printf &quot;Bayesian information criterion used: %s\n&quot;, M.bic_type_name
 if M.bic_type_name == &quot;EBIC&quot;
-  printf &quot;Hyperparameter for EBIC (gamma): %f\n&quot;, M.hyperparameter
+  printf &quot;Hyperparameter for EBIC (gamma): %1.8f\n&quot;, M.gamma
 endif
 printf &quot;Data transformation: %s\n&quot;, M.data_trans_name
 if M.limited_y &amp;&amp; !M.ordered
@@ -314,6 +314,12 @@ else
   if M.limited_y &amp;&amp; M.ordered
     printf &quot;\n%15f&quot;, M.cuts_avg
   endif
+endif
+if inbundle(M, &quot;oddsratios&quot;)
+  printf &quot;\n&quot;
+  print &quot;Posterior odds ratios:&quot;
+  odds_avg = mreverse(msortby(M.oddsratios, 1))
+  printf &quot;%15f&quot;, odds_avg
 endif
 if M.prior_name == &quot;custom&quot;
   printf &quot;\n&quot;
@@ -468,6 +474,7 @@ BACE result bundle plot function.
 string legend, output, basename, xtics, plot_title, plotmat_str
 string yrange = &quot;&quot;
 string terminal_opts = &quot;&quot;
+string line_opts = &quot;&quot;
 scalar avg_model_size = 0
 scalar idx, error
 strings title
@@ -501,7 +508,11 @@ endif
 #						Heatmaps						#
 #########################################################
 # Heatmap for variable inclusion
-BACE_heatmap(MODEL, &quot;inclusions&quot;, basename)
+if rows(MODEL.models_probs_percents) == 1
+  printf &quot;Variables Inclusions: there is just one model in ranking, nothing to plot.\n&quot;
+else
+  BACE_heatmap(MODEL, &quot;inclusions&quot;, basename)
+endif
 
 # Heatmap for jointness
 if MODEL.do_joint
@@ -523,11 +534,13 @@ if MODEL.prior_name == &quot;custom&quot;
   plotmat = plotmat[,2:3]
   cnameset(plotmat, title)
   plot_title = &quot;Posterior Model Size Distribution&quot;
+  line_opts = &quot;set linetype 1 pt 7  lc rgb \&quot;#D95F02\&quot;&quot;
 else
   plot_title = &quot;Model Size Distribution&quot;
 endif
 catch plot plotmat
   printf &quot;%s&quot;, terminal_opts
+  printf &quot;%s&quot;, line_opts
   options with-lp fit=none
   literal set link y2 via y inverse y
   printf &quot;%s&quot;, xtics
@@ -542,8 +555,10 @@ if error
 endif
 
 # Models size CDF
-plotmat = MODEL.models_probs_cdf
-if rows(plotmat) &gt; 1
+if rows(MODEL.models_probs_percents) == 1
+  printf &quot;CDF of Model Size: there is just one model in ranking, nothing to plot.\n&quot;
+else
+  plotmat = MODEL.models_probs_cdf
   output = basename
   if !$sysinfo.gui_mode
     output = output ~ &quot;-CDF.plt&quot;
@@ -562,8 +577,6 @@ if rows(plotmat) &gt; 1
   if error
     printf &quot;CDF of Model Size: %s\n&quot;, errmsg(error)
   endif
-else
-  printf &quot;CDF of Model Size: there is just one model in ranking.&quot;
 endif
 
 # Priors
@@ -1332,7 +1345,9 @@ matrix tmp = M.bhat_avg' ~ bvar'
 M.Post_Results = M.Post_Results ~ tmp
 tmp = M.Post_Results[,2] ./ M.Post_Results[,1]
 M.Post_Results = M.Post_Results ~ tmp
-tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
+#tmp = sqrt((M.Post_Results[,3] .* M.Post_Results[,3] .+ M.Post_Results[,2] .* M.Post_Results[,2]) ./ M.Post_Results[,1] .- M.Post_Results[,4] .* M.Post_Results[,4])
+#printf &quot;\n Różnica: %f \n&quot;,sum(tmp - sqrt((M.Post_Results[,3].^2 .+ M.Post_Results[,2].^2) ./ M.Post_Results[,1] .- M.Post_Results[,4].^2))
+tmp = sqrt((M.Post_Results[,3].^2 .+ M.Post_Results[,2].^2) ./ M.Post_Results[,1] .- M.Post_Results[,4].^2)
 M.Post_Results = M.Post_Results ~ tmp
 title = defarray(&quot;PIP&quot;, &quot;Mean&quot;, &quot;Std.Dev.&quot;, &quot;Cond.Mean&quot;, &quot;Cond.Std.Dev.&quot;)
 cnameset(M.Post_Results, title)
@@ -1351,6 +1366,26 @@ if M.limited_y &amp;&amp; M.ordered
   title = defarray(&quot;Mean&quot;, &quot;Std.Dev.&quot;)
   cnameset(M.cuts_avg, title)
   rnameset(M.cuts_avg, M.cuts_names)
+endif
+if M.model_type == &quot;logit&quot; &amp;&amp; !(M.ordered || M.multinomial)
+  # Delta method: sqrt(gradient^2 \times variance)
+  bvar = M.bvar_avg - M.bhat_avg.^2
+  M.oddsratios = M.Post_Results[,1] ~ (M.bhat_avg' ~ bvar') ./ M.Post_Results[,1]
+  M.oddsratios[,2] = exp(M.oddsratios[,2])
+  M.oddsratios[,3] = sqrt((M.oddsratios[,2].^2 .* M.oddsratios[,3]) .* M.oddsratios[,1])
+  M.oddsratios[,2] = M.oddsratios[,2] .* M.oddsratios[,1]
+  if M.with_const == 1
+    M.oddsratios = M.oddsratios[2:end,]
+    title = rnameget(M.Post_Results)[2:end]
+  elif M.with_const == 2
+    M.oddsratios = M.oddsratios[1:end-1,]
+    title = rnameget(M.Post_Results)[1:end-1]
+  else
+    title = rnameget(M.Post_Results)
+  endif
+  rnameset(M.oddsratios, title)
+  title = defarray(&quot;PIP&quot;, &quot;odds ratio&quot;, &quot;std. error&quot;)
+  cnameset(M.oddsratios, title)
 endif
 if M.prior_name == &quot;custom&quot;
   if M.with_const == 1
@@ -1628,8 +1663,8 @@ matrix M.bhat_tmp = {} # temporary column vector containing the estimated coeffi
 matrix M.bvar_tmp = {} # temporary column vector containing the variances of the coefficients for the current model (candidates)
 matrix M.X_new_num = {} # vector containing numbers of variables in the new model
 matrix M.X_old_num = {} # vector containing numbers of variables in the old model
-matrix M.mod_struct_new = zeros(1,M.k) # 0-1 vector containing the structure of the current model
-matrix M.mod_struct_old = zeros(1,M.k) # 0-1 vector containing the structure of the current model
+matrix M.mod_struct_new = zeros(1, M.k) # 0-1 vector containing the structure of the current model
+matrix M.mod_struct_old = zeros(1, M.k) # 0-1 vector containing the structure of the current model
 
 # Posterior results
 scalar M.consthat_avg = 0
@@ -1669,7 +1704,7 @@ if M.prior_based_bic
   scalar M.avg_model_size_bic = NA
   matrix M.model_prior_bic_log = zeros(M.k+1)
   loop i=0..M.k --quiet
-    M.model_prior_bic_log[i+1] = M.hyperparameter * log(bincoeff(M.k,i)) * 0.5 # We divide by 2 bacause we need 0.5*BIC!!!
+    M.model_prior_bic_log[i+1] = M.gamma * log(bincoeff(M.k,i)) * 0.5 # We divide by 2 bacause we need 0.5*BIC!!!
   endloop
 endif
 
@@ -1691,6 +1726,7 @@ elif M.prior_name == &quot;Beta-Binomial&quot;
   M.a = 1
   if M.with_const == 1 || M.limited_y &amp;&amp; M.ordered
     M.b = (M.k - M.avg_model_size)/M.avg_model_size
+    #M.b = M.a*(M.k/M.avg_model_size - 1)
   else
     loop while M.toler &gt; 0
       catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.avg_model_size, M.prior_name, M.a), {100, -.00001}, M.toler)
@@ -1991,12 +2027,10 @@ if M.limited_y
     Yhat = zeros($nobs, yvals+1)
   elif M.ordered
     Yhat = zeros($nobs, nelem(M.yvalues))
-  else
-    Yhat = zeros($nobs)
-  endif
-  if M.ordered
     matrix cutshat_avg = zeros(M.cuts)
     matrix cutsvar_avg = zeros(M.cuts)
+  else
+    Yhat = zeros($nobs)
   endif
 endif
 
@@ -2337,11 +2371,11 @@ known_models[model_id] = model_nr
 models_structure[model_nr] = M.mod_struct_new
 models_lprob[model_nr] = M.lprob_new
 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-if M.Npredict &amp;&amp; M.k_new
-  models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
-endif
 if M.limited_y
   models_yhat[model_nr] = M.Yhat
+endif
+if M.Npredict &amp;&amp; M.k_new
+  models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
 endif
 
 BACE_print_status(null, 1, 12)
@@ -2383,11 +2417,11 @@ loop while rep &lt;= M.Nrep --quiet
       models_structure[model_nr] = M.mod_struct_new
       models_lprob[model_nr] = M.lprob_new
       models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-      if M.Npredict &amp;&amp; M.k_new
-        models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
-      endif
       if M.limited_y
         models_yhat[model_nr] = M.Yhat
+      endif
+      if M.Npredict &amp;&amp; M.k_new
+        models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
       endif
     endif
 
@@ -2547,7 +2581,7 @@ scalar Options[&quot;alpha&quot;] = alpha_tmp
 scalar Options[&quot;Nrank&quot;] = xmin(2^(k+y_lag_tmp-1), 5)
 scalar Options[&quot;Npredict&quot;] = 0
 scalar Options[&quot;y_lag&quot;] = 0
-scalar Options[&quot;hyperparameter&quot;] = 0.5 # gamma for EBIC
+scalar Options[&quot;gamma&quot;] = 0.5 # for EBIC
 scalar Options[&quot;binary_threshold&quot;] = 0.5
 scalar Options[&quot;low&quot;] = 0
 scalar Options[&quot;high&quot;] = NA
@@ -2617,8 +2651,8 @@ elif Options.data_trans &lt; 0 || Options.data_trans &gt; 2
   err += &quot;Parameter data_trans takes the integer values in the range [0; 2]&quot;
 elif Options.bic_type &lt; 1 || Options.bic_type &gt; 4
   err += &quot;BIC type takes the integer values in the range [1; 4]&quot;
-elif Options.hyperparameter &lt; 0 || Options.hyperparameter &gt; 1
-  err += &quot;Hyperparameter for EBIC (gamma) takes the real values in the range [0; 1]&quot;
+elif Options.gamma &lt; 0 || Options.gamma &gt; 1
+  err += &quot;Gamma for EBIC takes the real values in the range [0; 1]&quot;
 elif Options.binary_threshold &lt;= 0 || Options.binary_threshold &gt;= 1
   err += &quot;Threshold for binary dependent models (binary_threshold) takes the real values in the range (0; 1)&quot;
 elif sum(ok(Options.theta)) &amp;&amp; (min(Options.theta) &lt;= 0 || max(Options.theta) &gt;= 1) &amp;&amp; typeof(UserOpts[&quot;theta&quot;]) == 3
