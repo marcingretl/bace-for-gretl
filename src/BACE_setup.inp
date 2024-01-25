@@ -100,7 +100,6 @@ function void BACE_setup (bundle *M, int Norig)
     scalar M.loop_maxiter = 3*M.Nrep
     scalar M.toler = 1.0e-20
     scalar M.CPU_num = 1
-    scalar M.a = NA
     scalar M.b = NA
     scalar M.prior_based_bic = NA
     matrix M.StartModel = {}
@@ -213,10 +212,8 @@ function void BACE_setup (bundle *M, int Norig)
             M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
         endloop
     elif M.prior_name == "Beta-Binomial"
-        M.a = 1
         if M.with_const == 1 || M.limited_y && M.ordered
-            M.b = (M.k - M.avg_model_size)/M.avg_model_size
-            #M.b = M.a*(M.k/M.avg_model_size - 1)
+            M.b = M.a*(M.k/M.avg_model_size - 1)
         else
             loop while M.toler > 0
                 catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.avg_model_size, M.prior_name, M.a), {100, -.00001}, M.toler)

@@ -206,26 +206,28 @@ function void BACE_summary (bundle *M)
         cnameset(M.cuts_avg, title)
         rnameset(M.cuts_avg, M.cuts_names)
     endif
-    if M.model_type == "logit" && !(M.ordered || M.multinomial)
-        # Delta method: sqrt(gradient^2 \times variance)
-        bvar = M.bvar_avg - M.bhat_avg.^2
-        M.oddsratios = M.Post_Results[,1] ~ (M.bhat_avg' ~ bvar') ./ M.Post_Results[,1]
-        M.oddsratios[,2] = exp(M.oddsratios[,2])
-        M.oddsratios[,3] = sqrt((M.oddsratios[,2].^2 .* M.oddsratios[,3]) .* M.oddsratios[,1])
-        M.oddsratios[,2] = M.oddsratios[,2] .* M.oddsratios[,1]
-        if M.with_const == 1
-            M.oddsratios = M.oddsratios[2:end,]
-            title = rnameget(M.Post_Results)[2:end]
-        elif M.with_const == 2
-            M.oddsratios = M.oddsratios[1:end-1,]
-            title = rnameget(M.Post_Results)[1:end-1]
-        else
-            title = rnameget(M.Post_Results)
-        endif
-        rnameset(M.oddsratios, title)
-        title = defarray("PIP", "odds ratio", "std. error")
-        cnameset(M.oddsratios, title)
-    endif
+    /*
+       if M.model_type == "logit" && !(M.ordered || M.multinomial)
+       # Delta method: sqrt(gradient^2 \times variance)
+       bvar = M.bvar_avg - M.bhat_avg.^2
+       M.oddsratios = M.Post_Results[,1] ~ (M.bhat_avg' ~ bvar') ./ M.Post_Results[,1]
+       M.oddsratios[,2] = exp(M.oddsratios[,2])
+       M.oddsratios[,3] = sqrt((M.oddsratios[,2].^2 .* M.oddsratios[,3]) .* M.oddsratios[,1])
+       M.oddsratios[,2] = M.oddsratios[,2] .* M.oddsratios[,1]
+       if M.with_const == 1
+       M.oddsratios = M.oddsratios[2:end,]
+       title = rnameget(M.Post_Results)[2:end]
+       elif M.with_const == 2
+       M.oddsratios = M.oddsratios[1:end-1,]
+       title = rnameget(M.Post_Results)[1:end-1]
+       else
+       title = rnameget(M.Post_Results)
+       endif
+       rnameset(M.oddsratios, title)
+       title = defarray("PIP", "odds ratio", "std. error")
+       cnameset(M.oddsratios, title)
+       endif
+    */
     if M.prior_name == "custom"
         if M.with_const == 1
             tmp = M.Post_Results[2:end,1]
@@ -323,7 +325,9 @@ function void BACE_summary (bundle *M)
     delete M.mod_struct_old
     delete M.mod_struct_new
     delete M.var_prob
-    delete M.a
+    if M.prior_name != "Beta-Binomial"
+        delete M.a
+    endif    
     delete M.b
     delete M.bhat_avg
     delete M.bvar_avg

@@ -80,6 +80,9 @@ function void BACE_Print (bundle *MODEL)
     endif
     printf "Constant type: %s\n", M.const_type
     printf "Prior: %s\n", M.prior_name
+    if M.prior_name == "Beta-Binomial"
+        printf "   hyperparameter 'a': %g\n", M.a
+    endif    
     printf "Prior average model size: %f\n", M.avg_model_size
     printf "Significance level for the initial model: %f\n", M.alpha
     printf "Bayesian information criterion used: %s\n", M.bic_type_name
@@ -217,12 +220,14 @@ function void BACE_Print (bundle *MODEL)
             printf "\n%15f", M.cuts_avg
         endif
     endif
-    if inbundle(M, "oddsratios")
-        printf "\n"
-        print "Posterior odds ratios:"
-        odds_avg = mreverse(msortby(M.oddsratios, 1))
-        printf "%15f", odds_avg
-    endif
+    /*
+       if inbundle(M, "oddsratios")
+       printf "\n"
+       print "Posterior odds ratios:"
+       odds_avg = mreverse(msortby(M.oddsratios, 1))
+       printf "%15f", odds_avg
+       endif
+    */
     if M.prior_name == "custom"
         printf "\n"
         print "Inclusion Probabilities"

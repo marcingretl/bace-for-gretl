@@ -34,7 +34,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     strings Integers = defarray("y_lag", "with_const", "model_prior", "Nrank",\
       "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
-    strings Scalars = defarray("avg_model_size", "alpha", "binary_threshold")
+    strings Scalars = defarray("avg_model_size", "alpha", "binary_threshold", "gamma", "a")
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson", "tobit", "intreg", "mlogit")
     strings BicTypes = defarray("BIC", "HBIC", "IBIC", "EBIC")
     strings ModelPriorTypes = defarray("none", "Binomial", "Beta-Binomial", "custom")
@@ -147,6 +147,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar Options["verbosity"] = 2
     scalar Options["show_progress"] = do_show_progress
     scalar Options["do_plot"] = do_plot_tmp
+    scalar Options["a"] = 1
     matrix Options["theta"] = {NA}
     scalar Options["_gui"] = 0
 
@@ -216,6 +217,8 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         err += "Prior Inclusion Probabilities (theta) takes the real values in the range (0; 1)"
     elif sum(ok(Options.theta)) && Options.model_prior < 3
         err += sprintf("You may not mix %s model prior with Prior Inclusion Probabilities (theta)", ModelPriorTypes[Options.model_prior+1])
+    elif Options.a <= 0
+        err += "Hyperparameter 'a' must be greater than zero"
     endif
     
     # We save options in M

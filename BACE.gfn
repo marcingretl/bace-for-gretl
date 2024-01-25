@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.1-svn</version>
-<date>2024-01-16</date>
+<date>2024-01-25</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -178,6 +178,9 @@ if ESTIMATOR == &quot;tobit&quot;
 endif
 printf &quot;Constant type: %s\n&quot;, M.const_type
 printf &quot;Prior: %s\n&quot;, M.prior_name
+if M.prior_name == &quot;Beta-Binomial&quot;
+  printf &quot;   hyperparameter 'a': %g\n&quot;, M.a
+endif
 printf &quot;Prior average model size: %f\n&quot;, M.avg_model_size
 printf &quot;Significance level for the initial model: %f\n&quot;, M.alpha
 printf &quot;Bayesian information criterion used: %s\n&quot;, M.bic_type_name
@@ -315,12 +318,14 @@ else
     printf &quot;\n%15f&quot;, M.cuts_avg
   endif
 endif
+/*
 if inbundle(M, &quot;oddsratios&quot;)
   printf &quot;\n&quot;
   print &quot;Posterior odds ratios:&quot;
   odds_avg = mreverse(msortby(M.oddsratios, 1))
   printf &quot;%15f&quot;, odds_avg
 endif
+*/
 if M.prior_name == &quot;custom&quot;
   printf &quot;\n&quot;
   print &quot;Inclusion Probabilities&quot;
@@ -1367,6 +1372,7 @@ if M.limited_y &amp;&amp; M.ordered
   cnameset(M.cuts_avg, title)
   rnameset(M.cuts_avg, M.cuts_names)
 endif
+/*
 if M.model_type == &quot;logit&quot; &amp;&amp; !(M.ordered || M.multinomial)
   # Delta method: sqrt(gradient^2 \times variance)
   bvar = M.bvar_avg - M.bhat_avg.^2
@@ -1387,6 +1393,7 @@ if M.model_type == &quot;logit&quot; &amp;&amp; !(M.ordered || M.multinomial)
   title = defarray(&quot;PIP&quot;, &quot;odds ratio&quot;, &quot;std. error&quot;)
   cnameset(M.oddsratios, title)
 endif
+*/
 if M.prior_name == &quot;custom&quot;
   if M.with_const == 1
     tmp = M.Post_Results[2:end,1]
@@ -1484,7 +1491,9 @@ delete M.X_old_num
 delete M.mod_struct_old
 delete M.mod_struct_new
 delete M.var_prob
-delete M.a
+if M.prior_name != &quot;Beta-Binomial&quot;
+  delete M.a
+endif
 delete M.b
 delete M.bhat_avg
 delete M.bvar_avg
@@ -1610,7 +1619,6 @@ scalar M.n_drop_draws = 0
 scalar M.loop_maxiter = 3*M.Nrep
 scalar M.toler = 1.0e-20
 scalar M.CPU_num = 1
-scalar M.a = NA
 scalar M.b = NA
 scalar M.prior_based_bic = NA
 matrix M.StartModel = {}
@@ -1723,10 +1731,8 @@ if M.prior_name == &quot;Binomial&quot;
     M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
   endloop
 elif M.prior_name == &quot;Beta-Binomial&quot;
-  M.a = 1
   if M.with_const == 1 || M.limited_y &amp;&amp; M.ordered
-    M.b = (M.k - M.avg_model_size)/M.avg_model_size
-    #M.b = M.a*(M.k/M.avg_model_size - 1)
+    M.b = M.a*(M.k/M.avg_model_size - 1)
   else
     loop while M.toler &gt; 0
       catch tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.avg_model_size, M.prior_name, M.a), {100, -.00001}, M.toler)
@@ -2477,7 +2483,7 @@ bundle Options, Overloadable
 string arg_name, parameter_value
 strings Integers = defarray(&quot;y_lag&quot;, &quot;with_const&quot;, &quot;model_prior&quot;, &quot;Nrank&quot;, &quot;do_joint&quot;, &quot;Npredict&quot;, &quot;Nrep&quot;, &quot;burn&quot;, &quot;verbosity&quot;, &quot;data_trans&quot;, &quot;bic_type&quot;)
 strings Booleans = defarray(&quot;show_progress&quot;, &quot;do_plot&quot;)
-strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;)
+strings Scalars = defarray(&quot;avg_model_size&quot;, &quot;alpha&quot;, &quot;binary_threshold&quot;, &quot;gamma&quot;, &quot;a&quot;)
 strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probit&quot;, &quot;poisson&quot;, &quot;tobit&quot;, &quot;intreg&quot;, &quot;mlogit&quot;)
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
 strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;, &quot;custom&quot;)
@@ -2590,6 +2596,7 @@ scalar Options[&quot;burn&quot;] = 10
 scalar Options[&quot;verbosity&quot;] = 2
 scalar Options[&quot;show_progress&quot;] = do_show_progress
 scalar Options[&quot;do_plot&quot;] = do_plot_tmp
+scalar Options[&quot;a&quot;] = 1
 matrix Options[&quot;theta&quot;] = {NA}
 scalar Options[&quot;_gui&quot;] = 0
 
@@ -2659,6 +2666,8 @@ elif sum(ok(Options.theta)) &amp;&amp; (min(Options.theta) &lt;= 0 || max(Option
   err += &quot;Prior Inclusion Probabilities (theta) takes the real values in the range (0; 1)&quot;
 elif sum(ok(Options.theta)) &amp;&amp; Options.model_prior &lt; 3
   err += sprintf(&quot;You may not mix %s model prior with Prior Inclusion Probabilities (theta)&quot;, ModelPriorTypes[Options.model_prior+1])
+elif Options.a &lt;= 0
+  err += &quot;Hyperparameter 'a' must be greater than zero&quot;
 endif
 
 # We save options in M

@@ -97,6 +97,9 @@ then the given value is assigned to all variables%
 	any \gretlcmdf{Options["theta"]}, then the default value
 	will be chosen, i.e., \gretlcmdf{scalar Options["theta"] = 0.5}.}.
 
+\baceopts{scalar Options["a"] = 1}: Beta-binomial distribution
+	hyperparameter (see Equation~(\ref{eq:prior_model_probs_binomial-beta})).
+
 \baceopts{scalar Options["with_const"] = 1}: the inclusion
 of a constant term in each estimated model;
 possible values are: 0---Never (without constant),
@@ -241,12 +244,13 @@ a numerical type and can be grouped into the following
 categories based on the type of numbers they can take:
 \begin{enumerate}
 	\item Integers: \lstinline!y_lag!, \lstinline!with_const!,
-	\lstinline!model_prior!, \lstinline!Nrank!, \lstinline!do_joint!,
-	\lstinline!Npredict!, \lstinline!Nrep!, \lstinline!burn!,
-	\lstinline!verbosity!, \lstinline!data_trans!, \lstinline!bic_type!.
+		\lstinline!model_prior!, \lstinline!Nrank!,
+		\lstinline!do_joint!, \lstinline!Npredict!,
+		\lstinline!Nrep!, \lstinline!burn!, \lstinline!verbosity!,
+		\lstinline!data_trans!, \lstinline!bic_type!.
 	\item Booleans: \lstinline!show_progress!, \lstinline!do_plot!.
 	\item Scalars: \lstinline!avg_model_size!, \lstinline!alpha!,
-	\lstinline!binary_threshold!.
+		\lstinline!binary_threshold!, \lstinline!theta!, \lstinline!a!.
 \end{enumerate}
 
 
