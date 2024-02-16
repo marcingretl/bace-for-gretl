@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.1-svn</version>
-<date>2024-01-25</date>
+<date>2024-02-16</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -609,7 +609,7 @@ if MODEL.prior_name == &quot;custom&quot;
     printf &quot;$map &lt;&lt; EOD&quot;
     printf &quot;%s&quot;, plotmat_str
     printf &quot;EOD&quot;
-    literal plot $map using 2:xtic(1) title 'Prior', '' u 3 title 'Posterior'
+    literal plot $map using 2:xtic(1) title 'Prior', '' u 3 title 'PIP'
   end plot --output=@output
   error = $error
   if error
@@ -1404,7 +1404,7 @@ if M.prior_name == &quot;custom&quot;
     tmp = tmp[1:M.k,]
   endif
   tmp = M.theta ~ tmp
-  title = defarray(&quot;Prior&quot;, &quot;Posterior&quot;)
+  title = defarray(&quot;Prior&quot;, &quot;PIP&quot;)
   cnameset(tmp, title)
   M.IncProbs = mreverse(msortby(tmp, 2))
 endif

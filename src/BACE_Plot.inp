@@ -152,7 +152,7 @@ function void BACE_Plot (const bundle *MODEL)
             printf "$map << EOD"
             printf "%s", plotmat_str
             printf "EOD"
-            literal plot $map using 2:xtic(1) title 'Prior', '' u 3 title 'Posterior'
+            literal plot $map using 2:xtic(1) title 'Prior', '' u 3 title 'PIP'
         end plot --output=@output
         error = $error
         if error

@@ -238,7 +238,7 @@ function void BACE_summary (bundle *M)
             tmp = tmp[1:M.k,]
         endif
         tmp = M.theta ~ tmp
-        title = defarray("Prior", "Posterior")
+        title = defarray("Prior", "PIP")
         cnameset(tmp, title)
         M.IncProbs = mreverse(msortby(tmp, 2))
     endif
