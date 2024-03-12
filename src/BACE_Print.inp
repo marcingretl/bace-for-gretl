@@ -122,7 +122,7 @@ function void BACE_Print (bundle *MODEL)
             else
                 printf "The initial model: %s, dependent variable: %s\n", ESTIMATOR, M.Y_name
             endif
-            loop i=1..nelem(M.StartModel_xnames) --quiet
+            loop i=1..nelem(M.StartModel_xnames)
                 if substr(M.StartModel_xnames[i], 1, 4) == "YyY_"
                     M.StartModel_xnames[i] = strsub(M.StartModel_xnames[i], "YyY", M.Y_name)
                 endif
@@ -131,7 +131,7 @@ function void BACE_Print (bundle *MODEL)
             strings coeffmat_xnames = M.StartModel_xnames
             if M.model_type == "mlogit"
                 tmp = rows(coeffmat)/yvals
-                loop i=1..yvals --quiet
+                loop i=1..yvals
                     tmpm = coeffmat[(i-1)*tmp+1:i*tmp,]
                     printf "%s = %d", Y_name, M.yvals[i+1]
                     modprint tmpm coeffmat_xnames
@@ -194,7 +194,7 @@ function void BACE_Print (bundle *MODEL)
     print "Posterior moments (unconditional and conditional on inclusion):"
     if M.model_type == "mlogit"
         tmp = rows(M.Post_Results)/yvals
-        loop i=1..yvals --quiet
+        loop i=1..yvals
             Post_Results = M.Post_Results[(i-1)*tmp+1:i*tmp,]
             rnameset(Post_Results, M.all_names_sp_m)
             if M.with_const == 1
@@ -237,7 +237,7 @@ function void BACE_Print (bundle *MODEL)
     print "----------------------------------"
     printf "\n"
     print "Posterior probability of models:"
-    loop i=1..rows(M.models_probs_percents) --quiet
+    loop i=1..rows(M.models_probs_percents)
         if i <= 4
             printf "Best %d\t models account for %.4f of mass\n", M.models_probs_percents[i,1], M.models_probs_percents[i,2]
         elif i == rows(M.models_probs_percents)
@@ -247,7 +247,7 @@ function void BACE_Print (bundle *MODEL)
         endif
     endloop
     printf "\nBest models ranking:\n"
-    loop i=1..M.Nrank --quiet
+    loop i=1..M.Nrank
         printf "Model %d:\t%f\n", i, M.Numerical_Likelihood[i]
     endloop
     printf "Total probability of the models in ranking (numerical): %f\n\n", sumc(M.Numerical_Likelihood)
@@ -290,8 +290,8 @@ function void BACE_Print (bundle *MODEL)
         scalar significant_com = 0
         matrix pairs = zeros(round(0.5*M.k^2), 3)
         scalar pair = 0
-        loop i=1..M.k --quiet
-            loop j=i+1..M.k --quiet
+        loop i=1..M.k
+            loop j=i+1..M.k
                 if !isnan(jointess_measure[i,j]) && abs(jointess_measure[i,j]) > 1
                     pair += 1
                     pairs[pair,1] = jointess_measure[i,j]
@@ -348,7 +348,7 @@ function void BACE_Print (bundle *MODEL)
                     Xnames = M.all_names_sp_m[M.mod_rank_estimates[i][,3]]
                     if M.model_type == "mlogit"
                         tmp = rows(coeffmat)/yvals
-                        loop j=1..yvals --quiet
+                        loop j=1..yvals
                             tmpm = coeffmat[(j-1)*tmp+1:j*tmp,]
                             if j == 1
                                 printf "\n"

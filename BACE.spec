@@ -1,10 +1,10 @@
 author = Marcin Błażejowski, Jacek Kwiatkowski
 email = marcin@gretlconference.org
-version = 3.1-svn
-date = 2024-02-16
+version = 3.1
+date = 2024-03-12
 description = Bayesian Averaging of Classical Estimates (BACE) procedure
 tags = C20 C52
-min-version = 2023a
+min-version = 2023c
 gui-main = BACE_GUI
 label = BACE
 menu-attachment = MAINWIN/Model

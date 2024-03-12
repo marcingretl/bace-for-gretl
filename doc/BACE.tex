@@ -25,6 +25,10 @@
 		\centering
 		\url{https://sourceforge.net/projects/bace-for-gretl}
 	\end{quote}
+
+\begin{center}
+	\vspace*{100pt}{\Large Version 3.1}
+\end{center}
 	
 	\begin{abstract}
 		The \pkg{BACE} (Bayesian Averaging of Classical Estimates)
@@ -48,9 +52,11 @@
 	\begin{description}
 		\item[3.1] New features added and small updates:
 			\begin{itemize}[label={--}]
-				\item Beta-binomial `a' hyperparameter entry.
-				\item Custom model Prior defined by Prior Inclusion
-					Probabilities defined for each variable.
+				\item Some code cleanups.
+				\item Verbosity now takes integers $\in [0;2]$.
+				\item Apparatus for setting Prior Inclusion Probabilities.
+				\item Possibility to set up hyperparameter~\textit{a}
+					for Beta-binomial model prior manually.
 				\item Force use of locale-specific decimal point
 					(caused problems in non-English \texttt{gretl}
 					instances).

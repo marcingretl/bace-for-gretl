@@ -1,7 +1,7 @@
-gretl version 2023a
-Current session: 2023-03-13 12:07
+gretl version 2024a-git
+Current session: 2024-03-12 16:56
 
-BACE 3.0-svn, 2023-03-10 (Marcin Błażejowski, Jacek Kwiatkowski)
+BACE 3.1, 2024-03-12 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
@@ -81,7 +81,6 @@ Total probability of the models in ranking (numerical): 1.000000
 Correlation coefficient between the analytical
 and numerical probabilities of the above models: 0.871097
 
-
 Best specifications (MLE estimates for tobit model):
 ----------------------------------
 
@@ -92,7 +91,6 @@ Model 1: HBIC: 2097.014165, posterior probability: 0.759222
   read                2.63644     0.617915     4.267   1.98e-05 ***
   math                5.77919     0.699242     8.265   1.40e-16 ***
   progvocational    -38.9318     11.8225      -3.293   0.0010   ***
-
 
 ----------------------------------
 
@@ -105,7 +103,6 @@ Model 2: HBIC: 2099.427948, posterior probability: 0.209222
   proggeneral       -12.7148     12.4065      -1.025   0.3054  
   progvocational    -46.1439     13.7242      -3.362   0.0008   ***
 
-
 ----------------------------------
 
 Model 3: HBIC: 2104.024489, posterior probability: 0.024667
@@ -114,7 +111,6 @@ Model 3: HBIC: 2104.024489, posterior probability: 0.024667
   const       159.004      29.9037      5.317   1.05e-07 ***
   read          2.88961     0.632946    4.565   4.99e-06 ***
   math          6.34441     0.703059    9.024   1.81e-19 ***
-
 
 ----------------------------------
 
@@ -128,5 +124,4 @@ Model 4: HBIC: 2106.876767, posterior probability: 0.006889
 
 ----------------------------------
 
-
-Total execution time: 0.73 sec.
+Total execution time: 0.47 sec.

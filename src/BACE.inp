@@ -25,19 +25,19 @@ function bundle BACE (list Y "Dependent variable(s)",
 
     # We need to force use of locale-specific decimal point
     set force_decpoint on
-    
+
     bundle MODEL
     string err
     series Y1, Y2
     scalar nY = nelem(Y)
     scalar Norig = NA
-    
+
     if nY == 1
         string Y_name = varnames(Y)[1]
         series @Y_name = Y[1]
         series Y1 = Y[1]
     elif nY == 2
-        loop i=1..2 --quiet
+        loop i=1..2
             string Y_name = varnames(Y)[i]
             series @Y_name = Y[i]
             series Y$i = Y[i]
@@ -64,7 +64,7 @@ function bundle BACE (list Y "Dependent variable(s)",
         X_list = stdize(X_list, 0)
     endif
 
-    # Handling missing values    
+    # Handling missing values
     if MODEL["model_type"] != "intreg"
         Norig = $nobs
         if $datatype == 2
@@ -95,9 +95,11 @@ function bundle BACE (list Y "Dependent variable(s)",
         endif
         BACE_main(&MODEL)
         BACE_summary(&MODEL)
-        BACE_Print(&MODEL)
-        if MODEL["do_plot"]
-            BACE_Plot(&MODEL)
+        if MODEL["verbosity"]
+            BACE_Print(&MODEL)
+            if MODEL["do_plot"]
+                BACE_Plot(&MODEL)
+            endif
         endif
     endif
 

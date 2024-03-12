@@ -27,7 +27,7 @@ function void BACE_show_progress (const scalar iter,
     x = ceil(100*iter/N)
     x4 = int(x/4)
     bar = "["
-    loop j=1..25 --quiet
+    loop j=1..25
         if j <= x4
             sign = "#"
         else

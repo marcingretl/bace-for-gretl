@@ -37,7 +37,7 @@ function void BACE_main (bundle *M)
     if M.Npredict
         matrices models_forecasts = array(M.Nrep+1)
     else
-        matrices models_forecasts = null
+        matrices models_forecasts = array(0)
     endif
     if M.limited_y
         matrices models_yhat = array(M.Nrep+1)
@@ -85,7 +85,7 @@ function void BACE_main (bundle *M)
         BACE_print_status("MC3")
     endif
 
-    loop while rep <= M.Nrep --quiet
+    loop while rep <= M.Nrep
         # Now we draw the number of candidate variable
         potential_var = randint(0, M.k)
 

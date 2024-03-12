@@ -1,7 +1,11 @@
-gretl version 2023b-git
-Current session: 2023-03-15 14:22
+gretl version 2024a-git
+Current session: 2024-03-12 16:39
 
-BACE 3.0, 2023-03-15 (Marcin Błażejowski, Jacek Kwiatkowski)
+#######################################################
+#   https://sourceforge.net/projects/bace-for-gretl/  #
+#######################################################
+# Usage:
+BACE 3.1, 2024-03-12 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
@@ -107,7 +111,6 @@ Contingency table (actual in rows, predicted in columns):
 
 Number of cases 'correctly predicted' = 4334 (accuracy 65.2%)
 
-
 Best specifications (MLE estimates for ordered probit model):
 ----------------------------------
 
@@ -127,7 +130,6 @@ Model 1: HBIC: 9951.131386, posterior probability: 0.459889
   cut1       -1.68606      0.0919805     -18.33    4.72e-75  ***
   cut2       -0.531627     0.0900862      -5.901   3.61e-09  ***
 
-
 ----------------------------------
 
 Model 2: HBIC: 9951.109701, posterior probability: 0.398444
@@ -146,7 +148,6 @@ Model 2: HBIC: 9951.109701, posterior probability: 0.398444
   loans       1.09204      0.0524286      20.83    2.36e-96  ***
   cut1       -1.68766      0.0919971     -18.34    3.64e-75  ***
   cut2       -0.532211     0.0900969      -5.907   3.48e-09  ***
-
 
 ----------------------------------
 
@@ -168,7 +169,6 @@ Model 3: HBIC: 9955.352276, posterior probability: 0.046111
   cut1       -1.67948      0.0921333     -18.23    3.05e-74  ***
   cut2       -0.523737     0.0902469      -5.803   6.50e-09  ***
 
-
 ----------------------------------
 
 Model 4: HBIC: 9956.306055, posterior probability: 0.045444
@@ -187,7 +187,6 @@ Model 4: HBIC: 9956.306055, posterior probability: 0.045444
   loans       1.08827      0.0523965      20.77    8.10e-96  ***
   cut1       -1.67936      0.0921178     -18.23    2.95e-74  ***
   cut2       -0.524760     0.0902348      -5.815   6.05e-09  ***
-
 
 ----------------------------------
 
@@ -208,5 +207,4 @@ Model 5: HBIC: 9959.709125, posterior probability: 0.013111
 
 ----------------------------------
 
-
-Total execution time: 6.45 sec.
+Total execution time: 6.31 sec.

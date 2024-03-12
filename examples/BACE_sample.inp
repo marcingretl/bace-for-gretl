@@ -1,3 +1,8 @@
+#######################################################
+#   https://sourceforge.net/projects/bace-for-gretl/  #
+#######################################################
+
+# Usage:
 set verbose off
 include BACE.gfn
 

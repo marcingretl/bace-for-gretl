@@ -101,9 +101,9 @@ function void BACE_initial_model (bundle *M)
             if M.k_new == max_k # All variables in the starting model, nothing to draw
                 last = X_list2
             else
-                loop i=1..M.k_new --quiet
+                loop i=1..M.k_new
                     scalar accept = 0
-                    loop while (accept == 0) --quiet
+                    loop while (accept == 0)
                         cand = transp(M.var_numbers2)[randint(1, max_k), 1]
                         if inlist(last, cand) == 0
                             last_tmp = last_tmp ~ {cand}
@@ -114,8 +114,8 @@ function void BACE_initial_model (bundle *M)
                 # We have to sort variables in created list
                 matrix last_mat = zeros(2, M.k_new)
                 last_mat[1,] = last_tmp
-                loop i=1..M.k_new --quiet
-                    loop j=1..max_k --quiet
+                loop i=1..M.k_new
+                    loop j=1..max_k
                         if last_mat[1,i] == M.var_numbers2[1,j]
                             last_mat[2,i] = M.var_numbers2[2,j]
                             break
@@ -203,8 +203,8 @@ function void BACE_initial_model (bundle *M)
     matrix M.mod_struct_new = zeros(1,M.k)
 
     # Setting 1 for variables in current draw
-    loop i=1..cols(M.StartModel) --quiet
-        loop j=1..M.k --quiet
+    loop i=1..cols(M.StartModel)
+        loop j=1..M.k
             if M.var_numbers2[1,j] == M.StartModel[i]
                 M.mod_struct_new[M.var_numbers2[2,j]-1] = 1
                 break

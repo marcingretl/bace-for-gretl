@@ -27,12 +27,12 @@ function void BACE_print_status (const string message[null], const bool done[0],
     string pSPACE = ""
     string SPACEp = ""
     if pspaces
-        loop i=1..pspaces --quiet
+        loop i=1..pspaces
             pSPACE += sprintf("%s", " ")
         endloop
     endif
     if spacesp
-        loop i=1..spacesp --quiet
+        loop i=1..spacesp
             SPACEp += sprintf("%s", " ")
         endloop
     endif

@@ -207,7 +207,7 @@ function void BACE_Plot (const bundle *MODEL)
             output = output ~ "-predict.plt"
         endif
         xtics = "("
-        loop i=1..MODEL.Npredict --quiet
+        loop i=1..MODEL.Npredict
             xtics += sprintf("\"%s\" %d", rnameget(MODEL.prediction)[i], i)
             if i == MODEL.Npredict
                 xtics += sprintf(")")

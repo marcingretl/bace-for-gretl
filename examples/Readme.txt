@@ -52,3 +52,6 @@ https://stats.oarc.ucla.edu/r/dae/tobit-models/
 
 7. logit.inp - binary logit example, where we set
 'binary_threshold' parameter to 0.6 (instead of default 0.5).
+
+8. priorIP.inp - simple example how to set individual
+Prior Inclusion Probabilities for variables under consideration.

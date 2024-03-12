@@ -163,7 +163,7 @@ out-of-sample forecasts\footnote{Note, that using this
 \baceopts{scalar Options["y_lag"] = 0}: defines the
 lag order of the dependent variable used in dynamic models;
 
-\baceopts{scalar Options["hyperparameter"] = 0.5}:
+\baceopts{scalar Options["gamma"] = 0.5}:
 the hyperparameter for prior-based Bayesian information
 criterion; for now, it is interpreted as $\gamma$ for
 the extended Bayesian information criterion (EBIC)
@@ -201,12 +201,12 @@ of Monte Carlo iterations (model draws) in \MCcube algorithm, where
 of burn-in draws in \MCcube;
 
 \baceopts{scalar Options["verbosity"] = 2}: verbosity
-of the output: 1---basic results, 2---full results;
-this option controls what is printed as output by BACE
-(see Section~\ref{sec:outputs} for details): if set to 2,
-all possible results are printed, and if set to 1,
-printing of the initial model and models in ranking
-is suppressed;
+of the output: 0--suppress any output, 1---basic results,
+2---full results; this option controls what is printed as
+output by BACE (see Section~\ref{sec:outputs} for details):
+if set to 2, all possible results are printed, and if
+set to 1, printing of the initial model and models in
+ranking is suppressed;
 
 \baceopts{scalar Options["show_progress"] = do_show_progress}:
 this controls whether the overall progress is shown,
@@ -250,7 +250,7 @@ categories based on the type of numbers they can take:
 		\lstinline!data_trans!, \lstinline!bic_type!.
 	\item Booleans: \lstinline!show_progress!, \lstinline!do_plot!.
 	\item Scalars: \lstinline!avg_model_size!, \lstinline!alpha!,
-		\lstinline!binary_threshold!, \lstinline!theta!, \lstinline!a!.
+		\lstinline!binary_threshold!, \lstinline!theta!, and \lstinline!a!.
 \end{enumerate}
 
 

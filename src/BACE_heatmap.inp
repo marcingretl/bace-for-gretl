@@ -42,7 +42,7 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
         height = xmax(int(M.k/41*768), 480)
         width = xmin(xmax(int(M.Nrank/20*1024), 640), 1024)
         m = zeros(M.Nrank, M.k)
-        loop i=1..M.Nrank --quiet
+        loop i=1..M.Nrank
             m[i,] = M.mod_rank[i]
         endloop
         m = mreverse(m')
@@ -73,7 +73,7 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
 
     # We set tics
     ytics = "("
-    loop i=1..M.k --quiet
+    loop i=1..M.k
         ytics += sprintf("\"%s\" %d", all_names_sp_m[i], M.k-i)
         if i == M.k
             ytics += sprintf(")")
@@ -83,7 +83,7 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
     endloop
     xtics = "("
     if MODE == "inclusions"
-        loop i=1..M.Nrank --quiet
+        loop i=1..M.Nrank
             xtics += sprintf("\"%.d\" %d", i, i-1)
             if i == M.Nrank
                 xtics += sprintf(")")
@@ -92,7 +92,7 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
             endif
         endloop
     else
-        loop i=1..M.k --quiet
+        loop i=1..M.k
             xtics += sprintf("\"%s\" %d", all_names_sp_m[i], i-1)
             if i == M.k
                 xtics += sprintf(")")
@@ -103,8 +103,8 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
     endif
 
     # We need to cast given matrix to its string representation
-    loop i=1..nrows --quiet
-        loop j=1..ncols --quiet
+    loop i=1..nrows
+        loop j=1..ncols
             if MODE == "inclusions"
                 grid += sprintf("%d", m[i,j])
             else

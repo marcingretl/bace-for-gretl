@@ -34,8 +34,8 @@ function matrix BACE_jointness_measure (bundle *M)
     endif    
     matrix jointness_measure = zeros(rows(M.jointness_m), cols(M.jointness_m))
 
-    loop i=1..M.k --quiet
-        loop j=i+1..M.k --quiet
+    loop i=1..M.k
+        loop j=i+1..M.k
             a = M.jointness_m[i,j] # p(i & j)
             b = var_prob[i] - a	   # p(i & ~j)
             c = var_prob[j] - a	   # p(~i & j)

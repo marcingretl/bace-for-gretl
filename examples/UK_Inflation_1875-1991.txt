@@ -1,8 +1,7 @@
-gretl version 2023a
-Current session: 2023-03-13 11:36
+gretl version 2024a-git
+Current session: 2024-03-12 16:54
 
-BACE 3.0-svn, 2023-03-10 (Marcin Błażejowski, Jacek Kwiatkowski)
-Some of the independent variables were colinear and were dropped.
+BACE 3.1, 2024-03-12 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
@@ -107,7 +106,6 @@ Total probability of the models in ranking (numerical): 0.393939
 Correlation coefficient between the analytical
 and numerical probabilities of the above models: 0.999883
 
-
 Best specifications (MLE estimates for linear model):
 ----------------------------------
 
@@ -125,7 +123,6 @@ Model 1: BIC: -683.419272, posterior probability: 0.200439
   Id          0.0381333    0.00142376    26.78    5.03e-158 ***
   pistar_1   -0.186778     0.0223983     -8.339   7.50e-17  ***
 
-
 ----------------------------------
 
 Model 2: BIC: -681.980047, posterior probability: 0.095024
@@ -140,7 +137,6 @@ Model 2: BIC: -681.980047, posterior probability: 0.095024
   d_po_1      0.0412142    0.00991525     4.157   3.23e-05  ***
   Id          0.0376822    0.00145062    25.98    9.12e-149 ***
   pistar_1   -0.186319     0.0229991     -8.101   5.45e-16  ***
-
 
 ----------------------------------
 
@@ -159,7 +155,6 @@ Model 3: BIC: -680.077288, posterior probability: 0.037464
   Id          0.0381227    0.00141517    26.94    7.76e-160 ***
   pistar_1   -0.193690     0.0229893     -8.425   3.60e-17  ***
 
-
 ----------------------------------
 
 Model 4: BIC: -679.904779, posterior probability: 0.034749
@@ -175,7 +170,6 @@ Model 4: BIC: -679.904779, posterior probability: 0.034749
   d_po_1      0.0454881    0.0101335      4.489   7.16e-06  ***
   Id          0.0377281    0.00143433    26.30    1.74e-152 ***
   pistar_1   -0.195916     0.0234577     -8.352   6.72e-17  ***
-
 
 ----------------------------------
 
@@ -195,6 +189,4 @@ Model 5: BIC: -679.422201, posterior probability: 0.026263
 
 ----------------------------------
 
-
-
-BACE for GUMFinal took 10.37 sec.
+BACE for GUMFinal took 9.48 sec.

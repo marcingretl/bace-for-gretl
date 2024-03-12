@@ -34,11 +34,11 @@ function void BACE_jointness_pairs (string MODE,
     matrix pairs_related = pairs[shift + 1 : shift + n_pairs, ]
     shift += n_pairs
     string pair_names = ""
-    loop i=1..n_pairs --quiet
+    loop i=1..n_pairs
         pair_names += " " ~ cnameget(jointness_m, pairs_related[i,2]) ~ "," ~ cnameget(jointness_m, pairs_related[i,3])
     endloop
     matrix pairs_related = pairs_related[,1]
-    loop i=1..nelem(pairs_related) --quiet
+    loop i=1..nelem(pairs_related)
         if ok(pairs_related[i]) && abs(pairs_related[i]) == 999
             pairs_related[i] = sgn(pairs_related[1]) * 1/0
         endif

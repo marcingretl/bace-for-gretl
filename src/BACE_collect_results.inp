@@ -69,7 +69,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     if M.with_const == 0 && !(M.limited_y && M.ordered)
         M.post_n_models = xmin(M.post_n_models, 2^M.k-1)
     endif
-    known_models = null
+    known_models = defbundle()
 
     # We select objects only for accepted models
     idx = selifr(seq(1, M.Nrep+1)', models_counter .> 0)
@@ -84,7 +84,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         models_yhat = models_yhat[idx]
         if M.ordered
             cuts_estimates = array(nelem(models_counter))
-            loop i=1..nelem(models_counter) --quiet
+            loop i=1..nelem(models_counter)
                 cuts_estimates[i] = models_estimates[i][end-M.cuts+1:end,]
                 if rows(models_estimates[i]) > M.cuts
                     models_estimates[i] = models_estimates[i][1:end-M.cuts,]
@@ -111,7 +111,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
 
     # We restore estimates for models in ranking
-    loop i=1..M.Nrank --quiet
+    loop i=1..M.Nrank
         var_idx = {}
         mod_struct = models_structure_rank[i]
         M.mod_rank[i] = mod_struct
@@ -145,7 +145,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         percentage = M.progress
         flush
     endif
-    loop i=1..nelem(models_counter) --quiet
+    loop i=1..nelem(models_counter)
         weight = models_counter[i]
         mod_struct = models_structure[i]
         mod_struct_sum = sum(mod_struct)
@@ -167,7 +167,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                 nr = with_const + mod_struct_sum
                 bhat = mshape(bhat, nr, yvals)
                 bvar = mshape(models_estimates[i][,2], nr, yvals)
-                loop j=1..yvals --quiet
+                loop j=1..yvals
                     bhat_avg[var_idx, j] += weight * bhat[,j]
                     bvar_avg[var_idx, j] += weight * (bvar[,j] + bhat[,j] .^ 2)
                 endloop

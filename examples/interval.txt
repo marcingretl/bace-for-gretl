@@ -1,6 +1,7 @@
-gretl version 2023a
-Current session: 2023-03-13 12:03
+gretl version 2024a-git
+Current session: 2024-03-12 16:55
 
+BACE 3.1, 2024-03-12 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
@@ -82,7 +83,6 @@ Total probability of the models in ranking (numerical): 0.764000
 Correlation coefficient between the analytical
 and numerical probabilities of the above models: 0.999458
 
-
 Best specifications (MLE estimates for intreg model):
 ----------------------------------
 
@@ -93,7 +93,6 @@ Model 1: HBIC: 774.417407, posterior probability: 0.287778
   bidh         0.278610    0.0504123     5.527   3.26e-08 ***
   age         -5.99029     1.40727      -4.257   2.07e-05 ***
   income       3.95656     1.60396       2.467   0.0136   **
-
 
 ----------------------------------
 
@@ -106,7 +105,6 @@ Model 2: HBIC: 775.327899, posterior probability: 0.172889
   female      -6.95114     4.02678      -1.726   0.0843   *
   income       3.88270     1.59789       2.430   0.0151   **
 
-
 ----------------------------------
 
 Model 3: HBIC: 775.779162, posterior probability: 0.140000
@@ -117,7 +115,6 @@ Model 3: HBIC: 775.779162, posterior probability: 0.140000
   age         -5.98826      1.40878     -4.251   2.13e-05 ***
   income       3.88054      1.60714      2.415   0.0158   **
 
-
 ----------------------------------
 
 Model 4: HBIC: 776.741298, posterior probability: 0.083667
@@ -126,7 +123,6 @@ Model 4: HBIC: 776.741298, posterior probability: 0.083667
   const       25.6525      5.30277       4.838   1.31e-06 ***
   bidh         0.284130    0.0508531     5.587   2.31e-08 ***
   age         -6.89295     1.38671      -4.971   6.67e-07 ***
-
 
 ----------------------------------
 
@@ -141,5 +137,4 @@ Model 5: HBIC: 776.849965, posterior probability: 0.079667
 
 ----------------------------------
 
-
-Total execution time: 0.80 sec.
+Total execution time: 0.58 sec.

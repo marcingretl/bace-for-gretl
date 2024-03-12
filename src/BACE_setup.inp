@@ -107,7 +107,7 @@ function void BACE_setup (bundle *M, int Norig)
     matrix M.var_numbers = Y || X_list # vector containing numbers of all variables (including Y) in dataset (not in the procedure)
     matrix M.var_numbers2 = M.var_numbers[2:1+M.k] | seq(2,1+M.k)
     strings M.all_names_sp_m = varnames(X_list)
-    loop i=1..M.y_lag --quiet
+    loop i=1..M.y_lag
         M.all_names_sp_m[i] = strsub(M.all_names_sp_m[i], "Y_$i", M.Y_name~"_$i")
     endloop
     if M.with_const == 1
@@ -192,7 +192,7 @@ function void BACE_setup (bundle *M, int Norig)
         scalar M.mod_size_sd_prior_bic = NA
         scalar M.avg_model_size_bic = NA
         matrix M.model_prior_bic_log = zeros(M.k+1)
-        loop i=0..M.k --quiet
+        loop i=0..M.k
             M.model_prior_bic_log[i+1] = M.gamma * log(bincoeff(M.k,i)) * 0.5 # We divide by 2 bacause we need 0.5*BIC!!!
         endloop
     endif
@@ -208,7 +208,7 @@ function void BACE_setup (bundle *M, int Norig)
         else
             tmp = fzero(BACE_exp_trunc_dist(tmp, M.k, M.avg_model_size, M.prior_name))
         endif
-        loop i=0..M.k --quiet
+        loop i=0..M.k
             M.model_prior_log[i+1] = tmp^i * (1-tmp)^(M.k-i)
         endloop
     elif M.prior_name == "Beta-Binomial"
@@ -225,7 +225,7 @@ function void BACE_setup (bundle *M, int Norig)
                 endif
             endloop
         endif
-        loop i=0..M.k --quiet
+        loop i=0..M.k
             M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
         endloop
     elif M.prior_name == "custom"
@@ -241,8 +241,8 @@ function void BACE_setup (bundle *M, int Norig)
             if !nelem(thata_names)
                 return "Prior Inclusion Probabilities (theta) does not have variables names"
             endif
-            loop foreach x X_list --quiet
-                loop i=1..nelem(thata_names) --quiet
+            loop foreach x X_list
+                loop i=1..nelem(thata_names)
                     if thata_names[i] == "$x"
                         theta_tmp[inlist(X_list, "$x")] = M.theta[i]
                         break

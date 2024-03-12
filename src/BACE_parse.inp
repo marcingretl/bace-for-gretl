@@ -129,7 +129,7 @@ function string BACE_parse (bundle *M,
 
     # We check if given X_list does not include lagged Y
     if M.y_lag > 0
-        loop i=1..M.y_lag --quiet
+        loop i=1..M.y_lag
             tmp_str = Y_name ~ "_" ~ "$i"
             if inlist(X_list, tmp_str) != 0
                 X_list -= X_list[inlist(X_list, tmp_str)]
@@ -169,7 +169,7 @@ function string BACE_parse (bundle *M,
         if $ncoeff < k + 1 - (M.with_const == 2)
             X_list = $xlist - const
             if M.y_lag
-                loop i=1..M.y_lag --quiet
+                loop i=1..M.y_lag
                     X_list = X_list - Y_$i
                 endloop
             endif
