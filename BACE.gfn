@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gretl-functions>
-<gretl-function-package name="BACE" minver="2023c" lives-in-subdir="true">
+<gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.1</version>
-<date>2024-03-12</date>
+<date>2024-03-13</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -376,7 +376,7 @@ endif
 
 # Jointess analysis
 if M.do_joint
-  matrix jointess_measure = BACE_jointness_measure(&amp;M)
+  matrix jointess_measure = BACE_jointness_measure(M)
   string jointess_measure_name = M.jointess_measure_names[M.do_joint]
   print &quot;----------------------------------&quot;
   printf &quot;\n&quot;
@@ -1566,7 +1566,7 @@ if M.limited_y
   matrix M.Yhat = {}
   matrix M.contingency = {}
   matrix M.yvals = {}
-  strings M.cuts_names = null
+  strings M.cuts_names = array(0)
   # We check if we have ordered version
   tmp_str = M.estimator
   if M.model_type == &quot;mlogit&quot;
@@ -1605,7 +1605,7 @@ M.X_list = X_list
 ###############################################
 # Local variables							  #
 ###############################################
-bundle M.StartModel_b = null
+bundle M.StartModel_b = _()
 scalar M.Nburn = round(M.burn/100*M.Nrep) # number of burn-in draws
 scalar M.k = nelem(X_list) # total number of indenpendent variables
 scalar M.model_space = 2^M.k
@@ -1639,7 +1639,7 @@ strings M.PriorBasedBic = defarray(&quot;EBIC&quot;)
 scalar M.Y_censoring = 0 # do we censore Y?
 string M.estimator_opts = &quot;&quot; # options for estimator (command line)
 matrix M.n_censored = {}
-bundle M.normality_test = null
+bundle M.normality_test = _()
 
 # In case of &quot;out-of-sample&quot; prediction
 if M.Npredict
@@ -1658,7 +1658,7 @@ else
   matrix M.Yhat_avg = {}
   matrix M.Yhat_var_avg = {}
   matrix M.Y_mat_predict = {}
-  strings M.predict_obs_names = null
+  strings M.predict_obs_names = array(0)
 endif
 scalar M.N = $nobs
 
@@ -2246,7 +2246,7 @@ endif
 </gretl-function>
 <gretl-function name="BACE_jointness_measure" type="matrix" private="1">
  <params count="1">
-  <param name="M" type="bundleref"/>
+  <param name="M" type="bundle" const="true"/>
  </params>
 <code>/*
 Function computes jointness measure based on given jointness matrix.
@@ -2355,7 +2355,7 @@ endif
 if M.limited_y
   matrices models_yhat = array(M.Nrep+1)
 else
-  matrices models_yhat = null
+  matrices models_yhat = array(0)
 endif
 # Sample setting for prediction
 if M.Npredict
@@ -2692,7 +2692,7 @@ return err
 </gretl-function>
 <gretl-function name="BACE_heatmap" type="void" private="1">
  <params count="3">
-  <param name="M" type="bundle"/>
+  <param name="M" type="bundle" const="true"/>
   <param name="MODE" type="string"/>
   <param name="basename" type="string" optional="true" const="true"/>
  </params>
@@ -2733,7 +2733,7 @@ else
   ylabel = xlabel
   height = xmin(xmax(int(M.k/41*1024), 640), 900)
   width = xmin(xmax(int(M.k/41*1024), 900), 1024)
-  m = BACE_jointness_measure(&amp;M)
+  m = BACE_jointness_measure(M)
   m[diag] = 0
   minval = minc(minr(m))
   maxval = maxc(maxr(m))

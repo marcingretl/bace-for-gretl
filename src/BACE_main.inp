@@ -42,7 +42,7 @@ function void BACE_main (bundle *M)
     if M.limited_y
         matrices models_yhat = array(M.Nrep+1)
     else
-        matrices models_yhat = null
+        matrices models_yhat = array(0)
     endif
     # Sample setting for prediction
     if M.Npredict

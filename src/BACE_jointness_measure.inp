@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function matrix BACE_jointness_measure (bundle *M)
+function matrix BACE_jointness_measure (const bundle M)
 /*
    Function computes jointness measure based on given jointness matrix.
    Local variables:

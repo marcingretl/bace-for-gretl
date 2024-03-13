@@ -45,7 +45,7 @@ function void BACE_setup (bundle *M, int Norig)
         matrix M.Yhat = {}
         matrix M.contingency = {}
         matrix M.yvals = {}
-        strings M.cuts_names = null
+        strings M.cuts_names = array(0)
         # We check if we have ordered version
         tmp_str = M.estimator
         if M.model_type == "mlogit"
@@ -84,7 +84,7 @@ function void BACE_setup (bundle *M, int Norig)
     ###############################################
     # Local variables							  #
     ###############################################
-    bundle M.StartModel_b = null
+    bundle M.StartModel_b = _()
     scalar M.Nburn = round(M.burn/100*M.Nrep) # number of burn-in draws
     scalar M.k = nelem(X_list) # total number of indenpendent variables
     scalar M.model_space = 2^M.k
@@ -118,7 +118,7 @@ function void BACE_setup (bundle *M, int Norig)
     scalar M.Y_censoring = 0 # do we censore Y?
     string M.estimator_opts = "" # options for estimator (command line)
     matrix M.n_censored = {}
-    bundle M.normality_test = null
+    bundle M.normality_test = _()
 
     # In case of "out-of-sample" prediction
     if M.Npredict
@@ -137,7 +137,7 @@ function void BACE_setup (bundle *M, int Norig)
         matrix M.Yhat_avg = {}
         matrix M.Yhat_var_avg = {}
         matrix M.Y_mat_predict = {}
-        strings M.predict_obs_names = null
+        strings M.predict_obs_names = array(0)
     endif
     scalar M.N = $nobs
 

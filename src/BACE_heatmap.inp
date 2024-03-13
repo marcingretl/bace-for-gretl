@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function void BACE_heatmap (bundle M, string MODE, const string basename[null])
+function void BACE_heatmap (const bundle M, string MODE, const string basename[null])
 /*
    M - BACE result bundle,
    MODE - string indicating image mode {"inclusions", "jointness"}
@@ -54,7 +54,7 @@ function void BACE_heatmap (bundle M, string MODE, const string basename[null])
         ylabel = xlabel
         height = xmin(xmax(int(M.k/41*1024), 640), 900)
         width = xmin(xmax(int(M.k/41*1024), 900), 1024)
-        m = BACE_jointness_measure(&M)
+        m = BACE_jointness_measure(M)
         m[diag] = 0
         minval = minc(minr(m))
         maxval = maxc(maxr(m))

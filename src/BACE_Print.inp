@@ -276,7 +276,7 @@ function void BACE_Print (bundle *MODEL)
 
     # Jointess analysis
     if M.do_joint
-        matrix jointess_measure = BACE_jointness_measure(&M)
+        matrix jointess_measure = BACE_jointness_measure(M)
         string jointess_measure_name = M.jointess_measure_names[M.do_joint]
         print "----------------------------------"
         printf "\n"
