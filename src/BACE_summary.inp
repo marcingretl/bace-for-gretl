@@ -17,7 +17,7 @@
 */
 function void BACE_summary (bundle *M)
 /*
-   We summarise some BACE results and deleting redundand items from the returned bundle.
+   We summarise some BACE results and deleting redundant items from the returned bundle.
     */
     BACE_print_status("Summarizing")
     scalar tmps, factor, k
@@ -327,7 +327,7 @@ function void BACE_summary (bundle *M)
     delete M.var_prob
     if M.prior_name != "Beta-Binomial"
         delete M.a
-    endif    
+    endif
     delete M.b
     delete M.bhat_avg
     delete M.bvar_avg

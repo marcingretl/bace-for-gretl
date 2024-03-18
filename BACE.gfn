@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.1</version>
-<date>2024-03-13</date>
+<date>2024-03-18</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -27,9 +27,6 @@ examples </data-files>
 Bundle-based BACE analysis.
 Function returns bundle MODEL with (formatted) results.
 */
-
-# We need to force use of locale-specific decimal point
-set force_decpoint on
 
 bundle MODEL
 string err
@@ -106,6 +103,11 @@ else
       BACE_Plot(&amp;MODEL)
     endif
   endif
+endif
+
+# avoid fixing MODEL.plotspec in place in GUI
+if inbundle(MODEL, &quot;plotspec&quot;)
+  delete MODEL.plotspec
 endif
 
 set warnings on
@@ -480,22 +482,20 @@ BACE result bundle plot function.
 */
 string legend, output, basename, xtics, plot_title, plotmat_str
 string yrange = &quot;&quot;
-string terminal_opts = &quot;&quot;
 string line_opts = &quot;&quot;
 scalar avg_model_size = 0
 scalar idx, error
 strings title
 
-if $sysinfo.gui_mode
+if inbundle(MODEL, &quot;plotspec&quot;) &amp;&amp; MODEL.plotspec != &quot;&quot;
+  basename = MODEL.plotspec
+elif $sysinfo.gui_mode
   basename = &quot;display&quot;
 else
-  basename = strftime($now[1], &quot;%Y%m%d%H%M%S&quot;)
-  if $sysinfo[&quot;os&quot;] == &quot;windows&quot;
-    terminal_opts = sprintf(&quot;%s&quot;, &quot;set terminal windows&quot;)
-  else
-    terminal_opts = sprintf(&quot;%s\n%s&quot;, &quot;set terminal png&quot;, &quot;set output '| display png:-'&quot;)
-  endif
+  # CLI: default to producing .plt files
+  basename = sprintf(&quot;%s.plt&quot;, strftime($now[1], &quot;%Y%m%d%H%M%S&quot;))
 endif
+# printf &quot;*** HERE BACE_Plot: basename = '%s'\n&quot;, basename
 
 # We set up avg_model_size
 if MODEL.prior_name == &quot;none&quot; &amp;&amp; MODEL.prior_based_bic
@@ -531,10 +531,7 @@ endif
 #########################################################
 # Model size distribution
 plotmat = mreverse(MODEL.mod_sizes, 1)
-output = basename
-if !$sysinfo.gui_mode
-  output = output ~ &quot;-MSD.plt&quot;
-endif
+output = get_plot_outname(basename, &quot;-MSD&quot;)
 xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
 if MODEL.prior_name == &quot;custom&quot;
   title = cnameget(plotmat)[2:3]
@@ -546,7 +543,6 @@ else
   plot_title = &quot;Model Size Distribution&quot;
 endif
 catch plot plotmat
-  printf &quot;%s&quot;, terminal_opts
   printf &quot;%s&quot;, line_opts
   options with-lp fit=none
   literal set link y2 via y inverse y
@@ -555,7 +551,7 @@ catch plot plotmat
   printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
   printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Density&quot;
   printf &quot;set key %s top&quot;, legend
-end plot --output=@output
+end plot --output=&quot;@output&quot;
 error = $error
 if error
   printf &quot;Model Size Distribution: %s\n&quot;, errmsg(error)
@@ -566,20 +562,16 @@ if rows(MODEL.models_probs_percents) == 1
   printf &quot;CDF of Model Size: there is just one model in ranking, nothing to plot.\n&quot;
 else
   plotmat = MODEL.models_probs_cdf
-  output = basename
-  if !$sysinfo.gui_mode
-    output = output ~ &quot;-CDF.plt&quot;
-  endif
+  output = get_plot_outname(basename, &quot;-CDF&quot;)
   xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
   catch plot plotmat
-    printf &quot;%s&quot;, terminal_opts
     options with-line fit=none
     literal set grid
     printf &quot;%s&quot;, xtics
     printf &quot;set title \&quot;%s\&quot;&quot;, &quot;CDF of Model Size&quot;
     printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Number of Models&quot;
     printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Posterior Probability Mass&quot;
-  end plot --output=@output
+  end plot --output=&quot;@output&quot;
   error = $error
   if error
     printf &quot;CDF of Model Size: %s\n&quot;, errmsg(error)
@@ -587,18 +579,14 @@ else
 endif
 
 # Priors
-output = basename
-if !$sysinfo.gui_mode
-  output = output ~ &quot;-MPD.plt&quot;
-endif
+output = get_plot_outname(basename, &quot;-MPD&quot;)
 if MODEL.prior_name == &quot;custom&quot;
   plotmat = MODEL.IncProbs
   cnameset(plotmat, &quot;&quot;)
   outfile --buffer=plotmat_str
-    printf &quot;% .16f&quot;, plotmat
+    printf &quot;% .16f&quot;, plotmat # decpoint?
   end outfile
   catch plot
-    printf &quot;%s&quot;, terminal_opts
     literal set title 'Inclusion Probabilities'
     literal set boxwidth 0.9 absolute
     literal set style fill solid 1.00 border lt -1
@@ -606,13 +594,13 @@ if MODEL.prior_name == &quot;custom&quot;
     literal set style data histograms
     literal set key outside below center
     literal set xtics border in scale 0,0 nomirror rotate by -45 autojustify
-    literal set yrange [ 0 : 1.00 ] noreverse writeback
+    literal set yrange [0:1.0] noreverse writeback
     literal set grid
     printf &quot;$map &lt;&lt; EOD&quot;
     printf &quot;%s&quot;, plotmat_str
     printf &quot;EOD&quot;
     literal plot $map using 2:xtic(1) title 'Prior', '' u 3 title 'PIP'
-  end plot --output=@output
+  end plot --output=&quot;@output&quot;
   error = $error
   if error
     printf &quot;Prior and Posterior Inclusion Probabilities: %s\n&quot;, errmsg(error)
@@ -625,13 +613,14 @@ else
   if MODEL.prior_based_bic
     plotmat = exp(MODEL.model_prior_bic_log)[idx:end] ~ plotmat
     plotmat = sumr(plotmat[,1:2]) ~ plotmat
+    set force_decpoint on
     yrange = sprintf(&quot;set yrange [0:%f]&quot;, 1.1*max(plotmat[,1:end-1]))
+    set force_decpoint off
     title = defarray(&quot;Effective&quot;, MODEL.bic_type_name) + title
   endif
   cnameset(plotmat, title)
   xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
   catch plot plotmat
-    printf &quot;%s&quot;, terminal_opts
     options with-lp fit=none
     literal set link y2 via y inverse y
     printf &quot;%s&quot;, xtics
@@ -640,7 +629,7 @@ else
     printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Model Size&quot;
     printf &quot;set ylabel \&quot;%s\&quot;&quot;, &quot;Value&quot;
     printf &quot;set key %s top&quot;, legend
-  end plot --output=@output
+  end plot --output=&quot;@output&quot;
   error = $error
   if error
     printf &quot;Prior Model Probabilities: %s\n&quot;, errmsg(error)
@@ -661,10 +650,8 @@ if MODEL.Npredict
     bars = MODEL.prediction[,2:3]
   endif
   cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
-  output = basename
-  if !$sysinfo.gui_mode
-    output = output ~ &quot;-predict.plt&quot;
-  endif
+
+  output = get_plot_outname(basename, &quot;-predict&quot;)
   xtics = &quot;(&quot;
   loop i=1..MODEL.Npredict
     xtics += sprintf(&quot;\&quot;%s\&quot; %d&quot;, rnameget(MODEL.prediction)[i], i)
@@ -675,14 +662,13 @@ if MODEL.Npredict
     endif
   endloop
   catch plot plotmat
-    printf &quot;%s&quot;, terminal_opts
     options time-series with-lines
     options with-line fit=none
     options band=bars,1 band-style=bars
     printf &quot;set title \&quot;%s\&quot;&quot;, plot_title
     printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Observation&quot;
     printf &quot;set xtics %s&quot;, xtics
-  end plot --output=@output
+  end plot --output=&quot;@output&quot;
   error = $error
   if error
     printf &quot;Predictive results: %s\n&quot;, errmsg(error)
@@ -1185,7 +1171,7 @@ eval pairs_related
   <param name="M" type="bundleref"/>
  </params>
 <code>/*
-We summarise some BACE results and deleting redundand items from the returned bundle.
+We summarise some BACE results and deleting redundant items from the returned bundle.
 */
 BACE_print_status(&quot;Summarizing&quot;)
 scalar tmps, factor, k
@@ -1850,14 +1836,12 @@ x4 = int(x/4)
 bar = &quot;[&quot;
 loop j=1..25
   if j &lt;= x4
-    sign = &quot;#&quot;
+    bar ~= &quot;#&quot;
   else
-    sign = &quot;.&quot;
+    bar ~= &quot;.&quot;
   endif
-  bar+= sprintf(&quot;%s&quot;, sign)
 endloop
-bar+= sprintf(&quot;%s&quot;, &quot;]&quot;)
-printf &quot;%s %4.1f%%\r&quot;, bar, x
+printf &quot;%s] %4.1f%%\r&quot;, bar, x
 percentage += progress
 flush
 </code>
@@ -2490,7 +2474,7 @@ strings ModelTypes = defarray(&quot;linear&quot;, &quot;logit&quot;, &quot;probi
 strings BicTypes = defarray(&quot;BIC&quot;, &quot;HBIC&quot;, &quot;IBIC&quot;, &quot;EBIC&quot;)
 strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot;Beta-Binomial&quot;, &quot;custom&quot;)
 strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
-strings DataTransTypes = defarray(&quot;none&quot;, &quot;centering&quot;, &quot;standarizing&quot;)
+strings DataTransTypes = defarray(&quot;none&quot;, &quot;centering&quot;, &quot;standardizing&quot;)
 strings OverloadableKeys
 if $sysinfo.gui_mode
   do_plot_tmp = 1
@@ -2580,6 +2564,11 @@ elif inbundle(UserOpts, &quot;theta&quot;) &amp;&amp; typeof(UserOpts[&quot;thet
   model_prior_tmp = 3
 endif
 
+# We check if the caller gave a &quot;plotspec&quot; string
+if inbundle(UserOpts, &quot;plotspec&quot;) &amp;&amp; typeof(UserOpts[&quot;plotspec&quot;]) != 4
+  err += sprintf(&quot;plotspec must be a string, is: %s&quot;, typestr(typeof(UserOpts[&quot;plotspec&quot;])))
+endif
+
 # Template bundle with default values
 string Options[&quot;model_type&quot;] = &quot;linear&quot;
 scalar Options[&quot;bic_type&quot;] = 2
@@ -2604,6 +2593,7 @@ scalar Options[&quot;do_plot&quot;] = do_plot_tmp
 scalar Options[&quot;a&quot;] = 1
 matrix Options[&quot;theta&quot;] = {NA}
 scalar Options[&quot;_gui&quot;] = 0
+string Options[&quot;plotspec&quot;] = &quot;&quot;
 
 # General checking, but still needs some manual work later
 err2 = bcheck(&amp;Options, UserOpts)
@@ -2694,14 +2684,14 @@ return err
  <params count="3">
   <param name="M" type="bundle" const="true"/>
   <param name="MODE" type="string"/>
-  <param name="basename" type="string" optional="true" const="true"/>
+  <param name="basename" type="string" const="true"/>
  </params>
 <code>/*
 M - BACE result bundle, MODE - string indicating image mode {&quot;inclusions&quot;, &quot;jointness&quot;}
-basename	- basename for gnuplot files
+basename	- basename for gnuplot output specification
 */
 scalar nrows, ncols, tmp, height, width, minval, maxval, error
-string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output, terminal_opts
+string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output, insert
 matrix m
 strings all_names_sp_m
 
@@ -2726,7 +2716,7 @@ if MODE == &quot;inclusions&quot;
   endloop
   m = mreverse(m')
   palette = &quot;0 'white', 1 'dark-green'&quot;
-  output = &quot;-PIP.plt&quot;
+  insert = &quot;-PIP&quot;
 else
   title = sprintf(&quot;Jointness Based on %s&quot;, M.jointess_measure_names[M.do_joint])
   xlabel = &quot;Variable&quot;
@@ -2737,7 +2727,7 @@ else
   m[diag] = 0
   minval = minc(minr(m))
   maxval = maxc(maxr(m))
-  m[diag] = NA
+  m[diag] = NA # or set to zero?
   m = mreverse(m)
   if minval == 0
     palette = sprintf(&quot;0 'white', %s 'red'&quot;, strsub(sprintf(&quot;%f&quot;, maxval), &quot;,&quot;, &quot;.&quot;))
@@ -2745,7 +2735,7 @@ else
     palette = sprintf(&quot;%s 'blue', 0 'white', %s 'red'&quot;, strsub(sprintf(&quot;%f&quot;, minval), &quot;,&quot;, &quot;.&quot;), strsub(sprintf(&quot;%f&quot;, maxval), &quot;,&quot;, &quot;.&quot;))
   endif
   rotate = &quot;set xtics rotate by 45 right&quot;
-  output = &quot;-Jointness.plt&quot;
+  insert = &quot;-Jointness&quot;
 endif
 nrows = rows(m)
 ncols = cols(m)
@@ -2782,6 +2772,7 @@ else
 endif
 
 # We need to cast given matrix to its string representation
+/*
 loop i=1..nrows
   loop j=1..ncols
     if MODE == &quot;inclusions&quot;
@@ -2798,27 +2789,32 @@ loop i=1..nrows
     endif
   endloop
 endloop
-
-# We check if we display or save plot
-if $sysinfo.gui_mode
-  output = &quot;display&quot;
-  terminal_opts = sprintf(&quot;set term pngcairo font \&quot;Vera,9\&quot; size %d,%d noenhanced&quot;, width, height)
-else
-  output = sprintf(&quot;%s%s&quot;, basename, output)
-  if $sysinfo[&quot;os&quot;] == &quot;windows&quot;
-    terminal_opts = sprintf(&quot;%s&quot;, &quot;set terminal windows&quot;)
-  else
-    terminal_opts = sprintf(&quot;%s\n%s&quot;, &quot;set terminal png&quot;, &quot;set output '| display png:-'&quot;)
-  endif
+*/
+if nelem(cnameget(m))
+  # mask column names, if present
+  grid = &quot;#&quot;
 endif
+if MODE == &quot;inclusions&quot;
+  # @m will be integer-valued
+  grid ~= sprintf(&quot;%2d&quot;, m)
+else
+  # @m will be real-valued
+  set force_decpoint on
+  # use misszero to avoid a warning from gnuplot
+  grid ~= sprintf(&quot;%8.4f&quot;, misszero(m))
+  set force_decpoint off
+endif
+
+# Construct the string for the plot --output option
+output = get_plot_outname(basename, insert)
+# printf &quot;*** HERE BACE_heatmap output = '%s'\n&quot;, output
 
 # We plot heatmap
 catch plot
-  printf &quot;%s&quot;, terminal_opts
   literal set encoding utf8
   literal set decimalsign '.'
   literal set nokey
-  literal set datafile missing &quot;&quot;
+  literal set datafile missing &quot;nan&quot;
   literal set x2tics 1 format '' scale 0,0.001
   literal set y2tics 1 format '' scale 0,0.001
   literal set mx2tics 2
@@ -2839,7 +2835,7 @@ catch plot
   printf &quot;%s&quot;, grid
   printf &quot;EOD&quot;
   literal plot $map matrix with image
-end plot --output=@output
+end plot --output=&quot;@output&quot;
 error = $error
 if error
   printf &quot;%s: %s\n&quot;, title, errmsg(error)
@@ -2913,6 +2909,30 @@ elif dist == &quot;Beta-Binomial&quot;
 endif
 
 return Exp/(1-P0) - avg
+</code>
+</gretl-function>
+<gretl-function name="get_plot_outname" type="string" private="1">
+ <params count="2">
+  <param name="base" type="string" const="true"/>
+  <param name="insert" type="string" const="true"/>
+ </params>
+<code>string s = base
+if instring(s, &quot;.&quot;)
+  # We need a valid plot-type suffix
+  strings ok = defarray(&quot;plt&quot;, &quot;png&quot;, &quot;pdf&quot;, &quot;eps&quot;, &quot;svg&quot;, &quot;html&quot;, &quot;emf&quot;)
+  strings S = strsplit(base, &quot;.&quot;)
+  scalar n = nelem(S)
+  string sfx = S[n]
+  errorif(nelem(instrings(ok, sfx)) == 0, sprintf(&quot;Unsupported plot filename suffix '%s'&quot;, sfx))
+  s = &quot;&quot;
+  loop i=1..n-1
+    s ~= i &lt; n-1 ? sprintf(&quot;%s.&quot;, S[i]) : S[i]
+  endloop
+  s ~= sprintf(&quot;%s.%s&quot;, insert, sfx)
+else
+  errorif(s != &quot;display&quot;, sprintf(&quot;Invalid plot output spec '%s'&quot;, s))
+endif
+return s
 </code>
 </gretl-function>
 <sample-script filename="examples/BACE_sample.inp">

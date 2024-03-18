@@ -21,22 +21,20 @@ function void BACE_Plot (const bundle *MODEL)
     */
     string legend, output, basename, xtics, plot_title, plotmat_str
     string yrange = ""
-    string terminal_opts = ""
     string line_opts = ""
     scalar avg_model_size = 0
     scalar idx, error
     strings title
 
-    if $sysinfo.gui_mode
+    if inbundle(MODEL, "plotspec") && MODEL.plotspec != ""
+        basename = MODEL.plotspec
+    elif $sysinfo.gui_mode
         basename = "display"
     else
-        basename = strftime($now[1], "%Y%m%d%H%M%S")
-        if $sysinfo["os"] == "windows"
-            terminal_opts = sprintf("%s", "set terminal windows")
-        else
-            terminal_opts = sprintf("%s\n%s", "set terminal png", "set output '| display png:-'")
-        endif
+        # CLI: default to producing .plt files
+        basename = sprintf("%s.plt", strftime($now[1], "%Y%m%d%H%M%S"))
     endif
+    # printf "*** HERE BACE_Plot: basename = '%s'\n", basename
 
     # We set up avg_model_size
     if MODEL.prior_name == "none" && MODEL.prior_based_bic
@@ -72,10 +70,7 @@ function void BACE_Plot (const bundle *MODEL)
     #########################################################
     # Model size distribution
     plotmat = mreverse(MODEL.mod_sizes, 1)
-    output = basename
-    if !$sysinfo.gui_mode
-        output = output ~ "-MSD.plt"
-    endif
+    output = get_plot_outname(basename, "-MSD")
     xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
     if MODEL.prior_name == "custom"
         title = cnameget(plotmat)[2:3]
@@ -87,7 +82,6 @@ function void BACE_Plot (const bundle *MODEL)
         plot_title = "Model Size Distribution"
     endif
     catch plot plotmat
-        printf "%s", terminal_opts
         printf "%s", line_opts
         options with-lp fit=none
         literal set link y2 via y inverse y
@@ -96,31 +90,27 @@ function void BACE_Plot (const bundle *MODEL)
         printf "set xlabel \"%s\"", "Model Size"
         printf "set ylabel \"%s\"", "Density"
         printf "set key %s top", legend
-    end plot --output=@output
+    end plot --output="@output"
     error = $error
     if error
         printf "Model Size Distribution: %s\n", errmsg(error)
     endif
 
-    # Models size CDF    
+    # Models size CDF
     if rows(MODEL.models_probs_percents) == 1
         printf "CDF of Model Size: there is just one model in ranking, nothing to plot.\n"
     else
         plotmat = MODEL.models_probs_cdf
-        output = basename
-        if !$sysinfo.gui_mode
-            output = output ~ "-CDF.plt"
-        endif
-        xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
+        output = get_plot_outname(basename, "-CDF")
+         xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
         catch plot plotmat
-            printf "%s", terminal_opts
             options with-line fit=none
             literal set grid
             printf "%s", xtics
             printf "set title \"%s\"", "CDF of Model Size"
             printf "set xlabel \"%s\"", "Number of Models"
             printf "set ylabel \"%s\"", "Posterior Probability Mass"
-        end plot --output=@output
+        end plot --output="@output"
         error = $error
         if error
             printf "CDF of Model Size: %s\n", errmsg(error)
@@ -128,18 +118,14 @@ function void BACE_Plot (const bundle *MODEL)
     endif
 
     # Priors
-    output = basename
-    if !$sysinfo.gui_mode
-        output = output ~ "-MPD.plt"
-    endif
+    output = get_plot_outname(basename, "-MPD")
     if MODEL.prior_name == "custom"
         plotmat = MODEL.IncProbs
         cnameset(plotmat, "")
         outfile --buffer=plotmat_str
-            printf "% .16f", plotmat
+            printf "% .16f", plotmat # decpoint?
         end outfile
         catch plot
-            printf "%s", terminal_opts
             literal set title 'Inclusion Probabilities'
             literal set boxwidth 0.9 absolute
             literal set style fill solid 1.00 border lt -1
@@ -147,13 +133,13 @@ function void BACE_Plot (const bundle *MODEL)
             literal set style data histograms
             literal set key outside below center
             literal set xtics border in scale 0,0 nomirror rotate by -45 autojustify
-            literal set yrange [ 0 : 1.00 ] noreverse writeback
+            literal set yrange [0:1.0] noreverse writeback
             literal set grid
             printf "$map << EOD"
             printf "%s", plotmat_str
             printf "EOD"
             literal plot $map using 2:xtic(1) title 'Prior', '' u 3 title 'PIP'
-        end plot --output=@output
+        end plot --output="@output"
         error = $error
         if error
             printf "Prior and Posterior Inclusion Probabilities: %s\n", errmsg(error)
@@ -166,13 +152,14 @@ function void BACE_Plot (const bundle *MODEL)
         if MODEL.prior_based_bic
             plotmat = exp(MODEL.model_prior_bic_log)[idx:end] ~ plotmat
             plotmat = sumr(plotmat[,1:2]) ~ plotmat
+            set force_decpoint on
             yrange = sprintf("set yrange [0:%f]", 1.1*max(plotmat[,1:end-1]))
+            set force_decpoint off
             title = defarray("Effective", MODEL.bic_type_name) + title
         endif
         cnameset(plotmat, title)
         xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
         catch plot plotmat
-            printf "%s", terminal_opts
             options with-lp fit=none
             literal set link y2 via y inverse y
             printf "%s", xtics
@@ -181,7 +168,7 @@ function void BACE_Plot (const bundle *MODEL)
             printf "set xlabel \"%s\"", "Model Size"
             printf "set ylabel \"%s\"", "Value"
             printf "set key %s top", legend
-        end plot --output=@output
+        end plot --output="@output"
         error = $error
         if error
             printf "Prior Model Probabilities: %s\n", errmsg(error)
@@ -202,10 +189,8 @@ function void BACE_Plot (const bundle *MODEL)
             bars = MODEL.prediction[,2:3]
         endif
         cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
-        output = basename
-        if !$sysinfo.gui_mode
-            output = output ~ "-predict.plt"
-        endif
+        
+        output = get_plot_outname(basename, "-predict")
         xtics = "("
         loop i=1..MODEL.Npredict
             xtics += sprintf("\"%s\" %d", rnameget(MODEL.prediction)[i], i)
@@ -216,14 +201,13 @@ function void BACE_Plot (const bundle *MODEL)
             endif
         endloop
         catch plot plotmat
-            printf "%s", terminal_opts
             options time-series with-lines
             options with-line fit=none
             options band=bars,1 band-style=bars
             printf "set title \"%s\"", plot_title
             printf "set xlabel \"%s\"", "Observation"
             printf "set xtics %s", xtics
-        end plot --output=@output
+        end plot --output="@output"
         error = $error
         if error
             printf "Predictive results: %s\n", errmsg(error)

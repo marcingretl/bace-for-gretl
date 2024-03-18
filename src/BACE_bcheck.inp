@@ -15,14 +15,16 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
-/*
-   This function checks options bundle and returns error message in
-   any problem found.
-   Parameters:
+function string BACE_bcheck (bundle UserOpts,
+                             bundle *M,
+                             scalar k)
+    /*
+       This function checks options bundle and returns error message in
+       any problem found.
+       Parameters:
 
-   UserOpts - bundle with user-defined options for BACE
-   k - number of independent variables
+       UserOpts - bundle with user-defined options for BACE
+       k - number of independent variables
     */
     string err = ""
     string separator = ", "
@@ -31,15 +33,14 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar err2, arg_val, do_plot_tmp, do_show_progress, alpha_tmp
     bundle Options, Overloadable
     string arg_name, parameter_value
-    strings Integers = defarray("y_lag", "with_const", "model_prior", "Nrank",\
-      "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
+    strings Integers = defarray("y_lag", "with_const", "model_prior", "Nrank", "do_joint", "Npredict", "Nrep", "burn", "verbosity", "data_trans", "bic_type")
     strings Booleans = defarray("show_progress", "do_plot")
     strings Scalars = defarray("avg_model_size", "alpha", "binary_threshold", "gamma", "a")
     strings ModelTypes = defarray("linear", "logit", "probit", "poisson", "tobit", "intreg", "mlogit")
     strings BicTypes = defarray("BIC", "HBIC", "IBIC", "EBIC")
     strings ModelPriorTypes = defarray("none", "Binomial", "Beta-Binomial", "custom")
     strings ConstTypes = defarray("Never", "Always", "Can be dropped")
-    strings DataTransTypes = defarray("none", "centering", "standarizing")
+    strings DataTransTypes = defarray("none", "centering", "standardizing")
     strings OverloadableKeys
     if $sysinfo.gui_mode
         do_plot_tmp = 1
@@ -129,6 +130,11 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
         model_prior_tmp = 3
     endif
 
+    # We check if the caller gave a "plotspec" string
+    if inbundle(UserOpts, "plotspec") && typeof(UserOpts["plotspec"]) != 4
+        err += sprintf("plotspec must be a string, is: %s", typestr(typeof(UserOpts["plotspec"])))
+    endif
+
     # Template bundle with default values
     string Options["model_type"] = "linear"
     scalar Options["bic_type"] = 2
@@ -153,6 +159,7 @@ function string BACE_bcheck (bundle UserOpts, bundle *M, scalar k)
     scalar Options["a"] = 1
     matrix Options["theta"] = {NA}
     scalar Options["_gui"] = 0
+    string Options["plotspec"] = ""
 
     # General checking, but still needs some manual work later
     err2 = bcheck(&Options, UserOpts)
