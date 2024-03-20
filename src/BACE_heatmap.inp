@@ -104,24 +104,6 @@ function void BACE_heatmap (const bundle M,
     endif
 
     # We need to cast given matrix to its string representation
-    /*
-       loop i=1..nrows
-       loop j=1..ncols
-       if MODE == "inclusions"
-       grid += sprintf("%d", m[i,j])
-       else
-       grid += strsub(sprintf("%.4f", m[i,j]), ",", ".")
-       endif
-       if j == ncols
-       if i != nrows
-       grid += sprintf("\n")
-       endif
-       else
-       grid += sprintf("\t")
-       endif
-       endloop
-       endloop
-    */
     if nelem(cnameget(m))
         # mask column names, if present
         grid = "#"
@@ -138,8 +120,7 @@ function void BACE_heatmap (const bundle M,
     endif
 
     # Construct the string for the plot --output option
-    output = BACE_get_plot_outname(basename, insert)
-    # printf "*** HERE BACE_heatmap output = '%s'\n", output
+    output = BACE_get_plot_outname(basename, insert)    
 
     # We plot heatmap
     catch plot

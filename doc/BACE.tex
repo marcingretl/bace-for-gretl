@@ -53,13 +53,15 @@
 		\item[3.1] New features added and small updates:
 			\begin{itemize}[label={--}]
 				\item Some code cleanups.
+				\item New `\texttt{plotspec}' entry and get rid of
+					`\texttt{\_gui}' option (which was only for
+					internal purposes anyway).
 				\item Verbosity now takes integers $\in [0;2]$.
 				\item Apparatus for setting Prior Inclusion Probabilities.
 				\item Possibility to set up hyperparameter~\textit{a}
 					for Beta-binomial model prior manually.
-				\item Force use of locale-specific decimal point
-					(caused problems in non-English \texttt{gretl}
-					instances).
+				\item Special code for handling locale-specific decimal
+					point in plots (kudos to Allin Cottrell).
 				\item Small \texttt{UMK1.gdt} update.
 			\end{itemize}
 		\item[3.0] Massive changes and improvements --

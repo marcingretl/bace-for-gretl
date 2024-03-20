@@ -1,7 +1,5 @@
 gretl version 2024a-git
-Current session: 2024-03-12 16:54
-
-BACE 3.1, 2024-03-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+Current session: 2024-03-20 11:41
 
 BACE setup:           done!
 MC3 setup:            done!
@@ -189,4 +187,4 @@ Model 5: BIC: -679.422201, posterior probability: 0.026263
 
 ----------------------------------
 
-BACE for GUMFinal took 9.48 sec.
+BACE for GUMFinal took 9.29 sec.

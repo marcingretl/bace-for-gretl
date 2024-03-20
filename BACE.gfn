@@ -495,7 +495,6 @@ else
   # CLI: default to producing .plt files
   basename = sprintf(&quot;%s.plt&quot;, strftime($now[1], &quot;%Y%m%d%H%M%S&quot;))
 endif
-# printf &quot;*** HERE BACE_Plot: basename = '%s'\n&quot;, basename
 
 # We set up avg_model_size
 if MODEL.prior_name == &quot;none&quot; &amp;&amp; MODEL.prior_based_bic
@@ -538,7 +537,7 @@ if MODEL.prior_name == &quot;custom&quot;
   plotmat = plotmat[,2:3]
   cnameset(plotmat, title)
   plot_title = &quot;Posterior Model Size Distribution&quot;
-  line_opts = &quot;set linetype 1 pt 7  lc rgb \&quot;#D95F02\&quot;&quot;
+  line_opts = &quot;set linetype 1 pt 7 lc rgb \&quot;#D95F02\&quot;&quot;
 else
   plot_title = &quot;Model Size Distribution&quot;
 endif
@@ -2769,24 +2768,6 @@ else
 endif
 
 # We need to cast given matrix to its string representation
-/*
-loop i=1..nrows
-  loop j=1..ncols
-    if MODE == &quot;inclusions&quot;
-      grid += sprintf(&quot;%d&quot;, m[i,j])
-    else
-      grid += strsub(sprintf(&quot;%.4f&quot;, m[i,j]), &quot;,&quot;, &quot;.&quot;)
-    endif
-    if j == ncols
-      if i != nrows
-        grid += sprintf(&quot;\n&quot;)
-      endif
-    else
-      grid += sprintf(&quot;\t&quot;)
-    endif
-  endloop
-endloop
-*/
 if nelem(cnameget(m))
   # mask column names, if present
   grid = &quot;#&quot;
@@ -2804,7 +2785,6 @@ endif
 
 # Construct the string for the plot --output option
 output = BACE_get_plot_outname(basename, insert)
-# printf &quot;*** HERE BACE_heatmap output = '%s'\n&quot;, output
 
 # We plot heatmap
 catch plot

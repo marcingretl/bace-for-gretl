@@ -1,7 +1,5 @@
 gretl version 2024a-git
-Current session: 2024-03-12 16:55
-
-BACE 3.1, 2024-03-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+Current session: 2024-03-20 11:43
 
 BACE setup:           done!
 MC3 setup:            done!
@@ -186,7 +184,7 @@ Model 5: HBIC: 229.452650, posterior probability: 0.023667
 
 ----------------------------------
 
-Total execution time: 0.75 sec.
+Total execution time: 0.76 sec.
 
 ----------------------------------
 Model type: logit
@@ -559,5 +557,5 @@ Model 5: HBIC: 234.117534, posterior probability: 0.026111
 
 ----------------------------------
 
-Total execution time: 0.84 sec.
+Total execution time: 0.78 sec.
 

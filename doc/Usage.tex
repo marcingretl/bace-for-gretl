@@ -53,12 +53,12 @@ A very minimal code would be as follows%
 	gretl compiled by gcc 12.2.0 and linked against libopenblas
 	0.3.21 took $\approx$~8 sec.}:
 \begin{lstlisting}
-open nels.gdt --quiet
 include BACE.gfn
+open nels.gdt --frompkg=BACE --quiet
 set seed 1000000
 list X = 2..14
 
-res = BACE(psechoice, X, _(model_type="probit", do_joint="myq")) 
+res = BACE(psechoice, X, _(model_type="probit", do_joint="myq"))
 \end{lstlisting}\label{sc:initial_script_example}
 The above example consists of 5 lines and is rather
 self-explained. In the first line we call
@@ -100,9 +100,9 @@ bundle opts = defbundle("model_prior", 1, \
   "do_joint", 7, "Npredict", 0, "Nrep", 10000, \
   "burn", 10, "verbosity", 2, "show_progress", 1, \
   "do_plot", 1, "model_type", 3, "with_const", 0, \
-  "bic_type", 2, "data_trans", 0, \
-  "hyperparameter", 0.5, "binary_threshold", 0.5, \
-  "low", NA, "high", 0)
+  "bic_type", 2, "data_trans", 0, "gamma", 0.5, \
+  "binary_threshold", 0.5, "low", NA, "high", 0, \
+  "plotspec", "display")
 
 res = BACE(psechoice, X, opts)
 \end{lstlisting}
@@ -114,8 +114,8 @@ res = BACE(psechoice, X, _(model_prior=1, \
   do_joint=7, Npredict=0, Nrep=10^4, burn=10, \
   verbosity=2, show_progress=1, do_plot=1,\
   model_type=3, with_const=0, bic_type=2, \
-  data_trans=0, hyperparameter=0.5, \
-  binary_threshold=0.5, low=NA, high=0))
+  data_trans=0, gamma=0.5, binary_threshold=0.5, \
+  low=NA, high=0, plotspec="display"))
 \end{lstlisting}
 Since some parameters in option bundle are over-loadable
 (see information in~\ref{sec:over-loadable_options}),
@@ -126,9 +126,9 @@ res = BACE(psechoice, X, \
   alpha=0.6, Nrank=5, do_joint="myq", Npredict=0, \
   Nrep=10^4, burn=10, verbosity=2, show_progress=1, \
   do_plot=1, model_type="probit", with_const="never", \
-  bic_type="hbic", data_trans="none", \
-  hyperparameter=0.5, binary_threshold=0.5, low=NA, \
-  high=0))
+  bic_type="hbic", data_trans="none", gamma=0.5, \
+  binary_threshold=0.5, low=NA, high=0, \
+  plotspec="display"))
 \end{lstlisting}
 Note that since we are using an ordered probit model here,
 some of the options mentioned above are redundant and as
@@ -143,15 +143,15 @@ such are not even considered. Those are:
 \end{itemize}
 Results from \pkg{BACE} are described in Section~\ref{sec:outputs}.
 
-Suppose we want to calculate Ley-Steel's LS2 Measure
+Suppose we want to calculate Doppelhofer-Weeks Measure (DW1)
 instead of already computed Modified Yule's Q Measure (MYQ).
 Since the type of jointness measure is controlled by
 \lstinline!do_join! field in the result bundle, the only
 thing we have to do is to set the value of \lstinline!do_join!
-to 4 (or "ls2") and produce \pkg{BACE} results again.
+to 1 (or "dw1") and produce \pkg{BACE} results again.
 The code should be as follows:
 \begin{lstlisting}
-res["do_joint"] = 4
+res["do_joint"] = 1
 BACE_Print(&res)
 BACE_Plot(&res)
 \end{lstlisting}

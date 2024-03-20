@@ -1,11 +1,11 @@
 gretl version 2024a-git
-Current session: 2024-03-12 16:39
+Current session: 2024-03-20 11:39
 
 #######################################################
 #   https://sourceforge.net/projects/bace-for-gretl/  #
 #######################################################
 # Usage:
-BACE 3.1, 2024-03-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+BACE 3.1, 2024-03-20 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
@@ -207,4 +207,4 @@ Model 5: HBIC: 9959.709125, posterior probability: 0.013111
 
 ----------------------------------
 
-Total execution time: 6.31 sec.
+Total execution time: 6.29 sec.

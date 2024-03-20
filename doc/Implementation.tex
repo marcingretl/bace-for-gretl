@@ -10,7 +10,7 @@ outputs that are returned.
 The \pkg{BACE} package was written in the \proglang{Hansl}%
 \footnote{More information about \pkg{BACE} can be found
 	in \cite{cottrell_luchcetti_gretl_hansl}.}
-programming language and consists of 4 public and 14
+programming language and consists of 4 public and 15
 private functions\footnote{One note should be added here:
 	\pkg{BACE} provides analysis for ordered logit/probit
 	models, including prediction, and as such, depends on
@@ -127,7 +127,7 @@ and \textit{K} stands for the number of independent variables%
 \baceopts{scalar Options["data_trans"] = 0}: the transformation of
 explanatory variables; possible options are: 0---none, 1---centering
 (i.e., subtracting the mean from each value of a variable),
-2---standarizing (centering a variable and additional dividing
+2---standardizing (centering a variable and additional dividing
 by its standard deviation);
 
 \baceopts{scalar Options["do_joint"] = 0}: the type of
@@ -235,9 +235,20 @@ described on page \pageref{sec:bace_plots}, where
 	\label{eq:do_plot_setup}
 \end{equation}
 
-\baceopts{scalar Options["_gui"] = 0}: this parameter
-is for internal use only and must not be modified by
-the user under any circumstances.
+\baceopts{scalar Options["plotspec"] = ""} (an empty string):
+this parameter controls a way of plots are created and takes
+the following values:
+\begin{itemize}
+	\item \lstinline!"display"!: this is redundant in GUI usage,
+		but enables sending plots to the screen when running
+		\texttt{gretlcli},
+	\item ``<prefix>.<sfx>'': the <prefix> part is up to the user,
+		so long as it's valid as a component of a filename.
+		The <sfx> part must be either "plt" for a \pkg{gnuplot}
+		script or a suffix associated with a \pkg{gnuplot}
+		terminal type known to gretl: "png", "pdf", "eps", "emf",
+		"svg" or "html";
+\end{itemize}
 
 Most of the optional parameters listed above are of
 a numerical type and can be grouped into the following
@@ -334,7 +345,8 @@ plots are generated as scripts for \texttt{gnuplot}%
 \footnote{See \url{http://www.gnuplot.info} for additional
 	information.} program and saved on a disk in path
 specified under \gretlcmd{\$workdir} entry. Names of
-generated files have their base set to 
-\lstinline!strftime($now[1], "%Y%m%d%H%M%S")!.
+generated files are either specified by user with
+\lstinline!Options["plotspec"]! or have their base set
+to \lstinline!strftime($now[1], "%Y%m%d%H%M%S")!.
 Example graphs are presented on
 Figures~\ref{fig:NELS_model_size}-\ref{fig:NELS_inclusions}.
