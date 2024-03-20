@@ -121,9 +121,11 @@ function void BACE_Plot (const bundle *MODEL)
     if MODEL.prior_name == "custom"
         plotmat = MODEL.IncProbs
         cnameset(plotmat, "")
+        set force_decpoint on
         outfile --buffer=plotmat_str
-            printf "% .16f", plotmat # decpoint?
+            printf "% .16f", plotmat
         end outfile
+        set force_decpoint off
         catch plot
             literal set title 'Inclusion Probabilities'
             literal set boxwidth 0.9 absolute

@@ -582,9 +582,11 @@ output = BACE_get_plot_outname(basename, &quot;-MPD&quot;)
 if MODEL.prior_name == &quot;custom&quot;
   plotmat = MODEL.IncProbs
   cnameset(plotmat, &quot;&quot;)
+  set force_decpoint on
   outfile --buffer=plotmat_str
-    printf &quot;% .16f&quot;, plotmat # decpoint?
+    printf &quot;% .16f&quot;, plotmat
   end outfile
+  set force_decpoint off
   catch plot
     literal set title 'Inclusion Probabilities'
     literal set boxwidth 0.9 absolute
