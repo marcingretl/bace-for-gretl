@@ -14,6 +14,7 @@ include src/BACE_bcheck.inp
 include src/BACE_heatmap.inp
 include src/BACE_print_status.inp
 include src/BACE_exp_trunc_dist.inp
+include src/BACE_get_plot_outname.inp
 include src/BACE_Plot.inp
 include src/BACE_Print.inp
 include src/BACE_GUI.inp

@@ -23,9 +23,6 @@ function bundle BACE (list Y "Dependent variable(s)",
        Function returns bundle MODEL with (formatted) results.
     */
 
-    # We need to force use of locale-specific decimal point
-    set force_decpoint on
-
     bundle MODEL
     string err
     series Y1, Y2
@@ -82,7 +79,7 @@ function bundle BACE (list Y "Dependent variable(s)",
     # Basic parsing and checking
     err = BACE_parse(&MODEL, Y1, varnames(Y), X_list, nY, Y2)
     if strlen(err) != 0
-        if MODEL["_gui"]
+        if $sysinfo["gui_mode"]
             MODEL["err"] = err
         else
             funcerr "@err !!!"
@@ -101,6 +98,11 @@ function bundle BACE (list Y "Dependent variable(s)",
                 BACE_Plot(&MODEL)
             endif
         endif
+    endif
+    
+    # avoid fixing MODEL.plotspec in place in GUI
+    if inbundle(MODEL, "plotspec")
+        delete MODEL.plotspec
     endif
 
     set warnings on

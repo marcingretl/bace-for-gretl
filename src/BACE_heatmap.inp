@@ -15,14 +15,15 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function void BACE_heatmap (const bundle M, string MODE, const string basename[null])
-/*
-   M - BACE result bundle,
-   MODE - string indicating image mode {"inclusions", "jointness"}
-   basename	- basename for gnuplot files
+function void BACE_heatmap (const bundle M,
+                            string MODE,
+                            const string basename)
+    /*
+       M - BACE result bundle, MODE - string indicating image mode {"inclusions", "jointness"}
+       basename	- basename for gnuplot output specification
     */
     scalar nrows, ncols, tmp, height, width, minval, maxval, error
-    string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output, terminal_opts
+    string grid, title, xlabel, ylabel, xtics, ytics, colorbox, palette, rotate, output, insert
     matrix m
     strings all_names_sp_m
 
@@ -47,7 +48,7 @@ function void BACE_heatmap (const bundle M, string MODE, const string basename[n
         endloop
         m = mreverse(m')
         palette = "0 'white', 1 'dark-green'"
-        output = "-PIP.plt"
+        insert = "-PIP"
     else
         title = sprintf("Jointness Based on %s", M.jointess_measure_names[M.do_joint])
         xlabel = "Variable"
@@ -58,7 +59,7 @@ function void BACE_heatmap (const bundle M, string MODE, const string basename[n
         m[diag] = 0
         minval = minc(minr(m))
         maxval = maxc(maxr(m))
-        m[diag] = NA
+        m[diag] = NA # or set to zero?
         m = mreverse(m)
         if minval == 0
             palette = sprintf("0 'white', %s 'red'", strsub(sprintf("%f", maxval), ",", "."))
@@ -66,7 +67,7 @@ function void BACE_heatmap (const bundle M, string MODE, const string basename[n
             palette = sprintf("%s 'blue', 0 'white', %s 'red'", strsub(sprintf("%f", minval), ",", "."), strsub(sprintf("%f", maxval), ",", "."))
         endif
         rotate = "set xtics rotate by 45 right"
-        output = "-Jointness.plt"
+        insert = "-Jointness"
     endif
     nrows = rows(m)
     ncols = cols(m)
@@ -103,43 +104,49 @@ function void BACE_heatmap (const bundle M, string MODE, const string basename[n
     endif
 
     # We need to cast given matrix to its string representation
-    loop i=1..nrows
-        loop j=1..ncols
-            if MODE == "inclusions"
-                grid += sprintf("%d", m[i,j])
-            else
-                grid += strsub(sprintf("%.4f", m[i,j]), ",", ".")
-            endif
-            if j == ncols
-                if i != nrows
-                    grid += sprintf("\n")
-                endif
-            else
-                grid += sprintf("\t")
-            endif
-        endloop
-    endloop
-
-    # We check if we display or save plot
-    if $sysinfo.gui_mode
-        output = "display"
-        terminal_opts = sprintf("set term pngcairo font \"Vera,9\" size %d,%d noenhanced", width, height)
-    else
-        output = sprintf("%s%s", basename, output)
-        if $sysinfo["os"] == "windows"
-            terminal_opts = sprintf("%s", "set terminal windows")
-        else
-            terminal_opts = sprintf("%s\n%s", "set terminal png", "set output '| display png:-'")
-        endif        
+    /*
+       loop i=1..nrows
+       loop j=1..ncols
+       if MODE == "inclusions"
+       grid += sprintf("%d", m[i,j])
+       else
+       grid += strsub(sprintf("%.4f", m[i,j]), ",", ".")
+       endif
+       if j == ncols
+       if i != nrows
+       grid += sprintf("\n")
+       endif
+       else
+       grid += sprintf("\t")
+       endif
+       endloop
+       endloop
+    */
+    if nelem(cnameget(m))
+        # mask column names, if present
+        grid = "#"
     endif
+    if MODE == "inclusions"
+        # @m will be integer-valued
+        grid ~= sprintf("%2d", m)
+    else
+        # @m will be real-valued
+        set force_decpoint on
+        # use misszero to avoid a warning from gnuplot
+        grid ~= sprintf("%8.4f", misszero(m))
+        set force_decpoint off
+    endif
+
+    # Construct the string for the plot --output option
+    output = BACE_get_plot_outname(basename, insert)
+    # printf "*** HERE BACE_heatmap output = '%s'\n", output
 
     # We plot heatmap
     catch plot
-        printf "%s", terminal_opts
         literal set encoding utf8
         literal set decimalsign '.'
         literal set nokey
-        literal set datafile missing ""
+        literal set datafile missing "nan"
         literal set x2tics 1 format '' scale 0,0.001
         literal set y2tics 1 format '' scale 0,0.001
         literal set mx2tics 2
@@ -160,7 +167,7 @@ function void BACE_heatmap (const bundle M, string MODE, const string basename[n
         printf "%s", grid
         printf "EOD"
         literal plot $map matrix with image
-    end plot --output=@output
+    end plot --output="@output"
     error = $error
     if error
         printf "%s: %s\n", title, errmsg(error)
