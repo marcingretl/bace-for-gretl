@@ -70,7 +70,7 @@ function void BACE_Plot (const bundle *MODEL)
     #########################################################
     # Model size distribution
     plotmat = mreverse(MODEL.mod_sizes, 1)
-    output = get_plot_outname(basename, "-MSD")
+    output = BACE_get_plot_outname(basename, "-MSD")
     xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
     if MODEL.prior_name == "custom"
         title = cnameget(plotmat)[2:3]
@@ -101,7 +101,7 @@ function void BACE_Plot (const bundle *MODEL)
         printf "CDF of Model Size: there is just one model in ranking, nothing to plot.\n"
     else
         plotmat = MODEL.models_probs_cdf
-        output = get_plot_outname(basename, "-CDF")
+        output = BACE_get_plot_outname(basename, "-CDF")
          xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
         catch plot plotmat
             options with-line fit=none
@@ -118,7 +118,7 @@ function void BACE_Plot (const bundle *MODEL)
     endif
 
     # Priors
-    output = get_plot_outname(basename, "-MPD")
+    output = BACE_get_plot_outname(basename, "-MPD")
     if MODEL.prior_name == "custom"
         plotmat = MODEL.IncProbs
         cnameset(plotmat, "")
@@ -190,7 +190,7 @@ function void BACE_Plot (const bundle *MODEL)
         endif
         cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
         
-        output = get_plot_outname(basename, "-predict")
+        output = BACE_get_plot_outname(basename, "-predict")
         xtics = "("
         loop i=1..MODEL.Npredict
             xtics += sprintf("\"%s\" %d", rnameget(MODEL.prediction)[i], i)

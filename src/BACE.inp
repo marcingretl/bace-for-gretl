@@ -79,7 +79,7 @@ function bundle BACE (list Y "Dependent variable(s)",
     # Basic parsing and checking
     err = BACE_parse(&MODEL, Y1, varnames(Y), X_list, nY, Y2)
     if strlen(err) != 0
-        if MODEL["_gui"]
+        if $sysinfo["gui_mode"]
             MODEL["err"] = err
         else
             funcerr "@err !!!"

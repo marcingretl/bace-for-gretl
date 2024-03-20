@@ -15,7 +15,13 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-function string get_plot_outname (const string base, const string insert)
+function string BACE_get_plot_outname (const string base, const string insert)
+/*
+   Function makes string for plot output: either 'display' (in gui mode)
+   or file name with one of supported extensions.
+
+   This code was written by Allin Cottrell.
+    */
     string s = base
     if instring(s, ".")
         # We need a valid plot-type suffix

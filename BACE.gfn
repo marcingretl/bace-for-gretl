@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.1</version>
-<date>2024-03-18</date>
+<date>2024-03-20</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -84,7 +84,7 @@ endif
 # Basic parsing and checking
 err = BACE_parse(&amp;MODEL, Y1, varnames(Y), X_list, nY, Y2)
 if strlen(err) != 0
-  if MODEL[&quot;_gui&quot;]
+  if $sysinfo[&quot;gui_mode&quot;]
     MODEL[&quot;err&quot;] = err
   else
     funcerr &quot;@err !!!&quot;
@@ -531,7 +531,7 @@ endif
 #########################################################
 # Model size distribution
 plotmat = mreverse(MODEL.mod_sizes, 1)
-output = get_plot_outname(basename, &quot;-MSD&quot;)
+output = BACE_get_plot_outname(basename, &quot;-MSD&quot;)
 xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
 if MODEL.prior_name == &quot;custom&quot;
   title = cnameget(plotmat)[2:3]
@@ -562,7 +562,7 @@ if rows(MODEL.models_probs_percents) == 1
   printf &quot;CDF of Model Size: there is just one model in ranking, nothing to plot.\n&quot;
 else
   plotmat = MODEL.models_probs_cdf
-  output = get_plot_outname(basename, &quot;-CDF&quot;)
+  output = BACE_get_plot_outname(basename, &quot;-CDF&quot;)
   xtics = rows(plotmat) &lt; 20 ? &quot;set xtics 1&quot; : &quot;&quot;
   catch plot plotmat
     options with-line fit=none
@@ -579,7 +579,7 @@ else
 endif
 
 # Priors
-output = get_plot_outname(basename, &quot;-MPD&quot;)
+output = BACE_get_plot_outname(basename, &quot;-MPD&quot;)
 if MODEL.prior_name == &quot;custom&quot;
   plotmat = MODEL.IncProbs
   cnameset(plotmat, &quot;&quot;)
@@ -651,7 +651,7 @@ if MODEL.Npredict
   endif
   cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
 
-  output = get_plot_outname(basename, &quot;-predict&quot;)
+  output = BACE_get_plot_outname(basename, &quot;-predict&quot;)
   xtics = &quot;(&quot;
   loop i=1..MODEL.Npredict
     xtics += sprintf(&quot;\&quot;%s\&quot; %d&quot;, rnameget(MODEL.prediction)[i], i)
@@ -741,7 +741,6 @@ scalar Options[&quot;show_progress&quot;] = show_progress
 scalar Options[&quot;do_plot&quot;] = do_plot
 scalar Options[&quot;bic_type&quot;] = bic_type
 string Options[&quot;model_type&quot;] = ModelTypes[model_type]
-scalar Options[&quot;_gui&quot;] = 1
 
 RES = BACE(@Y_name, X_list, Options)
 
@@ -1498,7 +1497,6 @@ delete M.ModelPriorTypes
 delete M.ConstTypes
 delete M.DataTransTypes
 delete M.CPU_num
-delete M[&quot;_gui&quot;]
 delete M.DiscreteModelTypes
 if M.Npredict
   delete M.Y_mat_predict
@@ -2476,7 +2474,7 @@ strings ModelPriorTypes = defarray(&quot;none&quot;, &quot;Binomial&quot;, &quot
 strings ConstTypes = defarray(&quot;Never&quot;, &quot;Always&quot;, &quot;Can be dropped&quot;)
 strings DataTransTypes = defarray(&quot;none&quot;, &quot;centering&quot;, &quot;standardizing&quot;)
 strings OverloadableKeys
-if $sysinfo.gui_mode
+if $sysinfo[&quot;gui_mode&quot;]
   do_plot_tmp = 1
   do_show_progress = 1
 else
@@ -2592,7 +2590,6 @@ scalar Options[&quot;show_progress&quot;] = do_show_progress
 scalar Options[&quot;do_plot&quot;] = do_plot_tmp
 scalar Options[&quot;a&quot;] = 1
 matrix Options[&quot;theta&quot;] = {NA}
-scalar Options[&quot;_gui&quot;] = 0
 string Options[&quot;plotspec&quot;] = &quot;&quot;
 
 # General checking, but still needs some manual work later
@@ -2806,7 +2803,7 @@ else
 endif
 
 # Construct the string for the plot --output option
-output = get_plot_outname(basename, insert)
+output = BACE_get_plot_outname(basename, insert)
 # printf &quot;*** HERE BACE_heatmap output = '%s'\n&quot;, output
 
 # We plot heatmap
@@ -2911,12 +2908,18 @@ endif
 return Exp/(1-P0) - avg
 </code>
 </gretl-function>
-<gretl-function name="get_plot_outname" type="string" private="1">
+<gretl-function name="BACE_get_plot_outname" type="string" private="1">
  <params count="2">
   <param name="base" type="string" const="true"/>
   <param name="insert" type="string" const="true"/>
  </params>
-<code>string s = base
+<code>/*
+Function makes string for plot output: either 'display' (in gui mode)
+or file name with one of supported extensions.
+
+This code was written by Allin Cottrell.
+*/
+string s = base
 if instring(s, &quot;.&quot;)
   # We need a valid plot-type suffix
   strings ok = defarray(&quot;plt&quot;, &quot;png&quot;, &quot;pdf&quot;, &quot;eps&quot;, &quot;svg&quot;, &quot;html&quot;, &quot;emf&quot;)

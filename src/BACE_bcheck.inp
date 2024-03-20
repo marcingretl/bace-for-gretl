@@ -42,7 +42,7 @@ function string BACE_bcheck (bundle UserOpts,
     strings ConstTypes = defarray("Never", "Always", "Can be dropped")
     strings DataTransTypes = defarray("none", "centering", "standardizing")
     strings OverloadableKeys
-    if $sysinfo.gui_mode
+    if $sysinfo["gui_mode"]
         do_plot_tmp = 1
         do_show_progress = 1
     else
@@ -158,7 +158,6 @@ function string BACE_bcheck (bundle UserOpts,
     scalar Options["do_plot"] = do_plot_tmp
     scalar Options["a"] = 1
     matrix Options["theta"] = {NA}
-    scalar Options["_gui"] = 0
     string Options["plotspec"] = ""
 
     # General checking, but still needs some manual work later

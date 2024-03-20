@@ -138,7 +138,7 @@ function void BACE_heatmap (const bundle M,
     endif
 
     # Construct the string for the plot --output option
-    output = get_plot_outname(basename, insert)
+    output = BACE_get_plot_outname(basename, insert)
     # printf "*** HERE BACE_heatmap output = '%s'\n", output
 
     # We plot heatmap

@@ -51,7 +51,6 @@ function bundle BACE_GUI (
     scalar Options["do_plot"] = do_plot
     scalar Options["bic_type"] = bic_type
     string Options["model_type"] = ModelTypes[model_type]
-    scalar Options["_gui"] = 1
 
     RES = BACE(@Y_name, X_list, Options)
 
