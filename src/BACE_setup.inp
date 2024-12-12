@@ -16,8 +16,8 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_setup (bundle *M, int Norig)
-/*
-   This function creates BUNDLE holding all BACE information
+    /*
+       This function creates BUNDLE holding all BACE information
     */
     BACE_print_status("BACE setup")
 
@@ -25,7 +25,7 @@ function void BACE_setup (bundle *M, int Norig)
     string tmp_str = ""
     list X_list = M.X_list
     series Y = M.Y
-    matrix theta_tmp
+    matrix psi_tmp
 
     ###############################################
     # Global variables (given by user of default) #
@@ -229,38 +229,38 @@ function void BACE_setup (bundle *M, int Norig)
             M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
         endloop
     elif M.prior_name == "custom"
-        theta_tmp = transp(ones(M.k))
-        cnameset(theta_tmp, X_list)
-        if nelem(M.theta) == 1 && isnan(M.theta)
-            theta_tmp *= 0.5
-        elif nelem(M.theta) == 1 && !isnan(M.theta)
-            theta_tmp *= -M.theta
+        psi_tmp = transp(ones(M.k))
+        cnameset(psi_tmp, X_list)
+        if nelem(M.psi) == 1 && isnan(M.psi)
+            psi_tmp *= 0.5
+        elif nelem(M.psi) == 1 && !isnan(M.psi)
+            psi_tmp *= -M.psi
         else
-            theta_tmp *= NA
-            thata_names = rows(M.theta) == 1 ? cnameget(M.theta) : rnameget(M.theta)
-            if !nelem(thata_names)
-                return "Prior Inclusion Probabilities (theta) does not have variables names"
+            psi_tmp *= NA
+            psi_names = rows(M.psi) == 1 ? cnameget(M.psi) : rnameget(M.psi)
+            if !nelem(psi_names)
+                return "Prior Inclusion Probabilities (psi) does not have variables names"
             endif
             loop foreach x X_list
-                loop i=1..nelem(thata_names)
-                    if thata_names[i] == "$x"
-                        theta_tmp[inlist(X_list, "$x")] = M.theta[i]
+                loop i=1..nelem(psi_names)
+                    if psi_names[i] == "$x"
+                        psi_tmp[inlist(X_list, "$x")] = M.psi[i]
                         break
                     endif
                 endloop
             endloop
-            if sum(ok(theta_tmp)) != nelem(theta_tmp)
-                if sum(!ok(theta_tmp)) == 1
-                    err = cnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp))]
+            if sum(ok(psi_tmp)) != nelem(psi_tmp)
+                if sum(!ok(psi_tmp)) == 1
+                    err = cnameget(psi_tmp)[selifc(seq(1, nelem(psi_tmp)), !ok(psi_tmp))]
                 else
-                    err = flatten(cnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp))], ",")
+                    err = flatten(cnameget(psi_tmp)[selifc(seq(1, nelem(psi_tmp)), !ok(psi_tmp))], ",")
                 endif
-                err = sprintf("Prior Inclusion Probabilities (theta) matrix does not hold value(s) for (%s)!!!", err)
+                err = sprintf("Prior Inclusion Probabilities (psi) matrix does not hold value(s) for (%s)!!!", err)
                 funcerr err
             endif
         endif
         M.avg_model_size = NA
-        M.theta = theta_tmp
+        M.psi = psi_tmp
         matrix M.IncProbs = {}
     else
         M.avg_model_size = NA

@@ -21,10 +21,10 @@ list greene = capital labor nfirm
 matrix prIP = { 0.5 ; 0.5 ; 0.5 }
 rnameset(prIP, greene)
 
-results_b = BACE(valadd, greene, _(model_prior=3, theta=prIP, do_plot=1, do_joint=7))
+results_b = BACE(valadd, greene, _(model_prior=3, psi=prIP, do_plot=1, do_joint=7))
 
 # An equivalent call where we set tha sampe 0.5 value for all variables.
-#results_b = BACE(valadd, greene, _(model_prior=3, theta=0.5, do_plot=1, do_joint=7))
+#results_b = BACE(valadd, greene, _(model_prior=3, psi=0.5, do_plot=1, do_joint=7))
 
 # ...or using default 0.5 value assigned by the package internally.
 #results_b = BACE(valadd, greene, _(model_prior=3, do_plot=1, do_joint=7))

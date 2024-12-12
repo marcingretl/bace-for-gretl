@@ -111,11 +111,11 @@ from model $M_r$ and $2^K$ denotes total model space.
 
 Following \cite{Ley_Steel_jae_2009}, let us assume that
 each regressor enters a model independently of the others
-with a prior probability $\theta \in [0, 1]$ (the prior
+with a prior probability $\psi \in [0, 1]$ (the prior
 probability of inclusion). We offer two options here:
-either the user provides a $\theta$ vector with individual
+either the user provides a $\psi$ vector with individual
 prior inclusion probabilities for each variable manually
-(see \gretlcmd{Options["theta"]} on page~\pageref{opts:theta}),
+(see \gretlcmd{Options["psi"]} on page~\pageref{opts:psi}),
 or we use the theoretical prior model size $(W)$ distribution.
 In our \pkg{BACE} package, we provide two popular variants
 of such distributions \citep[see][]{Ley_Steel_jae_2009,steel2011}:
@@ -127,16 +127,16 @@ of such distributions \citep[see][]{Ley_Steel_jae_2009,steel2011}:
 		\end{equation}
 		with corresponding prior model probabilities as 
 		\begin{equation}
-			\Prob(M_r)=\theta^{k_r}(1-\theta)^{K-k_r},
+			\Prob(M_r)=\psi^{k_r}(1-\psi)^{K-k_r},
 			\label{eq:prior_model_probs_binomial}
 		\end{equation}
-		and expected model size $\E(W) = K\theta$;
+		and expected model size $\E(W) = K\psi$;
 	\item Beta-binomial~\citep{wakefield2013bayesian}:
 		\begin{equation}
 			\Prob(W=k_r) = \binom{K}{k_r}\Prob(M_r),
 			\label{eq:prior_model_size_binomial-beta}
 		\end{equation}
-		where we assume that $\theta$ follows a Beta
+		where we assume that $\psi$ follows a Beta
 		distribution with hyperparameters $a$ and $b$, both
 		of which are greater than zero. This results in the
 		following corresponding prior model probabilities%
@@ -164,7 +164,7 @@ and \cite{SalaMartinDoppelhoferMiller_BACE}.
 
 In the case of a Binomial prior, if we specify
 $W^\star = \frac{K}{2}$, which is the average number of
-potential independent variables, then we have $\theta = 0.5$,
+potential independent variables, then we have $\psi = 0.5$,
 and thus, the prior model probability distribution is uniform.
 An example for $K = 7$ is shown in Figure~\ref{fig:model_priors:subfig:uniform},
 together with the corresponding prior model size distribution

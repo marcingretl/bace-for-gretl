@@ -85,17 +85,17 @@ size distribution to use; possible values are: 0---none,
 1---Binomial, 2---Beta-Binomial
 (see Equations~(\ref{eq:prior_model_size_binomial})
 and (\ref{eq:prior_model_size_binomial-beta})), 3---custom
-(see the \lstinline!Options["theta"]! parameter);
+(see the \lstinline!Options["psi"]! parameter);
 
-\baceopts{scalar Options["theta"] or matrix Options["theta"] = \{NA\}}:\label{opts:theta}
+\baceopts{scalar Options["psi"] or matrix Options["psi"] = \{NA\}}:\label{opts:psi}
 column or row vector with individual prior inclusion
 probabilities for each variable (names of variables are
-required); if \lstinline!scalar Options["theta"]! is provided,
+required); if \lstinline!scalar Options["psi"]! is provided,
 then the given value is assigned to all variables%
 \footnote{Note that if the user sets
 	\gretlcmdf{`Options["model_prior"] = 3'} without specifying
-	any \gretlcmdf{Options["theta"]}, then the default value
-	will be chosen, i.e., \gretlcmdf{scalar Options["theta"] = 0.5}.}.
+	any \gretlcmdf{Options["psi"]}, then the default value
+	will be chosen, i.e., \gretlcmdf{scalar Options["psi"] = 0.5}.}.
 
 \baceopts{scalar Options["a"] = 1}: Beta-binomial distribution
 	hyperparameter (see Equation~(\ref{eq:prior_model_probs_binomial-beta})).
@@ -261,7 +261,7 @@ categories based on the type of numbers they can take:
 		\lstinline!data_trans!, \lstinline!bic_type!.
 	\item Booleans: \lstinline!show_progress!, \lstinline!do_plot!.
 	\item Scalars: \lstinline!avg_model_size!, \lstinline!alpha!,
-		\lstinline!binary_threshold!, \lstinline!theta!, and \lstinline!a!.
+		\lstinline!binary_threshold!, \lstinline!psi!, and \lstinline!a!.
 \end{enumerate}
 
 

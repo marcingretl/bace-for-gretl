@@ -2,8 +2,8 @@
 <gretl-functions>
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
-<version>3.1</version>
-<date>2024-03-20</date>
+<version>3.11</version>
+<date>2024-11-15</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -1185,9 +1185,9 @@ scalar yvals = M.model_type == &quot;mlogit&quot; ? nelem(M.yvals)-1 : 1
 M.bhat_avg = transp(M.bhat_avg)
 M.bvar_avg = transp(M.bvar_avg)
 if M.prior_name == &quot;custom&quot;
-  title = cnameget(M.theta)
-  M.theta = transp(M.theta)
-  rnameset(M.theta, title)
+  title = cnameget(M.psi)
+  M.psi = transp(M.psi)
+  rnameset(M.psi, title)
 endif
 
 # Restoring values of model_prior to 0 if we have 'none'
@@ -1391,7 +1391,7 @@ if M.prior_name == &quot;custom&quot;
   if M.model_type == &quot;mlogit&quot;
     tmp = tmp[1:M.k,]
   endif
-  tmp = M.theta ~ tmp
+  tmp = M.psi ~ tmp
   title = defarray(&quot;Prior&quot;, &quot;PIP&quot;)
   cnameset(tmp, title)
   M.IncProbs = mreverse(msortby(tmp, 2))
@@ -1531,7 +1531,7 @@ scalar tmp
 string tmp_str = &quot;&quot;
 list X_list = M.X_list
 series Y = M.Y
-matrix theta_tmp
+matrix psi_tmp
 
 ###############################################
 # Global variables (given by user of default) #
@@ -1735,38 +1735,38 @@ elif M.prior_name == &quot;Beta-Binomial&quot;
     M.model_prior_log[i+1] = (gammafun(i+M.a) * gammafun(M.k-i+M.b) / gammafun(M.a+M.k+M.b)) / (gammafun(M.a) * gammafun(M.b) / gammafun(M.a+M.b))
   endloop
 elif M.prior_name == &quot;custom&quot;
-  theta_tmp = transp(ones(M.k))
-  cnameset(theta_tmp, X_list)
-  if nelem(M.theta) == 1 &amp;&amp; isnan(M.theta)
-    theta_tmp *= 0.5
-  elif nelem(M.theta) == 1 &amp;&amp; !isnan(M.theta)
-    theta_tmp *= -M.theta
+  psi_tmp = transp(ones(M.k))
+  cnameset(psi_tmp, X_list)
+  if nelem(M.psi) == 1 &amp;&amp; isnan(M.psi)
+    psi_tmp *= 0.5
+  elif nelem(M.psi) == 1 &amp;&amp; !isnan(M.psi)
+    psi_tmp *= -M.psi
   else
-    theta_tmp *= NA
-    thata_names = rows(M.theta) == 1 ? cnameget(M.theta) : rnameget(M.theta)
-    if !nelem(thata_names)
-      return &quot;Prior Inclusion Probabilities (theta) does not have variables names&quot;
+    psi_tmp *= NA
+    psi_names = rows(M.psi) == 1 ? cnameget(M.psi) : rnameget(M.psi)
+    if !nelem(psi_names)
+      return &quot;Prior Inclusion Probabilities (psi) does not have variables names&quot;
     endif
     loop foreach x X_list
-      loop i=1..nelem(thata_names)
-        if thata_names[i] == &quot;$x&quot;
-          theta_tmp[inlist(X_list, &quot;$x&quot;)] = M.theta[i]
+      loop i=1..nelem(psi_names)
+        if psi_names[i] == &quot;$x&quot;
+          psi_tmp[inlist(X_list, &quot;$x&quot;)] = M.psi[i]
           break
         endif
       endloop
     endloop
-    if sum(ok(theta_tmp)) != nelem(theta_tmp)
-      if sum(!ok(theta_tmp)) == 1
-        err = cnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp))]
+    if sum(ok(psi_tmp)) != nelem(psi_tmp)
+      if sum(!ok(psi_tmp)) == 1
+        err = cnameget(psi_tmp)[selifc(seq(1, nelem(psi_tmp)), !ok(psi_tmp))]
       else
-        err = flatten(cnameget(theta_tmp)[selifc(seq(1, nelem(theta_tmp)), !ok(theta_tmp))], &quot;,&quot;)
+        err = flatten(cnameget(psi_tmp)[selifc(seq(1, nelem(psi_tmp)), !ok(psi_tmp))], &quot;,&quot;)
       endif
-      err = sprintf(&quot;Prior Inclusion Probabilities (theta) matrix does not hold value(s) for (%s)!!!&quot;, err)
+      err = sprintf(&quot;Prior Inclusion Probabilities (psi) matrix does not hold value(s) for (%s)!!!&quot;, err)
       funcerr err
     endif
   endif
   M.avg_model_size = NA
-  M.theta = theta_tmp
+  M.psi = psi_tmp
   matrix M.IncProbs = {}
 else
   M.avg_model_size = NA
@@ -1958,7 +1958,7 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
 
   # We calculate log of model probability
   if M.prior_name == &quot;custom&quot;
-    M.lprob_new = M.lprob_new + sum(mod_struct_new ? log(M.theta) : log(1-M.theta))
+    M.lprob_new = M.lprob_new + sum(mod_struct_new ? log(M.psi) : log(1-M.psi))
   else
     M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
   endif
@@ -2089,7 +2089,7 @@ loop i=1..M.Nrank
     endif
     M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
     if M.model_prior == 3
-      M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - sum(mod_struct ? log(M.theta) : log(1-M.theta)))
+      M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - sum(mod_struct ? log(M.psi) : log(1-M.psi)))
     else
       M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
     endif
@@ -2552,14 +2552,14 @@ else
   alpha_tmp = 0.6
 endif
 
-# We check if given theta is scalar or matrix and set its temporal value (if needed)
-if inbundle(UserOpts, &quot;theta&quot;) &amp;&amp; !(typeof(UserOpts[&quot;theta&quot;]) == 1 || typeof(UserOpts[&quot;theta&quot;]) == 3)
-  err += sprintf(&quot;Theta must be either scalar or matrix, is: %s&quot;, typestr(typeof(UserOpts[&quot;theta&quot;])))
+# We check if given psi is scalar or matrix and set its temporal value (if needed)
+if inbundle(UserOpts, &quot;psi&quot;) &amp;&amp; !(typeof(UserOpts[&quot;psi&quot;]) == 1 || typeof(UserOpts[&quot;psi&quot;]) == 3)
+  err += sprintf(&quot;Psi must be either scalar or matrix, is: %s&quot;, typestr(typeof(UserOpts[&quot;psi&quot;])))
   return err
-elif inbundle(UserOpts, &quot;theta&quot;) &amp;&amp; typeof(UserOpts[&quot;theta&quot;]) == 1
-  UserOpts[&quot;theta&quot;] = -1 * UserOpts[&quot;theta&quot;]
+elif inbundle(UserOpts, &quot;psi&quot;) &amp;&amp; typeof(UserOpts[&quot;psi&quot;]) == 1
+  UserOpts[&quot;psi&quot;] = -1 * UserOpts[&quot;psi&quot;]
   model_prior_tmp = 3
-elif inbundle(UserOpts, &quot;theta&quot;) &amp;&amp; typeof(UserOpts[&quot;theta&quot;]) == 3
+elif inbundle(UserOpts, &quot;psi&quot;) &amp;&amp; typeof(UserOpts[&quot;psi&quot;]) == 3
   model_prior_tmp = 3
 endif
 
@@ -2590,7 +2590,7 @@ scalar Options[&quot;verbosity&quot;] = 2
 scalar Options[&quot;show_progress&quot;] = do_show_progress
 scalar Options[&quot;do_plot&quot;] = do_plot_tmp
 scalar Options[&quot;a&quot;] = 1
-matrix Options[&quot;theta&quot;] = {NA}
+matrix Options[&quot;psi&quot;] = {NA}
 string Options[&quot;plotspec&quot;] = &quot;&quot;
 
 # General checking, but still needs some manual work later
@@ -2655,10 +2655,10 @@ elif Options.gamma &lt; 0 || Options.gamma &gt; 1
   err += &quot;Gamma for EBIC takes the real values in the range [0; 1]&quot;
 elif Options.binary_threshold &lt;= 0 || Options.binary_threshold &gt;= 1
   err += &quot;Threshold for binary dependent models (binary_threshold) takes the real values in the range (0; 1)&quot;
-elif sum(ok(Options.theta)) &amp;&amp; (min(Options.theta) &lt;= 0 || max(Options.theta) &gt;= 1) &amp;&amp; typeof(UserOpts[&quot;theta&quot;]) == 3
-  err += &quot;Prior Inclusion Probabilities (theta) takes the real values in the range (0; 1)&quot;
-elif sum(ok(Options.theta)) &amp;&amp; Options.model_prior &lt; 3
-  err += sprintf(&quot;You may not mix %s model prior with Prior Inclusion Probabilities (theta)&quot;, ModelPriorTypes[Options.model_prior+1])
+elif sum(ok(Options.psi)) &amp;&amp; (min(Options.psi) &lt;= 0 || max(Options.psi) &gt;= 1) &amp;&amp; typeof(UserOpts[&quot;psi&quot;]) == 3
+  err += &quot;Prior Inclusion Probabilities (psi) takes the real values in the range (0; 1)&quot;
+elif sum(ok(Options.psi)) &amp;&amp; Options.model_prior &lt; 3
+  err += sprintf(&quot;You may not mix %s model prior with Prior Inclusion Probabilities (psi)&quot;, ModelPriorTypes[Options.model_prior+1])
 elif Options.a &lt;= 0
   err += &quot;Hyperparameter 'a' must be greater than zero&quot;
 endif

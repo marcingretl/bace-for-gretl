@@ -3,7 +3,6 @@
 \usepackage{longtable}
 \usepackage{xargs,xspace}
 \usepackage{caption,subcaption,tabulary,multirow,bigdelim}
-\usepackage{soul} %Do wywalenia!!!
 \usepackage[colorinlistoftodos,prependcaption,textsize=tiny,textwidth=2.8cm]{todonotes}
 \newcommandx{\odp}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
 
@@ -27,7 +26,7 @@
 	\end{quote}
 
 \begin{center}
-	\vspace*{100pt}{\Large Version 3.1}
+	\vspace*{100pt}{\Large Version 3.11}
 \end{center}
 	
 	\begin{abstract}
@@ -50,6 +49,13 @@
 	
 	\section*{Changelog}
 	\begin{description}
+		\item[3.11] PrIP parameter symbol changed:
+			\begin{itemize}[label={--}]
+				\item The symbol for PrIP settings has changed
+					from $\theta$ to $\psi$.\newline
+					Note that this update makes \pkg{BACE} 3.11 backward
+					incompatible with version 3.1.
+			\end{itemize}
 		\item[3.1] New features added and small updates:
 			\begin{itemize}[label={--}]
 				\item Some code cleanups.

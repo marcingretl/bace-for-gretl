@@ -119,14 +119,14 @@ function string BACE_bcheck (bundle UserOpts,
         alpha_tmp = 0.6
     endif
 
-    # We check if given theta is scalar or matrix and set its temporal value (if needed)
-    if inbundle(UserOpts, "theta") && !(typeof(UserOpts["theta"]) == 1 || typeof(UserOpts["theta"]) == 3)
-        err += sprintf("Theta must be either scalar or matrix, is: %s", typestr(typeof(UserOpts["theta"])))
+    # We check if given psi is scalar or matrix and set its temporal value (if needed)
+    if inbundle(UserOpts, "psi") && !(typeof(UserOpts["psi"]) == 1 || typeof(UserOpts["psi"]) == 3)
+        err += sprintf("Psi must be either scalar or matrix, is: %s", typestr(typeof(UserOpts["psi"])))
         return err
-    elif inbundle(UserOpts, "theta") && typeof(UserOpts["theta"]) == 1
-        UserOpts["theta"] = -1 * UserOpts["theta"]
+    elif inbundle(UserOpts, "psi") && typeof(UserOpts["psi"]) == 1
+        UserOpts["psi"] = -1 * UserOpts["psi"]
         model_prior_tmp = 3
-    elif inbundle(UserOpts, "theta") && typeof(UserOpts["theta"]) == 3
+    elif inbundle(UserOpts, "psi") && typeof(UserOpts["psi"]) == 3
         model_prior_tmp = 3
     endif
 
@@ -157,7 +157,7 @@ function string BACE_bcheck (bundle UserOpts,
     scalar Options["show_progress"] = do_show_progress
     scalar Options["do_plot"] = do_plot_tmp
     scalar Options["a"] = 1
-    matrix Options["theta"] = {NA}
+    matrix Options["psi"] = {NA}
     string Options["plotspec"] = ""
 
     # General checking, but still needs some manual work later
@@ -222,10 +222,10 @@ function string BACE_bcheck (bundle UserOpts,
         err += "Gamma for EBIC takes the real values in the range [0; 1]"
     elif Options.binary_threshold <= 0 || Options.binary_threshold >= 1
         err += "Threshold for binary dependent models (binary_threshold) takes the real values in the range (0; 1)"
-    elif sum(ok(Options.theta)) && (min(Options.theta) <= 0 || max(Options.theta) >= 1) && typeof(UserOpts["theta"]) == 3
-        err += "Prior Inclusion Probabilities (theta) takes the real values in the range (0; 1)"
-    elif sum(ok(Options.theta)) && Options.model_prior < 3
-        err += sprintf("You may not mix %s model prior with Prior Inclusion Probabilities (theta)", ModelPriorTypes[Options.model_prior+1])
+    elif sum(ok(Options.psi)) && (min(Options.psi) <= 0 || max(Options.psi) >= 1) && typeof(UserOpts["psi"]) == 3
+        err += "Prior Inclusion Probabilities (psi) takes the real values in the range (0; 1)"
+    elif sum(ok(Options.psi)) && Options.model_prior < 3
+        err += sprintf("You may not mix %s model prior with Prior Inclusion Probabilities (psi)", ModelPriorTypes[Options.model_prior+1])
     elif Options.a <= 0
         err += "Hyperparameter 'a' must be greater than zero"
     endif

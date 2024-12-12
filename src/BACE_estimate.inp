@@ -125,7 +125,7 @@ function void BACE_estimate (bundle *M)
 
         # We calculate log of model probability
         if M.prior_name == "custom"
-            M.lprob_new = M.lprob_new + sum(mod_struct_new ? log(M.theta) : log(1-M.theta))
+            M.lprob_new = M.lprob_new + sum(mod_struct_new ? log(M.psi) : log(1-M.psi))
         else
             M.lprob_new = M.lprob_new + M.model_prior_log[M.k_new+1]
         endif

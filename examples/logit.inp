@@ -33,6 +33,6 @@ matrix priorIP = {0.1 ; 0.2 ; 0.3 ; 0.4 ; 0.5 ; 0.6 ; 0.7 ; 0.8 ; 0.9}
 rnameset(priorIP, X)
 
 set stopwatch
-RES = BACE(low, X, _(model_type="logit", theta=priorIP, \
+RES = BACE(low, X, _(model_type="logit", psi=priorIP, \
  bic_type="hbic", do_joint="myq", binary_threshold=0.6))
 printf "Total execution time: %.2f sec.\n\n\n\n", $stopwatch
