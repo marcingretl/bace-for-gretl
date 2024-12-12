@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.11</version>
-<date>2024-11-15</date>
+<date>2024-12-12</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -2489,7 +2489,14 @@ Overloadable[&quot;do_joint&quot;] = _(none=0, dw1=1, dw2=2, ls1=3, ls2=4, sm=5,
 Overloadable[&quot;data_trans&quot;] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
 Overloadable[&quot;model_type&quot;] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, mlogit=7, valid=tolower(flatten(ModelTypes, separator)))
 
-# We look for overloaded parameters and convert them into integers
+# temporal workoround for 'theta' instead of 'psi'
+if inbundle(UserOpts, &quot;theta&quot;)
+  printf &quot;\n*** Note: The 'theta' parameter has been renamed to 'psi' and will be removed in version 3.2. ***\n&quot;
+  UserOpts[&quot;psi&quot;] = UserOpts[&quot;theta&quot;]
+  delete UserOpts[&quot;theta&quot;]
+endif
+
+# we look for overloaded parameters and convert them into integers
 OverloadableKeys = getkeys(Overloadable)
 loop i=1..nelem(OverloadableKeys)
   arg_name = OverloadableKeys[i]
@@ -2520,7 +2527,7 @@ loop i=1..nelem(OverloadableKeys)
   endif
 endloop
 
-# We set the default Nrep conditional on k
+# we set the default Nrep conditional on k
 if k &lt;= 15
   Nrep = 10^4
 elif k &gt;= 16 &amp;&amp; k &lt;= 19
@@ -2529,14 +2536,14 @@ else
   Nrep = 10^6
 endif
 
-# We set temporal y_lag value
+# we set temporal y_lag value
 if !inbundle(UserOpts, &quot;y_lag&quot;) || typeof(UserOpts[&quot;y_lag&quot;]) != 1
   y_lag_tmp = 0
 else
   y_lag_tmp = UserOpts[&quot;y_lag&quot;]
 endif
 
-# We set temporal with_const value and calculate prior average model size
+# we set temporal with_const value and calculate prior average model size
 if !inbundle(UserOpts, &quot;with_const&quot;)
   with_const_tmp = 1
   avg_model_size_tmp = (k + y_lag_tmp) / 2
@@ -2545,14 +2552,14 @@ else
   avg_model_size_tmp = (k + y_lag_tmp + (with_const_tmp == 2)) / 2
 endif
 
-# We set default alpha
+# we set default alpha
 if inbundle(UserOpts, &quot;model_type&quot;) &amp;&amp; UserOpts[&quot;model_type&quot;] == &quot;intreg&quot;
   alpha_tmp = 1.0
 else
   alpha_tmp = 0.6
 endif
 
-# We check if given psi is scalar or matrix and set its temporal value (if needed)
+# we check if given psi is scalar or matrix and set its temporal value (if needed)
 if inbundle(UserOpts, &quot;psi&quot;) &amp;&amp; !(typeof(UserOpts[&quot;psi&quot;]) == 1 || typeof(UserOpts[&quot;psi&quot;]) == 3)
   err += sprintf(&quot;Psi must be either scalar or matrix, is: %s&quot;, typestr(typeof(UserOpts[&quot;psi&quot;])))
   return err
@@ -2563,12 +2570,12 @@ elif inbundle(UserOpts, &quot;psi&quot;) &amp;&amp; typeof(UserOpts[&quot;psi&qu
   model_prior_tmp = 3
 endif
 
-# We check if the caller gave a &quot;plotspec&quot; string
+# we check if the caller gave a &quot;plotspec&quot; string
 if inbundle(UserOpts, &quot;plotspec&quot;) &amp;&amp; typeof(UserOpts[&quot;plotspec&quot;]) != 4
   err += sprintf(&quot;plotspec must be a string, is: %s&quot;, typestr(typeof(UserOpts[&quot;plotspec&quot;])))
 endif
 
-# Template bundle with default values
+# template bundle with default values
 string Options[&quot;model_type&quot;] = &quot;linear&quot;
 scalar Options[&quot;bic_type&quot;] = 2
 scalar Options[&quot;model_prior&quot;] = model_prior_tmp
@@ -2593,7 +2600,7 @@ scalar Options[&quot;a&quot;] = 1
 matrix Options[&quot;psi&quot;] = {NA}
 string Options[&quot;plotspec&quot;] = &quot;&quot;
 
-# General checking, but still needs some manual work later
+# general checking, but still needs some manual work later
 err2 = bcheck(&amp;Options, UserOpts)
 if err2
   err = sprintf(&quot;Valid options are:\n&quot;)
@@ -2603,7 +2610,7 @@ if err2
   err += sprintf(&quot; Look at the PDF documentation for expected types of arguments.&quot;)
 endif
 
-# We check integers
+# we check integers
 loop i=1..nelem(Integers)
   arg_name = Integers[i]
   arg_val = Options[arg_name]
@@ -2612,7 +2619,7 @@ loop i=1..nelem(Integers)
   endif
 endloop
 
-# We check booleans
+# we check booleans
 loop i=1..nelem(Booleans)
   arg_name = Booleans[i]
   arg_val = Options[arg_name]
@@ -2621,12 +2628,12 @@ loop i=1..nelem(Booleans)
   endif
 endloop
 
-# We check model type
+# we check model type
 if inbundle(UserOpts, &quot;model_type&quot;) &amp;&amp; strlen(UserOpts[&quot;model_type&quot;]) &amp;&amp; !nelem(instrings(ModelTypes, UserOpts[&quot;model_type&quot;]))
   err += sprintf(&quot;Unknown model type: '%s'&quot;, UserOpts[&quot;model_type&quot;])
 endif
 
-# We check arguments for valid values
+# we check arguments for valid values
 if Options.y_lag &lt; 0
   err += &quot;Y lags (y_lag) takes the integer values&quot;
 elif Options.with_const &lt; 0 || Options.with_const &gt; 2
@@ -2663,14 +2670,14 @@ elif Options.a &lt;= 0
   err += &quot;Hyperparameter 'a' must be greater than zero&quot;
 endif
 
-# We save options in M
+# we save options in M
 M = Options
 M.ModelTypes = ModelTypes
 M.BicTypes = BicTypes
 M.ModelPriorTypes = ModelPriorTypes
 M.ConstTypes = ConstTypes
 M.DataTransTypes = DataTransTypes
-strings M.DiscreteModelTypes = M.ModelTypes[2:3] + M.ModelTypes[7] # Note: the first two for binary dependent variable only!
+strings M.DiscreteModelTypes = M.ModelTypes[2:3] + M.ModelTypes[7] # note: the first two for binary dependent variable only!
 strings M.CensoredModelTypes = M.ModelTypes[5:6]
 scalar M.limited_y = nelem(instrings(M.DiscreteModelTypes, M.model_type)) &gt; 0 ? 1 : 0
 scalar M.censored_y = nelem(instrings(M.CensoredModelTypes, M.model_type)) &gt; 0 ? 1 : 0
