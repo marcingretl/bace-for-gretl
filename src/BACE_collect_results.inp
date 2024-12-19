@@ -52,16 +52,14 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         endif
         Yhat_var_avg = zeros(M.Npredict)
     endif
-    if M.limited_y
-        if M.multinomial
-            Yhat = zeros($nobs, yvals+1)
-        elif M.ordered
-            Yhat = zeros($nobs, nelem(M.yvalues))
-            matrix cutshat_avg = zeros(M.cuts)
-            matrix cutsvar_avg = zeros(M.cuts)
-        else
-            Yhat = zeros($nobs)
-        endif
+    if M.limited_y && M.multinomial
+        Yhat = zeros($nobs, yvals+1)
+    elif M.limited_y && M.ordered
+        Yhat = zeros($nobs, nelem(M.yvalues))
+        matrix cutshat_avg = zeros(M.cuts)
+        matrix cutsvar_avg = zeros(M.cuts)
+    else
+        Yhat = zeros($nobs)
     endif
 
     # We set the number of visited models
@@ -71,7 +69,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
     known_models = defbundle()
 
-    # We select objects only for accepted models
+    # We select objects for accepted models only
     idx = selifr(seq(1, M.Nrep+1)', models_counter .> 0)
     M.post_n_models_accepted = nelem(idx)
     models_counter = models_counter[idx]
@@ -80,19 +78,17 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     if M.Npredict
         models_forecasts = models_forecasts[idx]
     endif
-    if M.limited_y
-        models_yhat = models_yhat[idx]
-        if M.ordered
-            cuts_estimates = array(nelem(models_counter))
-            loop i=1..nelem(models_counter)
-                cuts_estimates[i] = models_estimates[i][end-M.cuts+1:end,]
-                if rows(models_estimates[i]) > M.cuts
-                    models_estimates[i] = models_estimates[i][1:end-M.cuts,]
-                else
-                    models_estimates[i] = {}
-                endif
-            endloop
-        endif
+    models_yhat = models_yhat[idx]
+    if M.limited_y && M.ordered
+        cuts_estimates = array(nelem(models_counter))
+        loop i=1..nelem(models_counter)
+            cuts_estimates[i] = models_estimates[i][end-M.cuts+1:end,]
+            if rows(models_estimates[i]) > M.cuts
+                models_estimates[i] = models_estimates[i][1:end-M.cuts,]
+            else
+                models_estimates[i] = {}
+            endif
+        endloop
     endif
 
     # Models size cumulative distribution
@@ -134,7 +130,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
             endif
             if M.limited_y && M.ordered
                 M.mod_rank_cuts_estimates[i] = cuts_estimates_rank[i][,1] ~ sqrt(cuts_estimates_rank[i][,2])
-            endif            
+            endif
         endif
     endloop
 
@@ -178,7 +174,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                     bhat = cuts_estimates[i][,1]
                     cutshat_avg += weight * bhat
                     cutsvar_avg += weight * (cuts_estimates[i][,2] + bhat .^ 2)
-                endif  
+                endif
             endif
 
             if mod_struct_sum
@@ -188,6 +184,9 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
             endif
             var_prob += weight * mod_struct
         endif
+
+        # Yhat
+        Yhat += weight * models_yhat[i]
 
         if M.do_joint
             jointness_m = upper(jointness_m .+ weight * ((mod_struct .* mod_struct') .> 0))
@@ -202,10 +201,6 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                 endif
                 Yhat_var_avg += weight * models_forecasts[i][,end]
             endif
-        endif
-
-        if M.limited_y
-            Yhat += weight * models_yhat[i]
         endif
 
         # Flushing output - showing progress
@@ -254,9 +249,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
 
     # Fitted values
-    if M.limited_y
-        M.Yhat = Yhat
-    endif
+    M.Yhat = Yhat
 
     if M.show_progress
         printf "\n"

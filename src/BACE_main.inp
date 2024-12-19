@@ -16,8 +16,8 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_main (bundle *M)
-/*
-   This is main BACE function with complete MC3 simulation procedure.
+    /*
+       This is main BACE function with complete MC3 simulation procedure.
     */
 
     # Local variables
@@ -39,11 +39,7 @@ function void BACE_main (bundle *M)
     else
         matrices models_forecasts = array(0)
     endif
-    if M.limited_y
-        matrices models_yhat = array(M.Nrep+1)
-    else
-        matrices models_yhat = array(0)
-    endif
+    matrices models_yhat = array(M.Nrep+1)
     # Sample setting for prediction
     if M.Npredict
         smpl M.first_obs M.last_obs
@@ -66,9 +62,7 @@ function void BACE_main (bundle *M)
     models_structure[model_nr] = M.mod_struct_new
     models_lprob[model_nr] = M.lprob_new
     models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-    if M.limited_y
-        models_yhat[model_nr] = M.Yhat
-    endif
+    models_yhat[model_nr] = M.Yhat
     if M.Npredict && M.k_new
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
     endif
@@ -112,9 +106,7 @@ function void BACE_main (bundle *M)
                 models_structure[model_nr] = M.mod_struct_new
                 models_lprob[model_nr] = M.lprob_new
                 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-                if M.limited_y
-                    models_yhat[model_nr] = M.Yhat
-                endif
+                models_yhat[model_nr] = M.Yhat
                 if M.Npredict && M.k_new
                     models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
                 endif

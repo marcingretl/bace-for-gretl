@@ -16,8 +16,8 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_summary (bundle *M)
-/*
-   We summarise some BACE results and deleting redundant items from the returned bundle.
+    /*
+       We summarise some BACE results and deleting redundant items from the returned bundle.
     */
     BACE_print_status("Summarizing")
     scalar tmps, factor, k
@@ -52,6 +52,7 @@ function void BACE_summary (bundle *M)
     M.bvar_avg = M.bvar_avg / NORM
     M.consthat_avg = M.consthat_avg / NORM
     M.constvar_avg = M.constvar_avg / NORM
+    M.Yhat = M.Yhat / NORM
     if M.with_const == 1
         if M.model_type == "mlogit"
             M.bhat_avg = transp(M.consthat_avg) ~ M.bhat_avg
@@ -75,12 +76,9 @@ function void BACE_summary (bundle *M)
             M.Post_Results = M.Post_Results | tmpm
         endloop
     endif
-    if M.limited_y
-        M.Yhat = M.Yhat / NORM
-        if M.ordered
-            M.cutshat_avg = M.cutshat_avg / NORM
-            M.cutsvar_avg = M.cutsvar_avg / NORM
-        endif
+    if M.limited_y && M.ordered
+        M.cutshat_avg = M.cutshat_avg / NORM
+        M.cutsvar_avg = M.cutsvar_avg / NORM
     endif
 
     # Average model size (including matrix for plot)
@@ -352,12 +350,9 @@ function void BACE_summary (bundle *M)
         delete M.predict_obs_names
         catch delete M.ess
     endif
-    if M.limited_y
-        delete M.Yhat
-        if M.ordered
-            delete M.cutsvar_avg
-            delete M.cutshat_avg
-        endif
+    if M.limited_y && M.ordered
+        delete M.cutsvar_avg
+        delete M.cutshat_avg
     endif
 
     BACE_print_status(null, 1, 10)

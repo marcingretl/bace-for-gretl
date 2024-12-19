@@ -2,8 +2,8 @@
 <gretl-functions>
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
-<version>3.1</version>
-<date>2024-03-20</date>
+<version>3.2-svn</version>
+<date>2024-05-21</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -637,6 +637,21 @@ else
   endif
 endif
 
+#################
+plotmat = {MODEL.Y} ~ MODEL.Yhat
+title = defarray(&quot;actual&quot;, &quot;fitted&quot;)
+cnameset(plotmat, title)
+plot_title = &quot;Fitted&quot;
+output = BACE_get_plot_outname(basename, &quot;-fitted&quot;)
+catch plot plotmat
+  options time-series with-lines
+  options with-line fit=none
+  printf &quot;set title \&quot;%s\&quot;&quot;, plot_title
+end plot --output=display
+if error
+  printf &quot;Fitted: %s\n&quot;, errmsg(error)
+endif
+
 #########################################################
 #						Forecasts						#
 #########################################################
@@ -1206,6 +1221,7 @@ M.bhat_avg = M.bhat_avg / NORM
 M.bvar_avg = M.bvar_avg / NORM
 M.consthat_avg = M.consthat_avg / NORM
 M.constvar_avg = M.constvar_avg / NORM
+M.Yhat = M.Yhat / NORM
 if M.with_const == 1
   if M.model_type == &quot;mlogit&quot;
     M.bhat_avg = transp(M.consthat_avg) ~ M.bhat_avg
@@ -1229,12 +1245,9 @@ else
     M.Post_Results = M.Post_Results | tmpm
   endloop
 endif
-if M.limited_y
-  M.Yhat = M.Yhat / NORM
-  if M.ordered
-    M.cutshat_avg = M.cutshat_avg / NORM
-    M.cutsvar_avg = M.cutsvar_avg / NORM
-  endif
+if M.limited_y &amp;&amp; M.ordered
+  M.cutshat_avg = M.cutshat_avg / NORM
+  M.cutsvar_avg = M.cutsvar_avg / NORM
 endif
 
 # Average model size (including matrix for plot)
@@ -1506,12 +1519,9 @@ if M.Npredict
   delete M.predict_obs_names
   catch delete M.ess
 endif
-if M.limited_y
-  delete M.Yhat
-  if M.ordered
-    delete M.cutsvar_avg
-    delete M.cutshat_avg
-  endif
+if M.limited_y &amp;&amp; M.ordered
+  delete M.cutsvar_avg
+  delete M.cutshat_avg
 endif
 
 BACE_print_status(null, 1, 10)
@@ -1932,12 +1942,11 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
     endif
   endif
 
-  if M.limited_y
-    if M.multinomial || M.ordered
-      M.Yhat = $allprobs
-    else
-      M.Yhat = {$model.yhat}
-    endif
+  # We store yhat
+  if M.limited_y &amp;&amp; (M.multinomial || M.ordered)
+    M.Yhat = $allprobs
+  else
+    M.Yhat = {$model.yhat}
   endif
 
   # We calculate log of marginal density
@@ -2013,16 +2022,14 @@ if M.Npredict
   endif
   Yhat_var_avg = zeros(M.Npredict)
 endif
-if M.limited_y
-  if M.multinomial
-    Yhat = zeros($nobs, yvals+1)
-  elif M.ordered
-    Yhat = zeros($nobs, nelem(M.yvalues))
-    matrix cutshat_avg = zeros(M.cuts)
-    matrix cutsvar_avg = zeros(M.cuts)
-  else
-    Yhat = zeros($nobs)
-  endif
+if M.limited_y &amp;&amp; M.multinomial
+  Yhat = zeros($nobs, yvals+1)
+elif M.limited_y &amp;&amp; M.ordered
+  Yhat = zeros($nobs, nelem(M.yvalues))
+  matrix cutshat_avg = zeros(M.cuts)
+  matrix cutsvar_avg = zeros(M.cuts)
+else
+  Yhat = zeros($nobs)
 endif
 
 # We set the number of visited models
@@ -2032,7 +2039,7 @@ if M.with_const == 0 &amp;&amp; !(M.limited_y &amp;&amp; M.ordered)
 endif
 known_models = defbundle()
 
-# We select objects only for accepted models
+# We select objects for accepted models only
 idx = selifr(seq(1, M.Nrep+1)', models_counter .&gt; 0)
 M.post_n_models_accepted = nelem(idx)
 models_counter = models_counter[idx]
@@ -2041,19 +2048,17 @@ models_structure = models_structure[idx]
 if M.Npredict
   models_forecasts = models_forecasts[idx]
 endif
-if M.limited_y
-  models_yhat = models_yhat[idx]
-  if M.ordered
-    cuts_estimates = array(nelem(models_counter))
-    loop i=1..nelem(models_counter)
-      cuts_estimates[i] = models_estimates[i][end-M.cuts+1:end,]
-      if rows(models_estimates[i]) &gt; M.cuts
-        models_estimates[i] = models_estimates[i][1:end-M.cuts,]
-      else
-        models_estimates[i] = {}
-      endif
-    endloop
-  endif
+models_yhat = models_yhat[idx]
+if M.limited_y &amp;&amp; M.ordered
+  cuts_estimates = array(nelem(models_counter))
+  loop i=1..nelem(models_counter)
+    cuts_estimates[i] = models_estimates[i][end-M.cuts+1:end,]
+    if rows(models_estimates[i]) &gt; M.cuts
+      models_estimates[i] = models_estimates[i][1:end-M.cuts,]
+    else
+      models_estimates[i] = {}
+    endif
+  endloop
 endif
 
 # Models size cumulative distribution
@@ -2150,6 +2155,9 @@ loop i=1..nelem(models_counter)
     var_prob += weight * mod_struct
   endif
 
+  # Yhat
+  Yhat += weight * models_yhat[i]
+
   if M.do_joint
     jointness_m = upper(jointness_m .+ weight * ((mod_struct .* mod_struct') .&gt; 0))
   endif
@@ -2163,10 +2171,6 @@ loop i=1..nelem(models_counter)
       endif
       Yhat_var_avg += weight * models_forecasts[i][,end]
     endif
-  endif
-
-  if M.limited_y
-    Yhat += weight * models_yhat[i]
   endif
 
   # Flushing output - showing progress
@@ -2215,9 +2219,7 @@ if M.with_const == 1 || M.limited_y &amp;&amp; M.ordered
 endif
 
 # Fitted values
-if M.limited_y
-  M.Yhat = Yhat
-endif
+M.Yhat = Yhat
 
 if M.show_progress
   printf &quot;\n&quot;
@@ -2335,11 +2337,7 @@ if M.Npredict
 else
   matrices models_forecasts = array(0)
 endif
-if M.limited_y
-  matrices models_yhat = array(M.Nrep+1)
-else
-  matrices models_yhat = array(0)
-endif
+matrices models_yhat = array(M.Nrep+1)
 # Sample setting for prediction
 if M.Npredict
   smpl M.first_obs M.last_obs
@@ -2362,9 +2360,7 @@ known_models[model_id] = model_nr
 models_structure[model_nr] = M.mod_struct_new
 models_lprob[model_nr] = M.lprob_new
 models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-if M.limited_y
-  models_yhat[model_nr] = M.Yhat
-endif
+models_yhat[model_nr] = M.Yhat
 if M.Npredict &amp;&amp; M.k_new
   models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
 endif
@@ -2408,9 +2404,7 @@ loop while rep &lt;= M.Nrep
       models_structure[model_nr] = M.mod_struct_new
       models_lprob[model_nr] = M.lprob_new
       models_estimates[model_nr] = M.bhat_tmp ~ M.bvar_tmp
-      if M.limited_y
-        models_yhat[model_nr] = M.Yhat
-      endif
+      models_yhat[model_nr] = M.Yhat
       if M.Npredict &amp;&amp; M.k_new
         models_forecasts[model_nr] = M.Yhat_predict ~ M.Yhat_predict_var
       endif

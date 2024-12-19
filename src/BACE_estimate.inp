@@ -16,8 +16,8 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_estimate (bundle *M)
-/*
-   This function estimates and forecasts drawn models.
+    /*
+       This function estimates and forecasts drawn models.
     */
     matrix mod_struct_new, mod_struct_new_Y_lags, vcv
     list Y_lags
@@ -99,12 +99,11 @@ function void BACE_estimate (bundle *M)
             endif
         endif
 
-        if M.limited_y
-            if M.multinomial || M.ordered
-                M.Yhat = $allprobs
-            else
-                M.Yhat = {$model.yhat}
-            endif
+        # We store yhat
+        if M.limited_y && (M.multinomial || M.ordered)
+            M.Yhat = $allprobs
+        else
+            M.Yhat = {$model.yhat}
         endif
 
         # We calculate log of marginal density

@@ -16,8 +16,8 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function void BACE_Plot (const bundle *MODEL)
-/*
-   BACE result bundle plot function.
+    /*
+       BACE result bundle plot function.
     */
     string legend, output, basename, xtics, plot_title, plotmat_str
     string yrange = ""
@@ -101,7 +101,7 @@ function void BACE_Plot (const bundle *MODEL)
     else
         plotmat = MODEL.models_probs_cdf
         output = BACE_get_plot_outname(basename, "-CDF")
-         xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
+        xtics = rows(plotmat) < 20 ? "set xtics 1" : ""
         catch plot plotmat
             options with-line fit=none
             literal set grid
@@ -176,6 +176,22 @@ function void BACE_Plot (const bundle *MODEL)
         endif
     endif
 
+    #################
+    plotmat = {MODEL.Y} ~ MODEL.Yhat
+    title = defarray("actual", "fitted")
+    cnameset(plotmat, title)
+    plot_title = "Fitted"
+    output = BACE_get_plot_outname(basename, "-fitted")
+    catch plot plotmat
+        options time-series with-lines
+        options with-line fit=none
+        printf "set title \"%s\"", plot_title
+    end plot --output=display
+    if error
+        printf "Fitted: %s\n", errmsg(error)
+    endif
+    
+
     #########################################################
     #						Forecasts						#
     #########################################################
@@ -190,7 +206,7 @@ function void BACE_Plot (const bundle *MODEL)
             bars = MODEL.prediction[,2:3]
         endif
         cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
-        
+
         output = BACE_get_plot_outname(basename, "-predict")
         xtics = "("
         loop i=1..MODEL.Npredict
