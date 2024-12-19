@@ -76,7 +76,7 @@ function void BACE_setup (bundle *M, int Norig)
             string M.const_type = M.ConstTypes[1]
         endif
     endif
-    if M.y_lag > 0
+    if M.y_lag
         X_list = lags(M.y_lag, Y) X_list
     endif
     M.X_list = X_list
