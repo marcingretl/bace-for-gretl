@@ -124,7 +124,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
             endif
             M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
             if M.model_prior == 3
-                M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - sum(mod_struct ? log(M.theta) : log(1-M.theta)))
+                M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - sum(mod_struct ? log(M.psi) : log(1-M.psi)))
             else
                 M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
             endif

@@ -1,5 +1,5 @@
-gretl version 2024a-git
-Current session: 2024-03-20 11:44
+gretl version 2024c
+Current session: 2024-12-12 14:44
 
 #######################################################
 #   https://sourceforge.net/projects/bma-for-gretl/   #
@@ -13,12 +13,12 @@ observations range: 1 to 25
 Listing 5 variables:
   0) const      1) valadd     2) capital    3) labor      4) nfirm    
 
+BACE 3.11, 2024-12-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+
 BACE setup:           done!
 MC3 setup:            done!
-MC3 overall progress: [#########################] 100.0%
-Collecting results:
-           averaging: [#########################] 100.0%
-                      done!
+MC3:                  done!
+Collecting results:   done!
 Summarizing:          done!
 ----------------------------------
 Model type: linear
@@ -97,6 +97,7 @@ capital             nan       0.999556       0.322444
   labor        0.999556            nan       0.321801
   nfirm        0.322444       0.321801            nan
 
+
 Best specifications (MLE estimates for linear model):
 ----------------------------------
 
@@ -108,6 +109,7 @@ Model 1: HBIC: 308.531519, posterior probability: 0.661000
   labor        4.14645      0.855205     4.848    1.24e-06 ***
   nfirm        0.330802     0.199243     1.660    0.0969   *
 
+
 ----------------------------------
 
 Model 2: HBIC: 309.765434, posterior probability: 0.338778
@@ -116,6 +118,7 @@ Model 2: HBIC: 309.765434, posterior probability: 0.338778
   const       -27.0555     30.8720      -0.8764   0.3808  
   capital       3.21638     0.606070     5.307    1.11e-07 ***
   labor         5.37883     0.447559    12.02     2.85e-33 ***
+
 
 ----------------------------------
 
@@ -128,3 +131,9 @@ Model 3: HBIC: 323.721760, posterior probability: 0.000222
 
 ----------------------------------
 
+
+wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-PIP.plt
+wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-Jointness.plt
+wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-MSD.plt
+wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-CDF.plt
+wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-MPD.plt

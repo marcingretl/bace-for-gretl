@@ -3,7 +3,6 @@
 \usepackage{longtable}
 \usepackage{xargs,xspace}
 \usepackage{caption,subcaption,tabulary,multirow,bigdelim}
-\usepackage{soul} %Do wywalenia!!!
 \usepackage[colorinlistoftodos,prependcaption,textsize=tiny,textwidth=2.8cm]{todonotes}
 \newcommandx{\odp}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
 
@@ -27,7 +26,7 @@
 	\end{quote}
 
 \begin{center}
-	\vspace*{100pt}{\Large Version 3.1}
+	\vspace*{100pt}{\Large Version 3.2-svn}
 \end{center}
 	
 	\begin{abstract}
@@ -37,7 +36,7 @@
 		models, ordered logit and probit models, multinomial logistic
 		regression, Poisson regression, Tobit model, and interval
 		regression. \pkg{BACE} strategy is a model selection method
-		that incorporates both classical estimation and Bayesian techniques. 
+		that incorporates both classical estimation and Bayesian techniques.
 		It solves the problem of computation speed and model uncertainty
 		that arise when dealing with a large number of competing advanced
 		statistical models. Our \pkg{BACE} package is both fast and
@@ -50,6 +49,22 @@
 	
 	\section*{Changelog}
 	\begin{description}
+		\item[3.2] Plots refactoring
+			\begin{itemize}[label={--}]
+				\item Code for plotting graphs enhancements
+					(kudos to Allin Cottrell).
+				\item New `fitted' plot (work in progress, some
+					issues in UKM1 and UK\_inflation).
+				\item {[todo]} Remove $\theta$ from package options.
+				\item {[todo]} Add odds ratios for logit models.
+			\end{itemize}
+		\item[3.11] Prior Inclusion Probabilities parameter symbol changed:
+			\begin{itemize}[label={--}]
+				\item The symbol for Prior Inclusion Probabilities settings
+					has been changed from $\theta$ to $\psi$. Note: For backward
+					compatibility, in \pkg{BACE} 3.11, the use of $\theta$ is
+					still allowed. However, it will be fully removed in version 3.2.
+			\end{itemize}
 		\item[3.1] New features added and small updates:
 			\begin{itemize}[label={--}]
 				\item Some code cleanups.
@@ -117,9 +132,8 @@
 
 	\section*{To do}
 	\begin{itemize}
-		\item Simplify "if" condition for Y lags in \texttt{BACE\_estimate()}.
+		\item Simplify ``if'' condition for Y lags in \texttt{BACE\_estimate()}.
 		\item Simplify \texttt{BACE\_initial\_model()}.
-		\item Add odds ratios for logit models.
 		\item Use inbundle() instead if exists().
 	\end{itemize}
 	
