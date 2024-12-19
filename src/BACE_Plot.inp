@@ -176,8 +176,12 @@ function void BACE_Plot (const bundle *MODEL)
         endif
     endif
 
-    #################
-    plotmat = {MODEL.Y} ~ MODEL.Yhat
+
+    #########################################################
+    #						Fitted							#
+    #########################################################
+    idx = 1 + nelem({MODEL.Y}) - nelem(MODEL.Yhat)    
+    plotmat = {MODEL.Y}[idx:end] ~ MODEL.Yhat
     title = defarray("actual", "fitted")
     cnameset(plotmat, title)
     plot_title = "Fitted"

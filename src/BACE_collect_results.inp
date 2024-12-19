@@ -28,6 +28,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     scalar nr, mod_struct_sum
     scalar weight = 0
     scalar with_const = 0
+    scalar yhat_shift = 0
     scalar yvals = M.model_type == "mlogit" ? nelem(M.yvals)-1 : 1
     if M.with_const == 1
         matrix bhat_avg = zeros(M.k+1, yvals)
@@ -124,7 +125,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
             endif
             M.mod_rank_estimates[i] = models_estimates_rank[i][,1] ~ sqrt(models_estimates_rank[i][,2]) ~ transp(var_idx)
             if M.model_prior == 3
-                M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - sum(mod_struct ? log(M.theta) : log(1-M.theta)))
+                M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - sum(mod_struct ? log(M.psi) : log(1-M.psi)))
             else
                 M.mod_rank_bic[i] = -2 * (M.mod_rank_prob[i] - M.model_prior_log[sum(mod_struct)+1])
             endif
@@ -186,7 +187,12 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         endif
 
         # Yhat
-        Yhat += weight * models_yhat[i]
+        if M.y_lag
+            yhat_shift = rows(Yhat) - rows(models_yhat[i])
+            Yhat[1+yhat_shift:end] += weight * models_yhat[i]
+        else
+            Yhat += weight * models_yhat[i]
+        endif
 
         if M.do_joint
             jointness_m = upper(jointness_m .+ weight * ((mod_struct .* mod_struct') .> 0))
@@ -249,7 +255,11 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
 
     # Fitted values
-    M.Yhat = Yhat
+    if M.y_lag
+        M.Yhat = Yhat[M.y_lag+1:end]
+    else
+        M.Yhat = Yhat
+    endif    
 
     if M.show_progress
         printf "\n"

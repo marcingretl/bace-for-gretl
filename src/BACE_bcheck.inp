@@ -56,7 +56,14 @@ function string BACE_bcheck (bundle UserOpts,
     Overloadable["data_trans"] = _(none=0, centering=1, standarizing=2, valid=tolower(flatten(DataTransTypes, separator)))
     Overloadable["model_type"] = _(linear=1, logit=2, probit=3, poisson=4, tobit=5, intreg=6, mlogit=7, valid=tolower(flatten(ModelTypes, separator)))
 
-    # We look for overloaded parameters and convert them into integers
+    # temporal workoround for 'theta' instead of 'psi'
+    if inbundle(UserOpts, "theta")
+        printf "\n*** Note: The 'theta' parameter has been renamed to 'psi' and will be removed in version 3.2. ***\n"
+        UserOpts["psi"] = UserOpts["theta"]
+        delete UserOpts["theta"]
+    endif
+
+    # we look for overloaded parameters and convert them into integers
     OverloadableKeys = getkeys(Overloadable)
     loop i=1..nelem(OverloadableKeys)
         arg_name = OverloadableKeys[i]
@@ -87,7 +94,7 @@ function string BACE_bcheck (bundle UserOpts,
         endif
     endloop
 
-    # We set the default Nrep conditional on k
+    # we set the default Nrep conditional on k
     if k <= 15
         Nrep = 10^4
     elif k >= 16 && k <= 19
@@ -96,14 +103,14 @@ function string BACE_bcheck (bundle UserOpts,
         Nrep = 10^6
     endif
 
-    # We set temporal y_lag value
+    # we set temporal y_lag value
     if !inbundle(UserOpts, "y_lag") || typeof(UserOpts["y_lag"]) != 1
         y_lag_tmp = 0
     else
         y_lag_tmp = UserOpts["y_lag"]
     endif
 
-    # We set temporal with_const value and calculate prior average model size
+    # we set temporal with_const value and calculate prior average model size
     if !inbundle(UserOpts, "with_const")
         with_const_tmp = 1
         avg_model_size_tmp = (k + y_lag_tmp) / 2
@@ -112,30 +119,30 @@ function string BACE_bcheck (bundle UserOpts,
         avg_model_size_tmp = (k + y_lag_tmp + (with_const_tmp == 2)) / 2
     endif
 
-    # We set default alpha
+    # we set default alpha
     if inbundle(UserOpts, "model_type") && UserOpts["model_type"] == "intreg"
         alpha_tmp = 1.0
     else
         alpha_tmp = 0.6
     endif
 
-    # We check if given theta is scalar or matrix and set its temporal value (if needed)
-    if inbundle(UserOpts, "theta") && !(typeof(UserOpts["theta"]) == 1 || typeof(UserOpts["theta"]) == 3)
-        err += sprintf("Theta must be either scalar or matrix, is: %s", typestr(typeof(UserOpts["theta"])))
+    # we check if given psi is scalar or matrix and set its temporal value (if needed)
+    if inbundle(UserOpts, "psi") && !(typeof(UserOpts["psi"]) == 1 || typeof(UserOpts["psi"]) == 3)
+        err += sprintf("Psi must be either scalar or matrix, is: %s", typestr(typeof(UserOpts["psi"])))
         return err
-    elif inbundle(UserOpts, "theta") && typeof(UserOpts["theta"]) == 1
-        UserOpts["theta"] = -1 * UserOpts["theta"]
+    elif inbundle(UserOpts, "psi") && typeof(UserOpts["psi"]) == 1
+        UserOpts["psi"] = -1 * UserOpts["psi"]
         model_prior_tmp = 3
-    elif inbundle(UserOpts, "theta") && typeof(UserOpts["theta"]) == 3
+    elif inbundle(UserOpts, "psi") && typeof(UserOpts["psi"]) == 3
         model_prior_tmp = 3
     endif
 
-    # We check if the caller gave a "plotspec" string
+    # we check if the caller gave a "plotspec" string
     if inbundle(UserOpts, "plotspec") && typeof(UserOpts["plotspec"]) != 4
         err += sprintf("plotspec must be a string, is: %s", typestr(typeof(UserOpts["plotspec"])))
     endif
 
-    # Template bundle with default values
+    # template bundle with default values
     string Options["model_type"] = "linear"
     scalar Options["bic_type"] = 2
     scalar Options["model_prior"] = model_prior_tmp
@@ -157,10 +164,10 @@ function string BACE_bcheck (bundle UserOpts,
     scalar Options["show_progress"] = do_show_progress
     scalar Options["do_plot"] = do_plot_tmp
     scalar Options["a"] = 1
-    matrix Options["theta"] = {NA}
+    matrix Options["psi"] = {NA}
     string Options["plotspec"] = ""
 
-    # General checking, but still needs some manual work later
+    # general checking, but still needs some manual work later
     err2 = bcheck(&Options, UserOpts)
     if err2
         err = sprintf("Valid options are:\n")
@@ -170,7 +177,7 @@ function string BACE_bcheck (bundle UserOpts,
         err += sprintf(" Look at the PDF documentation for expected types of arguments.")
     endif
 
-    # We check integers
+    # we check integers
     loop i=1..nelem(Integers)
         arg_name = Integers[i]
         arg_val = Options[arg_name]
@@ -179,7 +186,7 @@ function string BACE_bcheck (bundle UserOpts,
         endif
     endloop
 
-    # We check booleans
+    # we check booleans
     loop i=1..nelem(Booleans)
         arg_name = Booleans[i]
         arg_val = Options[arg_name]
@@ -188,12 +195,12 @@ function string BACE_bcheck (bundle UserOpts,
         endif
     endloop
 
-    # We check model type
+    # we check model type
     if inbundle(UserOpts, "model_type") && strlen(UserOpts["model_type"]) && !nelem(instrings(ModelTypes, UserOpts["model_type"]))
         err += sprintf("Unknown model type: '%s'", UserOpts["model_type"])
     endif
 
-    # We check arguments for valid values
+    # we check arguments for valid values
     if Options.y_lag < 0
         err += "Y lags (y_lag) takes the integer values"
     elif Options.with_const < 0 || Options.with_const > 2
@@ -222,22 +229,22 @@ function string BACE_bcheck (bundle UserOpts,
         err += "Gamma for EBIC takes the real values in the range [0; 1]"
     elif Options.binary_threshold <= 0 || Options.binary_threshold >= 1
         err += "Threshold for binary dependent models (binary_threshold) takes the real values in the range (0; 1)"
-    elif sum(ok(Options.theta)) && (min(Options.theta) <= 0 || max(Options.theta) >= 1) && typeof(UserOpts["theta"]) == 3
-        err += "Prior Inclusion Probabilities (theta) takes the real values in the range (0; 1)"
-    elif sum(ok(Options.theta)) && Options.model_prior < 3
-        err += sprintf("You may not mix %s model prior with Prior Inclusion Probabilities (theta)", ModelPriorTypes[Options.model_prior+1])
+    elif sum(ok(Options.psi)) && (min(Options.psi) <= 0 || max(Options.psi) >= 1) && typeof(UserOpts["psi"]) == 3
+        err += "Prior Inclusion Probabilities (psi) takes the real values in the range (0; 1)"
+    elif sum(ok(Options.psi)) && Options.model_prior < 3
+        err += sprintf("You may not mix %s model prior with Prior Inclusion Probabilities (psi)", ModelPriorTypes[Options.model_prior+1])
     elif Options.a <= 0
         err += "Hyperparameter 'a' must be greater than zero"
     endif
 
-    # We save options in M
+    # we save options in M
     M = Options
     M.ModelTypes = ModelTypes
     M.BicTypes = BicTypes
     M.ModelPriorTypes = ModelPriorTypes
     M.ConstTypes = ConstTypes
     M.DataTransTypes = DataTransTypes
-    strings M.DiscreteModelTypes = M.ModelTypes[2:3] + M.ModelTypes[7] # Note: the first two for binary dependent variable only!
+    strings M.DiscreteModelTypes = M.ModelTypes[2:3] + M.ModelTypes[7] # note: the first two for binary dependent variable only!
     strings M.CensoredModelTypes = M.ModelTypes[5:6]
     scalar M.limited_y = nelem(instrings(M.DiscreteModelTypes, M.model_type)) > 0 ? 1 : 0
     scalar M.censored_y = nelem(instrings(M.CensoredModelTypes, M.model_type)) > 0 ? 1 : 0
