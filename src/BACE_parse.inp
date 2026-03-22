@@ -79,7 +79,7 @@ function string BACE_parse (bundle *M,
     if ESTIMATOR == "intreg" && M.with_const != 1
         err = "Interval regression model must include constant"
     elif ESTIMATOR == "intreg" && M.y_lag
-        err = "Interval regression model must not include lagged dependend variable"
+        err = "Interval regression model must not include lagged dependent variable"
     endif
 
     # We check if average model size is within 0 and K
