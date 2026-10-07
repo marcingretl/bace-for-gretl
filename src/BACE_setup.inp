@@ -124,7 +124,8 @@ function void BACE_setup (bundle *M, int Norig)
     if M.Npredict
         scalar M.first_obs = $t1 #y_lag+1 # the first observation for smpl command
         scalar M.last_obs = $tmax-M.Npredict # the last observation for smpl command
-        matrix M.Y_mat_predict = M.Y_mat[end-M.Npredict+1:end] # "out-of-sample" matrix of the dependent variable
+        matrix M.Y_mat_predict = M.Y_mat[end-M.Npredict+1:end] # "out-of-sample" matrix of the dependent variable        
+        matrix M.X_mat_predict = { X_list }[end-M.Npredict+1:end, ] # "out-of-sample" matrix of the independent variables        
         M.Y_mat = M.Y_mat[1:end-M.Npredict]
         matrix M.Yhat_predict = zeros(M.Npredict) # vector of Y predictions in current draw
         matrix M.Yhat_predict_var = zeros(M.Npredict) # vector of Y predictions in current draw (variances!!!)
@@ -132,6 +133,7 @@ function void BACE_setup (bundle *M, int Norig)
         matrix M.Yhat_predict_var_avg = zeros(M.Npredict,1) # predicion variance
         matrix M.prediction = {} # matrix with prediction results
         strings M.predict_obs_names = obslabel(seq($nobs-M.Npredict+1,$nobs)) # obs labels for forecasts
+        rnameset(M.X_mat_predict, M.predict_obs_names)
         smpl M.first_obs M.last_obs #$nobs-h_predict-y_lag #M.last_obs # setting sample
     else
         matrix M.Yhat_avg = {}
