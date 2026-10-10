@@ -159,6 +159,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         endif
 
         if nelem(models_estimates[i])
+            bhat = {}
             bhat = models_estimates[i][,1]
             if M.model_type == "mlogit"
                 nr = with_const + mod_struct_sum
@@ -259,7 +260,7 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         M.Yhat = Yhat[M.y_lag+1:end]
     else
         M.Yhat = Yhat
-    endif    
+    endif
 
     if M.show_progress
         printf "\n"

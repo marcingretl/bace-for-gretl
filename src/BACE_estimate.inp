@@ -85,6 +85,16 @@ function void BACE_estimate (bundle *M)
             M.bvar_tmp *= ols_to_mle_correct
         endif
 
+        # for M.ordered, we need check if some variables were not dropped somehow (8.10.2026)
+        if M.ordered && ($model.nx - nelem(X))
+            M.lprob_new = -10^100
+            if M.verbosity == 2
+                printf "\nspecification dropped: "
+                eval X
+            endif
+            return
+        endif
+
         if M.Npredict
             if M.limited_y && (M.ordered || M.multinomial)
                 fcast --out-of-sample --all-probs --quiet
