@@ -120,3 +120,24 @@
 \definecolor{hanslteal}{cmyk}{1,0,.45,0} %{.01,0,.45,1}
 \definecolor{hanslmagenta}{cmyk}{0,.96,0,0}
 \definecolor{hanslblack}{cmyk}{0,0,0,1}
+\definecolor{pythgreen}{cmyk}{.65,0,.65,.35}
+\definecolor{pythtype}{cmyk}{.25,.45,0,0}
+
+\lstset{escapechar=@,style=hansl}
+
+\lstdefinestyle{pythonstylefoot}{
+	language=Python,
+	basicstyle=\ttfamily\footnotesize,
+	morekeywords={self,True,False,None},
+	keywordstyle=\color{blue},
+	morekeywords=[2]{
+		int,float,complex,bool,str,bytes,
+		list,tuple,set,dict,object,Sequence
+	},
+	keywordstyle=[2]\color{pythtype},
+	emphstyle=\color{red},
+	stringstyle=\color{pythgreen},
+	frame=tb,
+	showstringspaces=false,
+	breaklines=true
+}

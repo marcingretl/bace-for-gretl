@@ -65,15 +65,15 @@ the ordered probit model, whereas the logistic distribution
 gives the ordered logit model.
 
 The latest considered model of this kind is multinomial logistic
-regression. It s an extension of logistic regression modeling
+regression. It is an extension of logistic regression modeling
 for cases where the dependent variable is not binary but can
 take the values $0,1, \ldots, p$ and the categories are nominal,
 meaning they do not have a natural order.
 
 The model can be written in the following form:
 \begin{align}
-	\Pr\left(y_i= k\mid x_i\right) &= \frac{\exp \left( x_i\beta_k\right)} {1+\sum_{j=1}^{p}x_i\beta_j}, k > 0,\\
-	\Pr\left(y_i= 0\mid x_i\right) &= \frac{1} {1+\sum_{j=1}^{p}x_i\beta_j}.
+	\Pr\left(y_i= k\mid x_i\right) &= \frac{\exp \left( x_i\beta_k\right)} {1+\sum_{j=1}^{p}\exp{(x_i\beta_j)}}, k > 0,\\
+	\Pr\left(y_i= 0\mid x_i\right) &= \frac{1} {1+\sum_{j=1}^{p}\exp{(x_i\beta_j)}}.
 \end{align}
 
 Poisson regression is a model used to predict count data
