@@ -330,6 +330,43 @@ if inbundle(M, &quot;oddsratios&quot;)
   printf &quot;%15f&quot;, odds_avg
 endif
 
+# Model-averaged average marginal effects (AMEs).
+# Show each regressor's PIP alongside its effects on outcome probabilities.
+# The results are sorted by PIP, just like the posterior moments and ORs.
+if inbundle(M, &quot;marginal_effects&quot;)
+  printf &quot;\n&quot;
+  print &quot;Posterior average marginal effects (model averaged):&quot;
+
+  # The constant is not a candidate regressor and has no marginal effect.
+  matrix mfx_pip = M.Post_Results[,1]
+  if M.with_const == 1
+    mfx_pip = mfx_pip[2:end]
+  elif M.with_const == 2
+    mfx_pip = mfx_pip[1:end-1]
+  endif
+
+  # Mark binary regressors with an asterisk: their effects represent
+  # average discrete changes from 0 to 1 rather than derivatives.
+  strings mfx_names = rnameget(M.marginal_effects)
+  loop i=1..nelem(mfx_names)
+    if M.marginal_effects_type[i,1] == 1
+      mfx_names[i] = sprintf(&quot;%s*&quot;, mfx_names[i])
+    endif
+  endloop
+
+  # Keep category labels from BACE_summary() and add the PIP column.
+  matrix mfx_table = mfx_pip ~ M.marginal_effects
+  strings mfx_titles = defarray(&quot;PIP&quot;)
+  mfx_titles += cnameget(M.marginal_effects)
+  rnameset(mfx_table, mfx_names)
+  cnameset(mfx_table, mfx_titles)
+  mfx_table = mreverse(msortby(mfx_table, 1))
+  printf &quot;%15.6f&quot;, mfx_table
+  printf &quot;* Average discrete change for a binary regressor (0 -&gt; 1).\n&quot;
+  printf &quot;  Unmarked regressors: average derivative per unit increase.\n&quot;
+  printf &quot;  Effects are changes in probabilities (multiply by 100 for pp).\n&quot;
+endif
+
 if M.prior_name == &quot;custom&quot;
   printf &quot;\n&quot;
   print &quot;Inclusion Probabilities&quot;
@@ -1412,6 +1449,36 @@ if M.estimator == &quot;logit&quot; &amp;&amp; !M.multinomial
   delete M.or_extra_second
 endif
 
+# Model-averaged average marginal effects (AMEs).
+# Rows correspond to candidate regressors, columns to outcome categories.
+# A 1 in the accompanying type matrix denotes a 0-to-1 discrete change;
+# all other effects are average derivatives with respect to the regressor.
+if M.limited_y &amp;&amp; !M.multinomial &amp;&amp; (M.estimator == &quot;logit&quot; || M.estimator == &quot;probit&quot;)
+  matrix M.marginal_effects = M.mfx_sum / NORM
+  matrix M.marginal_effects_type = M.mfx_binary
+  strings mfx_names = rnameget(M.Post_Results)
+  if M.with_const == 1
+    mfx_names = mfx_names[2:end]
+  elif M.with_const == 2
+    mfx_names = mfx_names[1:end-1]
+  endif
+  rnameset(M.marginal_effects, mfx_names)
+  rnameset(M.marginal_effects_type, mfx_names)
+  strings mfx_titles
+  if M.ordered
+    mfx_titles = array(nelem(M.yvalues))
+    loop c=1..nelem(M.yvalues)
+      mfx_titles[c] = sprintf(&quot;P(Y=%g)&quot;, M.yvalues[c])
+    endloop
+  else
+    mfx_titles = defarray(&quot;P(Y=0)&quot;, &quot;P(Y=1)&quot;)
+  endif
+  cnameset(M.marginal_effects, mfx_titles)
+  cnameset(M.marginal_effects_type, defarray(&quot;Discrete 0/1&quot;))
+  delete M.mfx_sum
+  delete M.mfx_binary
+endif
+
 if M.prior_name == &quot;custom&quot;
   if M.with_const == 1
     tmp = M.Post_Results[2:end,1]
@@ -2045,6 +2112,35 @@ else
 endif
 matrix mod_sizes = zeros(M.k)
 matrix var_prob = zeros(1, M.k)
+# Marginal effects are defined for binary/ordered logit and probit.
+# The candidate regressors are kept in their original order.
+scalar do_mfx = M.limited_y &amp;&amp; !M.multinomial &amp;&amp; (M.estimator == &quot;logit&quot; || M.estimator == &quot;probit&quot;)
+if do_mfx
+  scalar mfx_ncat = M.ordered ? nelem(M.yvalues) : 2
+  scalar mfx_ncuts = mfx_ncat - 1
+  matrix mfx_sum = zeros(M.k, mfx_ncat)
+  matrix mfx_binary = zeros(M.k, 1)
+  # Read the candidate series in exactly the same order as estimation.
+  # Automatic 0/1 detection is restricted to models without Y lags.
+  # The latter require constructing the dynamic regressors separately.
+  matrix mfx_X = {}
+  if M.y_lag == 0
+    list mfx_Xlist = selifc(M.var_numbers2[1,], ones(1, M.k))
+    mfx_X = {mfx_Xlist}
+  endif
+  # Discrete changes require the same observations as the probabilities.
+  if cols(mfx_X) == M.k &amp;&amp; rows(mfx_X) == $nobs
+    loop j=1..M.k
+      matrix xcol = mfx_X[,j]
+      # Require both 0 and 1 and no other value (including NA).
+      if sum(xcol .= 0) &gt; 0 &amp;&amp; sum(xcol .= 1) &gt; 0 &amp;&amp; sum((xcol .= 0) + (xcol .= 1)) == rows(xcol)
+        mfx_binary[j] = 1
+      endif
+    endloop
+  else
+    mfx_X = {}
+  endif
+endif
 if M.estimator == &quot;logit&quot; &amp;&amp; !M.multinomial
   # ORs are meaningful for binary logit and proportional-odds ordered logit.
   # Ordered probit is excluded: exp(beta) is not an odds ratio in probit.
@@ -2216,6 +2312,107 @@ loop i=1..nelem(models_counter)
       or_extra_second[or_idx] += weight * (exp(2*or_beta + 2*or_var) - 1)
     endif
 
+    if do_mfx &amp;&amp; mod_struct_sum
+      # Model-specific AMEs are weighted by the post-burn-in visits.
+      # Coefficients for the ordered models exclude their cut points.
+      matrix mfx_idx = selifc(seq(1, M.k), mod_struct)
+      matrix mfx_beta = models_estimates[i][,1]
+      if M.with_const == 1
+        mfx_beta = mfx_beta[2:]
+      elif M.with_const == 2 &amp;&amp; rows(mfx_beta) == mod_struct_sum + 1
+        mfx_beta = mfx_beta[1:mod_struct_sum]
+      endif
+      if nelem(mfx_beta) != mod_struct_sum
+        funcerr &quot;BACE: inconsistent coefficients in marginal-effects averaging&quot;
+      endif
+
+      matrix mfx_prob = models_yhat[i]
+      if M.ordered &amp;&amp; cols(mfx_prob) != mfx_ncat
+        funcerr &quot;BACE: inconsistent ordered response probabilities for marginal effects&quot;
+      endif
+      if !M.ordered &amp;&amp; cols(mfx_prob) != 1
+        funcerr &quot;BACE: inconsistent binary response probabilities for marginal effects&quot;
+      endif
+      scalar mfx_nobs = rows(mfx_prob)
+      # Profile of derivatives with respect to the linear index.
+      # For ordered models, dPr(Y=c)/dx = beta*(f(c-1)-f(c)).
+      matrix mfx_profile = zeros(1, mfx_ncat)
+      matrix mfx_cdf = zeros(mfx_nobs, 1)
+      if M.ordered
+        loop c=1..mfx_ncuts
+          mfx_cdf += mfx_prob[,c]
+          if M.estimator == &quot;logit&quot;
+            scalar mfx_density = sum(mfx_cdf .* (1 - mfx_cdf)) / mfx_nobs
+          else
+            # Pull extreme CDF values just inside (0,1) for qnorm.
+            matrix mfx_safe = 1.0e-12 + (1 - 2.0e-12)*mfx_cdf
+            scalar mfx_density = sum(dnorm(qnorm(mfx_safe))) / mfx_nobs
+          endif
+          mfx_profile[c] -= mfx_density
+          mfx_profile[c+1] += mfx_density
+        endloop
+      else
+        mfx_cdf = mfx_prob[,1]
+        if M.estimator == &quot;logit&quot;
+          scalar mfx_density = sum(mfx_cdf .* (1 - mfx_cdf)) / mfx_nobs
+        else
+          matrix mfx_safe = 1.0e-12 + (1 - 2.0e-12)*mfx_cdf
+          scalar mfx_density = sum(dnorm(qnorm(mfx_safe))) / mfx_nobs
+        endif
+        mfx_profile[1] = -mfx_density
+        mfx_profile[2] = mfx_density
+      endif
+
+      loop j=1..mod_struct_sum
+        scalar ix = mfx_idx[j]
+        scalar beta = mfx_beta[j]
+        matrix mfx_contrib = beta * mfx_profile
+        if mfx_binary[ix] &amp;&amp; nelem(mfx_X)
+          # For a 0/1 regressor, compare x=1 with x=0 for every
+          # observation and average the probability differences.
+          if rows(mfx_X) != mfx_nobs
+            funcerr &quot;BACE: nonconformable observations for discrete marginal effects&quot;
+          endif
+          matrix mfx_x = mfx_X[,ix]
+          mfx_contrib = zeros(1, mfx_ncat)
+          matrix mfx_cdf = zeros(mfx_nobs, 1)
+          if M.ordered
+            loop c=1..mfx_ncuts
+              mfx_cdf += mfx_prob[,c]
+              matrix mfx_safe = 1.0e-12 + (1 - 2.0e-12)*mfx_cdf
+              if M.estimator == &quot;logit&quot;
+                matrix z = log(mfx_safe ./ (1 - mfx_safe))
+                matrix p1 = logistic(z - beta*(1 - mfx_x))
+                matrix p0 = logistic(z + beta*mfx_x)
+              else
+                matrix z = qnorm(mfx_safe)
+                matrix p1 = cnorm(z - beta*(1 - mfx_x))
+                matrix p0 = cnorm(z + beta*mfx_x)
+              endif
+              scalar delta = sum(p1 - p0) / mfx_nobs
+              mfx_contrib[c] += delta
+              mfx_contrib[c+1] -= delta
+            endloop
+          else
+            matrix mfx_safe = 1.0e-12 + (1 - 2.0e-12)*mfx_prob[,1]
+            if M.estimator == &quot;logit&quot;
+              matrix z = log(mfx_safe ./ (1 - mfx_safe))
+              matrix p1 = logistic(z + beta*(1 - mfx_x))
+              matrix p0 = logistic(z - beta*mfx_x)
+            else
+              matrix z = qnorm(mfx_safe)
+              matrix p1 = cnorm(z + beta*(1 - mfx_x))
+              matrix p0 = cnorm(z - beta*mfx_x)
+            endif
+            scalar delta = sum(p1 - p0) / mfx_nobs
+            mfx_contrib[1] = -delta
+            mfx_contrib[2] = delta
+          endif
+        endif
+        mfx_sum[ix,] += weight * mfx_contrib
+      endloop
+    endif
+
     if mod_struct_sum
       mod_sizes[mod_struct_sum] += weight
     else
@@ -2278,6 +2475,12 @@ if M.estimator == &quot;logit&quot; &amp;&amp; !M.multinomial
   # Store unnormalised OR moments for BACE_summary().
   M.or_extra_mean = or_extra_mean
   M.or_extra_second = or_extra_second
+endif
+
+# Marginal effects are normalised and labelled in BACE_summary().
+if do_mfx
+  M.mfx_sum = mfx_sum
+  M.mfx_binary = mfx_binary
 endif
 
 # Jointness analysis

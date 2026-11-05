@@ -40,6 +40,35 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
     matrix mod_sizes = zeros(M.k)
     matrix var_prob = zeros(1, M.k)
+    # Marginal effects are defined for binary/ordered logit and probit.
+    # The candidate regressors are kept in their original order.
+    scalar do_mfx = M.limited_y && !M.multinomial && (M.estimator == "logit" || M.estimator == "probit")
+    if do_mfx
+        scalar mfx_ncat = M.ordered ? nelem(M.yvalues) : 2
+        scalar mfx_ncuts = mfx_ncat - 1
+        matrix mfx_sum = zeros(M.k, mfx_ncat)
+        matrix mfx_binary = zeros(M.k, 1)
+        # Read the candidate series in exactly the same order as estimation.
+        # Automatic 0/1 detection is restricted to models without Y lags.
+        # The latter require constructing the dynamic regressors separately.
+        matrix mfx_X = {}
+        if M.y_lag == 0
+            list mfx_Xlist = selifc(M.var_numbers2[1,], ones(1, M.k))
+            mfx_X = {mfx_Xlist}
+        endif
+        # Discrete changes require the same observations as the probabilities.
+        if cols(mfx_X) == M.k && rows(mfx_X) == $nobs
+            loop j=1..M.k
+                matrix xcol = mfx_X[,j]
+                # Require both 0 and 1 and no other value (including NA).
+                if sum(xcol .= 0) > 0 && sum(xcol .= 1) > 0 && sum((xcol .= 0) + (xcol .= 1)) == rows(xcol)
+                    mfx_binary[j] = 1
+                endif
+            endloop
+        else
+            mfx_X = {}
+        endif
+    endif
     if M.estimator == "logit" && !M.multinomial
         # ORs are meaningful for binary logit and proportional-odds ordered logit.
         # Ordered probit is excluded: exp(beta) is not an odds ratio in probit.
@@ -211,6 +240,107 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                 or_extra_second[or_idx] += weight * (exp(2*or_beta + 2*or_var) - 1)
             endif
 
+            if do_mfx && mod_struct_sum
+                # Model-specific AMEs are weighted by the post-burn-in visits.
+                # Coefficients for the ordered models exclude their cut points.
+                matrix mfx_idx = selifc(seq(1, M.k), mod_struct)
+                matrix mfx_beta = models_estimates[i][,1]
+                if M.with_const == 1
+                    mfx_beta = mfx_beta[2:]
+                elif M.with_const == 2 && rows(mfx_beta) == mod_struct_sum + 1
+                    mfx_beta = mfx_beta[1:mod_struct_sum]
+                endif
+                if nelem(mfx_beta) != mod_struct_sum
+                    funcerr "BACE: inconsistent coefficients in marginal-effects averaging"
+                endif
+
+                matrix mfx_prob = models_yhat[i]
+                if M.ordered && cols(mfx_prob) != mfx_ncat
+                    funcerr "BACE: inconsistent ordered response probabilities for marginal effects"
+                endif
+                if !M.ordered && cols(mfx_prob) != 1
+                    funcerr "BACE: inconsistent binary response probabilities for marginal effects"
+                endif
+                scalar mfx_nobs = rows(mfx_prob)
+                # Profile of derivatives with respect to the linear index.
+                # For ordered models, dPr(Y=c)/dx = beta*(f(c-1)-f(c)).
+                matrix mfx_profile = zeros(1, mfx_ncat)
+                matrix mfx_cdf = zeros(mfx_nobs, 1)
+                if M.ordered
+                    loop c=1..mfx_ncuts
+                        mfx_cdf += mfx_prob[,c]
+                        if M.estimator == "logit"
+                            scalar mfx_density = sum(mfx_cdf .* (1 - mfx_cdf)) / mfx_nobs
+                        else
+                            # Pull extreme CDF values just inside (0,1) for qnorm.
+                            matrix mfx_safe = 1.0e-12 + (1 - 2.0e-12)*mfx_cdf
+                            scalar mfx_density = sum(dnorm(qnorm(mfx_safe))) / mfx_nobs
+                        endif
+                        mfx_profile[c] -= mfx_density
+                        mfx_profile[c+1] += mfx_density
+                    endloop
+                else
+                    mfx_cdf = mfx_prob[,1]
+                    if M.estimator == "logit"
+                        scalar mfx_density = sum(mfx_cdf .* (1 - mfx_cdf)) / mfx_nobs
+                    else
+                        matrix mfx_safe = 1.0e-12 + (1 - 2.0e-12)*mfx_cdf
+                        scalar mfx_density = sum(dnorm(qnorm(mfx_safe))) / mfx_nobs
+                    endif
+                    mfx_profile[1] = -mfx_density
+                    mfx_profile[2] = mfx_density
+                endif
+
+                loop j=1..mod_struct_sum
+                    scalar ix = mfx_idx[j]
+                    scalar beta = mfx_beta[j]
+                    matrix mfx_contrib = beta * mfx_profile
+                    if mfx_binary[ix] && nelem(mfx_X)
+                        # For a 0/1 regressor, compare x=1 with x=0 for every
+                        # observation and average the probability differences.
+                        if rows(mfx_X) != mfx_nobs
+                            funcerr "BACE: nonconformable observations for discrete marginal effects"
+                        endif
+                        matrix mfx_x = mfx_X[,ix]
+                        mfx_contrib = zeros(1, mfx_ncat)
+                        matrix mfx_cdf = zeros(mfx_nobs, 1)
+                        if M.ordered
+                            loop c=1..mfx_ncuts
+                                mfx_cdf += mfx_prob[,c]
+                                matrix mfx_safe = 1.0e-12 + (1 - 2.0e-12)*mfx_cdf
+                                if M.estimator == "logit"
+                                    matrix z = log(mfx_safe ./ (1 - mfx_safe))
+                                    matrix p1 = logistic(z - beta*(1 - mfx_x))
+                                    matrix p0 = logistic(z + beta*mfx_x)
+                                else
+                                    matrix z = qnorm(mfx_safe)
+                                    matrix p1 = cnorm(z - beta*(1 - mfx_x))
+                                    matrix p0 = cnorm(z + beta*mfx_x)
+                                endif
+                                scalar delta = sum(p1 - p0) / mfx_nobs
+                                mfx_contrib[c] += delta
+                                mfx_contrib[c+1] -= delta
+                            endloop
+                        else
+                            matrix mfx_safe = 1.0e-12 + (1 - 2.0e-12)*mfx_prob[,1]
+                            if M.estimator == "logit"
+                                matrix z = log(mfx_safe ./ (1 - mfx_safe))
+                                matrix p1 = logistic(z + beta*(1 - mfx_x))
+                                matrix p0 = logistic(z - beta*mfx_x)
+                            else
+                                matrix z = qnorm(mfx_safe)
+                                matrix p1 = cnorm(z + beta*(1 - mfx_x))
+                                matrix p0 = cnorm(z - beta*mfx_x)
+                            endif
+                            scalar delta = sum(p1 - p0) / mfx_nobs
+                            mfx_contrib[1] = -delta
+                            mfx_contrib[2] = delta
+                        endif
+                    endif
+                    mfx_sum[ix,] += weight * mfx_contrib
+                endloop
+            endif
+
             if mod_struct_sum
                 mod_sizes[mod_struct_sum] += weight
             else
@@ -273,6 +403,12 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
         # Store unnormalised OR moments for BACE_summary().
         M.or_extra_mean = or_extra_mean
         M.or_extra_second = or_extra_second
+    endif
+
+    # Marginal effects are normalised and labelled in BACE_summary().
+    if do_mfx
+        M.mfx_sum = mfx_sum
+        M.mfx_binary = mfx_binary
     endif
 
     # Jointness analysis

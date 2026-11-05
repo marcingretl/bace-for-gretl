@@ -228,6 +228,43 @@ function void BACE_Print (bundle *MODEL)
         printf "%15f", odds_avg
     endif
 
+    # Model-averaged average marginal effects (AMEs).
+    # Show each regressor's PIP alongside its effects on outcome probabilities.
+    # The results are sorted by PIP, just like the posterior moments and ORs.
+    if inbundle(M, "marginal_effects")
+        printf "\n"
+        print "Posterior average marginal effects (model averaged):"
+
+        # The constant is not a candidate regressor and has no marginal effect.
+        matrix mfx_pip = M.Post_Results[,1]
+        if M.with_const == 1
+            mfx_pip = mfx_pip[2:end]
+        elif M.with_const == 2
+            mfx_pip = mfx_pip[1:end-1]
+        endif
+
+        # Mark binary regressors with an asterisk: their effects represent
+        # average discrete changes from 0 to 1 rather than derivatives.
+        strings mfx_names = rnameget(M.marginal_effects)
+        loop i=1..nelem(mfx_names)
+            if M.marginal_effects_type[i,1] == 1
+                mfx_names[i] = sprintf("%s*", mfx_names[i])
+            endif
+        endloop
+
+        # Keep category labels from BACE_summary() and add the PIP column.
+        matrix mfx_table = mfx_pip ~ M.marginal_effects
+        strings mfx_titles = defarray("PIP")
+        mfx_titles += cnameget(M.marginal_effects)
+        rnameset(mfx_table, mfx_names)
+        cnameset(mfx_table, mfx_titles)
+        mfx_table = mreverse(msortby(mfx_table, 1))
+        printf "%15.6f", mfx_table
+        printf "* Average discrete change for a binary regressor (0 -> 1).\n"
+        printf "  Unmarked regressors: average derivative per unit increase.\n"
+        printf "  Effects are changes in probabilities (multiply by 100 for pp).\n"
+    endif
+
     if M.prior_name == "custom"
         printf "\n"
         print "Inclusion Probabilities"

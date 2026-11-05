@@ -240,6 +240,36 @@ function void BACE_summary (bundle *M)
         delete M.or_extra_second
     endif
 
+    # Model-averaged average marginal effects (AMEs).
+    # Rows correspond to candidate regressors, columns to outcome categories.
+    # A 1 in the accompanying type matrix denotes a 0-to-1 discrete change;
+    # all other effects are average derivatives with respect to the regressor.
+    if M.limited_y && !M.multinomial && (M.estimator == "logit" || M.estimator == "probit")
+        matrix M.marginal_effects = M.mfx_sum / NORM
+        matrix M.marginal_effects_type = M.mfx_binary
+        strings mfx_names = rnameget(M.Post_Results)
+        if M.with_const == 1
+            mfx_names = mfx_names[2:end]
+        elif M.with_const == 2
+            mfx_names = mfx_names[1:end-1]
+        endif
+        rnameset(M.marginal_effects, mfx_names)
+        rnameset(M.marginal_effects_type, mfx_names)
+        strings mfx_titles
+        if M.ordered
+            mfx_titles = array(nelem(M.yvalues))
+            loop c=1..nelem(M.yvalues)
+                mfx_titles[c] = sprintf("P(Y=%g)", M.yvalues[c])
+            endloop
+        else
+            mfx_titles = defarray("P(Y=0)", "P(Y=1)")
+        endif
+        cnameset(M.marginal_effects, mfx_titles)
+        cnameset(M.marginal_effects_type, defarray("Discrete 0/1"))
+        delete M.mfx_sum
+        delete M.mfx_binary
+    endif
+
     if M.prior_name == "custom"
         if M.with_const == 1
             tmp = M.Post_Results[2:end,1]

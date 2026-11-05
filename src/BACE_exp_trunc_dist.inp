@@ -16,7 +16,7 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function scalar BACE_exp_trunc_dist (scalar x, const scalar n, const scalar avg,
-                                   const string dist, const scalar a[0])
+                                     const string dist, const scalar a[0])
     /*
        Function for finding a x to have truncated distribution
        with desired expected value which equals 'avg'.
