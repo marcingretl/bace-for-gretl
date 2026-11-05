@@ -324,6 +324,45 @@ prints information according to the \texttt{verbosity}
 settings. A detailed description of what is printed as
 output can be found in Section~\ref{sec:outputs}.
 
+
+% BACE 3.2: added output matrices for model-averaged ORs and AMEs.
+In the current version, the result bundle also contains
+additional matrices for binary and ordered logit/probit
+specifications (see Section~\ref{sec:or_ame_theory}):
+\begin{description}
+  \item[\texttt{MODEL.oddsratios}] A three-column matrix
+    (\texttt{PIP}, \texttt{odds ratio}, \texttt{Std.Dev.})
+    for candidate regressors in binary or ordered logit models.
+    It is not provided for probit or multinomial logit.
+  \item[\texttt{MODEL.marginal\_effects}] A matrix with one
+    row per candidate regressor and one column per outcome
+    category, storing the model-averaged AMEs. This matrix
+    is available for binary and ordered logit/probit models,
+    but not for multinomial logit.
+  \item[\texttt{MODEL.marginal\_effects\_type}] A one-column
+    matrix with the same row names, containing 1 if an AME
+    was calculated as a discrete 0-to-1 change and 0 if
+    an average derivative was used.
+\end{description}
+The rows of these matrices follow the order of the candidate
+regressors; the printed tables are instead ordered by
+posterior inclusion probability. The constant and the ordered
+model cut points are not included in these matrices.
+All effects are calculated from model-specific fitted results,
+weighted by post-burn-in \MCcube model frequencies; variables
+excluded from a model have zero AMEs and an odds ratio of one.
+The matrices can be retrieved directly from the returned
+bundle, for example:
+\begin{lstlisting}
+res = BACE(psechoice, X, _(model_type="logit"))
+matrix OR  = res.oddsratios
+matrix AME = res.marginal_effects
+matrix AME_type = res.marginal_effects_type
+\end{lstlisting}
+The \texttt{BACE\_Print()} function displays the corresponding
+sections when these matrices are available, without requiring
+additional option-bundle settings.
+
 \subsubsection{\cmd{BACE\_Plot()}}\label{sec:BACE_Plot()}
 \cmd{BACE\_Plot()} is a function for producing graphs,
 and its signature is as follows:

@@ -340,6 +340,66 @@ cut2       -0.527395       0.093964
 \end{CodeOutput}
 \end{CodeChunk}
 
+
+% BACE 3.2: example output for posterior ORs and category-specific AMEs.
+\subsubsection{Model-averaged odds ratios and marginal effects}
+\label{sec:or_ame_output}
+For binary and ordered logit models, \cmd{BACE\_Print()}
+adds a \texttt{Posterior odds ratios} table immediately after
+posterior coefficient moments. The table reports the PIP,
+model-averaged OR and its standard deviation. For binary and
+ordered logit \emph{and} probit models, a second table,
+\texttt{Posterior average marginal effects (model averaged)},
+reports the PIP alongside changes in each response-category
+probability. For ordered probit the OR section is absent.
+The mathematical definitions are provided in
+Section~\ref{sec:or_ame_theory}.
+
+The following excerpt comes from a separate ordered logit
+example with three candidate regressors, \texttt{pared},
+\texttt{public} and \texttt{gpa}, and three observed outcome
+categories. The displayed figures are from an actual \pkg{BACE}
+run, not from the NELS example above.
+\begin{CodeChunk}\begin{CodeOutput}
+Posterior odds ratios:
+                   PIP     odds ratio       Std.Dev.
+ pared        0.997667       3.022620       0.829688
+   gpa        0.679333       1.606909       0.580781
+public        0.117000       1.004451       0.111052
+
+Posterior average marginal effects (model averaged):
+                    PIP         P(Y=0)         P(Y=1)         P(Y=2)
+ pared*        0.997667      -0.257141       0.135431       0.121710
+    gpa        0.679333      -0.096405       0.060418       0.035987
+public*        0.117000       0.000224      -0.000149      -0.000075
+* Average discrete change for a binary regressor (0 -> 1).
+  Unmarked regressors: average derivative per unit increase.
+  Effects are changes in probabilities (multiply by 100 for pp).
+\end{CodeOutput}
+\end{CodeChunk}
+For instance, the model-averaged effect of \texttt{pared}
+(0 to 1) corresponds to a reduction of approximately
+25.7 percentage points in $\Pr(Y=0)$ and increases of
+13.5 and 12.2 percentage points in $\Pr(Y=1)$ and
+$\Pr(Y=2)$, respectively. By contrast, \texttt{gpa}
+is treated as continuous and its values are average
+probability derivatives per one-unit increase. The
+asterisk denotes a discrete change, \emph{not} statistical
+significance. Each row of category-specific AMEs sums to
+zero, apart from rounding error.
+
+The AMEs are unconditional with respect to model inclusion:
+models excluding a given regressor contribute an effect of
+zero. The OR is averaged on its original scale, with the
+excluded-regressor contribution equal to one. Accordingly,
+these numbers cannot in general be reconstructed by applying
+a nonlinear transformation to the posterior mean coefficient.
+The results are point estimates of model-averaged AMEs; the
+current output does not provide AME standard errors or
+credible intervals. When the dependent variable has
+non-consecutive observed levels, the output uses their actual
+labels, rather than inserting absent categories.
+
 Next, we print a CDF-like table showing the
 probabilities associated with the models.
 \begin{CodeChunk}\begin{CodeOutput}

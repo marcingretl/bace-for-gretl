@@ -37,6 +37,10 @@
 		regression, Poisson regression, Tobit model, and interval
 		regression. \pkg{BACE} strategy is a model selection method
 		that incorporates both classical estimation and Bayesian techniques.
+		For binary and ordered logit specifications, it also reports
+		model-averaged odds ratios; for binary and ordered logit/probit
+		models, it provides model-averaged average marginal effects
+		on outcome probabilities.
 		It solves the problem of computation speed and model uncertainty
 		that arise when dealing with a large number of competing advanced
 		statistical models. Our \pkg{BACE} package is both fast and
@@ -55,12 +59,19 @@
 					(kudos to Allin Cottrell).
 				\item New `fitted' plot.
 				\item {[todo]} Remove $\theta$ from package options.
-				\item {[todo]} Add odds ratios for logit models.
+				% BACE 3.2: odds ratios and average marginal effects.
+				\item Model-averaged odds ratios (ORs) for binary and
+					ordered logit models, including posterior standard deviations.
 				\item Some typo in \texttt{BACE\_parse.inp}.
 				\item New `M.Yhat\_index' entry for limited dependent models.
 				\item New `M.X\_individual\_contrib' entry for individual contribution to prediction.
 				\item For ordered logit/probit, if any explanatory variable was removed from xlist automatically, we drop such specification
-				\item oddsratios added
+				\item Model-averaged average marginal effects (AMEs) for
+					binary and ordered logit/probit models; continuous
+					regressors use derivatives and detected 0/1 regressors
+					use average discrete changes.
+				\item Extended printed output and result-bundle matrices
+					for ORs, AMEs and marginal-effect types.
 			\end{itemize}
 		\item[3.11] Prior Inclusion Probabilities parameter symbol changed:
 			\begin{itemize}[label={--}]
