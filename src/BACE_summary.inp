@@ -204,28 +204,42 @@ function void BACE_summary (bundle *M)
         cnameset(M.cuts_avg, title)
         rnameset(M.cuts_avg, M.cuts_names)
     endif
-    /*
-       if M.model_type == "logit" && !(M.ordered || M.multinomial)
-       # Delta method: sqrt(gradient^2 \times variance)
-       bvar = M.bvar_avg - M.bhat_avg.^2
-       M.oddsratios = M.Post_Results[,1] ~ (M.bhat_avg' ~ bvar') ./ M.Post_Results[,1]
-       M.oddsratios[,2] = exp(M.oddsratios[,2])
-       M.oddsratios[,3] = sqrt((M.oddsratios[,2].^2 .* M.oddsratios[,3]) .* M.oddsratios[,1])
-       M.oddsratios[,2] = M.oddsratios[,2] .* M.oddsratios[,1]
-       if M.with_const == 1
-       M.oddsratios = M.oddsratios[2:end,]
-       title = rnameget(M.Post_Results)[2:end]
-       elif M.with_const == 2
-       M.oddsratios = M.oddsratios[1:end-1,]
-       title = rnameget(M.Post_Results)[1:end-1]
-       else
-       title = rnameget(M.Post_Results)
-       endif
-       rnameset(M.oddsratios, title)
-       title = defarray("PIP", "odds ratio", "std. error")
-       cnameset(M.oddsratios, title)
-       endif
-    */
+
+    # oddsratios
+    if M.estimator == "logit" && !M.multinomial
+        # ORs are reported for binary and ordered logit, not for probit models.
+        # Delta method: sqrt(gradient^2 \times variance)
+        # Historical reference only: the formula below is not the delta method.
+        # The former delta-method formula is replaced by model-specific OR moments.
+        # Model-averaged OR: an excluded regressor has OR=1, not OR=0.
+        # Included-model moments use the normal approximation for coefficients.
+        matrix p
+        if M.with_const == 1
+            p = M.Post_Results[2:end,1]
+            title = rnameget(M.Post_Results)[2:end]
+        elif M.with_const == 2
+            p = M.Post_Results[1:end-1,1]
+            title = rnameget(M.Post_Results)[1:end-1]
+        else
+            p = M.Post_Results[,1]
+            title = rnameget(M.Post_Results)
+        endif
+        matrix or_mean = 1 + M.or_extra_mean / NORM
+        matrix or_var = 1 + M.or_extra_second / NORM - or_mean.^2
+        # Guard against tiny negative variances from floating-point rounding.
+        loop i=1..rows(or_var)
+            if or_var[i] < 0 && or_var[i] > -1.0e-10
+                or_var[i] = 0
+            endif
+        endloop
+        M.oddsratios = p ~ or_mean ~ sqrt(or_var)
+        rnameset(M.oddsratios, title)
+        title = defarray("PIP", "odds ratio", "Std.Dev.")
+        cnameset(M.oddsratios, title)
+        delete M.or_extra_mean
+        delete M.or_extra_second
+    endif
+
     if M.prior_name == "custom"
         if M.with_const == 1
             tmp = M.Post_Results[2:end,1]
@@ -297,7 +311,7 @@ function void BACE_summary (bundle *M)
         rnameset(M.prediction, M.predict_obs_names)
         # individual contribution to prediction
         matrix betas = M.Post_Results[2:end, 2]
-        matrix M.X_individual_contrib = M.X_mat_predict .* betas'        
+        matrix M.X_individual_contrib = M.X_mat_predict .* betas'
         rnameset(M.X_individual_contrib, M.predict_obs_names)
         cnameset(M.X_individual_contrib, M.all_names_sp_m[2:end])
     endif

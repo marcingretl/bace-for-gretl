@@ -40,6 +40,14 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
     endif
     matrix mod_sizes = zeros(M.k)
     matrix var_prob = zeros(1, M.k)
+    if M.estimator == "logit" && !M.multinomial
+        # ORs are meaningful for binary logit and proportional-odds ordered logit.
+        # Ordered probit is excluded: exp(beta) is not an odds ratio in probit.
+        # Accumulate the excess over OR=1 for included regressors.
+        # Model weights and within-model standard errors are both accounted for.
+        matrix or_extra_mean = zeros(M.k)
+        matrix or_extra_second = zeros(M.k)
+    endif
     if M.do_joint
         matrix jointness_m = zeros(M.k, M.k)
     endif
@@ -179,6 +187,30 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
                 endif
             endif
 
+            if M.estimator == "logit" && !M.multinomial && mod_struct_sum
+                # In ordered logit, the cut-point estimates have already been removed
+                # from models_estimates[i] before this loop.
+                # Under the normal approximation for beta, exp(beta) is lognormal.
+                # Excluded variables have OR=1, so only deviations from 1 are summed.
+                matrix or_idx = selifc(seq(1, M.k), mod_struct)
+                matrix or_beta = models_estimates[i][,1]
+                matrix or_var = models_estimates[i][,2]
+                if M.with_const == 1
+                    # The always-included constant is the first coefficient.
+                    or_beta = or_beta[2:]
+                    or_var = or_var[2:]
+                elif M.with_const == 2 && rows(or_beta) == mod_struct_sum + 1
+                    # An automatically estimated constant can be placed last.
+                    or_beta = or_beta[1:mod_struct_sum]
+                    or_var = or_var[1:mod_struct_sum]
+                endif
+                if nelem(or_beta) != mod_struct_sum
+                    funcerr "BACE: inconsistent coefficients in odds-ratio averaging"
+                endif
+                or_extra_mean[or_idx] += weight * (exp(or_beta + 0.5*or_var) - 1)
+                or_extra_second[or_idx] += weight * (exp(2*or_beta + 2*or_var) - 1)
+            endif
+
             if mod_struct_sum
                 mod_sizes[mod_struct_sum] += weight
             else
@@ -237,6 +269,11 @@ function void BACE_collect_results (bundle *M, bundle *known_models,
 
     # Probability of variables
     M.var_prob = var_prob
+    if M.estimator == "logit" && !M.multinomial
+        # Store unnormalised OR moments for BACE_summary().
+        M.or_extra_mean = or_extra_mean
+        M.or_extra_second = or_extra_second
+    endif
 
     # Jointness analysis
     if M.do_joint
