@@ -14,7 +14,7 @@ using the following formula:
 \end{equation}
 where $\frac{\Prob(M_l)}{\Prob(M_n)}$ is the prior odds ratio,
 $\frac{p(y \mid M_l)}{p(y \mid M_n)}$ is the Bayes factor,
-$p(y \mid M_j)$ and $p(y \mid M_n)$ are marginal data densities. 
+$p(y \mid M_l)$ and $p(y \mid M_n)$ are marginal data densities. 
 
 If the posterior ratio $\frac{\Prob(M_l \mid y)}{\Prob(M_n \mid y)}$
 is greater than one, it indicates that the data supports
@@ -100,12 +100,12 @@ variance of the parameters $\theta$ across the entire model
 space \citep[][]{Leamer1978}:
 
 \begin{align}
-	E(\theta \mid y) &\approx \sum_{r=1}^{2^K}\Pr(M_r\mid y)E(\theta_r \mid y,M_r),\\\nonumber
-	Var(\theta \mid y) &\approx 
-	\sum_{r=1}^{2^K}\Pr(M_r \mid y)Var(\theta_r  \mid y,M_r) +\\
-	&+ \sum_{r=1}^{2^K}\Pr(M_r \mid y) \left(E(\theta_r \mid y, M_r) - E(\theta \mid y)\right)^2,
+	\E(\theta \mid y) &\approx \sum_{r=1}^{2^K}\Prob(M_r\mid y)\E(\theta_r \mid y,M_r),\\\nonumber
+	\VAR(\theta \mid y) &\approx 
+	\sum_{r=1}^{2^K}\Prob(M_r \mid y)\VAR(\theta_r  \mid y,M_r) +\\
+	&+ \sum_{r=1}^{2^K}\Prob(M_r \mid y) \left(\E(\theta_r \mid y, M_r) - \E(\theta \mid y)\right)^2,
 \end{align}
-where $E(\theta_r \mid y,M_r)$ and $Var(\theta_r \mid y,M_r)$
+where $\E(\theta_r \mid y,M_r)$ and $\VAR(\theta_r \mid y,M_r)$
 are the OLS (or MLE) estimates of $\theta_r$
 from model $M_r$ and $2^K$ denotes total model space.
 
@@ -218,7 +218,7 @@ From the definition of conditional probability, we can
 define the density of a truncated random variable as
 \cite[see][pp~864]{greene_econometric_a}:
 \begin{equation}
-	f\left(x | x > a\right) = \frac{f(x)}{\Prob(x > 0)} .
+	f\left(x | x > a\right) = \frac{f(x)}{\Prob(x > a)} .
 \end{equation}
 Because in our package, we assume that the user defines only
 the expected model size $\E(W) = W^\star$, we have to rescale
@@ -269,13 +269,13 @@ Figures~\ref{fig:model_priors:subfig:uniform-TR}-%
 On the basis of Bayes' formula, the posterior probability
 of any model $M_j$ can be computed as follows:
 \begin{equation}
-	\Pr(M_j|y) = \frac{\Pr(M_j)p\left( y \mid M_j\right)}
-	{\sum_{r=1}^{2^K}\Pr(M_r)p\left( y \mid M_r\right)}
+	\Prob(M_j|y) = \frac{\Prob(M_j)p\left( y \mid M_j\right)}
+	{\sum_{r=1}^{2^K}\Prob(M_r)p\left( y \mid M_r\right)}
 	\label{eq: model_avg}
 \end{equation}
 It is easy to see that Equation \ref{eq: model_avg} allows
 us to calculate the probability for each model $M_r$ using
-corresponding prior probabilities $P\left( M_r\right)$ and
+corresponding prior probabilities $\Prob\left( M_r\right)$ and
 the density of the marginal distribution $p(y \mid M_j)$,
 here approximated by expressions \ref{eq: BIC} -- \ref{eq: IBIC}.
 

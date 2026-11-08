@@ -1,0 +1,54 @@
+\section{BACE in Python} 
+The \pkg{BACE} package can also be used from Python 
+through the \texttt{gretl4py} library, which provides Python 
+bindings to \texttt{libgretl}, the numerical and econometric 
+engine underlying \pkg{gretl}. It enables Python users to access 
+\pkg{gretl}'s econometric methods, and use existing \pkg{BACE} 
+package directly from Python. 
+
+Simply put, \texttt{gretl4py} allows users to load \pkg{gretl} 
+function packages, read and work with datasets, configure 
+\pkg{gretl} options, and call package functions directly from 
+Python. Its functionality is described in the official documentation, 
+which provides further details on its API and examples of its use 
+in Python scripts.\footnote{
+	Further installation instructions and information 
+	about supported Python versions and platforms are 
+	available in the official \texttt{gretl4py} 
+	documentation (\url{https://gretl.sourceforge.net/gretl4py.html})}
+	
+The following example reproduces in Python the example 
+presented above in the section \ref{sec:usage_of_the_BACE package}.
+It estimates an 
+		ordered probit model using the NELS dataset, which comes 
+		from a longitudinal study of eighth-grade students in the 
+		United States and is discussed in 
+		\cite{HillGriffithsLim_principles_2017}.
+		\footnote{The dataset 
+	is available at \url{http://www.principlesofeconometrics.com/poe5/poe5data.html}. 
+	A version for \pkg{gretl} is also available through the resources 
+	provided by Lee Adkins: 
+	\url{http://www.learneconometrics.com/gretl/index.html}.}
+\begin{lstlisting}[style=pythonstylefoot]
+import gretl
+
+try:
+ bc = gretl.include("BACE")
+except FileNotFoundError:
+ gretl.pkg("install", "BACE")
+ bc = gretl.include("BACE")
+bc.show_functions()
+
+d = gretl.get_data("nels.gdt", frompkg="BACE", quiet=True)
+dep = "psechoice"
+X = list(range(2, 15))
+
+gretl.set("seed", 1000000)
+gretl.set("stopwatch")
+res = gretl.BACE(Y=dep, X_list=X, Options=gretl.Bundle(model_type="probit"))
+print(f"Total execution time: {gretl.get_accessor("$stopwatch"):.2f} sec.")
+\end{lstlisting}
+\index{pkg()}\index{include()}\index{get\_data()}\index{set()}%
+\index{Bundle()}\index{show\_functions()}\index{BACE()}
+
+This example demonstrates how the \pkg{BACE} package can be incorporated into a Python workflow, allowing users to perform Bayesian model averaging using \pkg{gretl}'s existing implementation.

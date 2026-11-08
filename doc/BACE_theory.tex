@@ -72,8 +72,8 @@ meaning they do not have a natural order.
 
 The model can be written in the following form:
 \begin{align}
-	\Pr\left(y_i= k\mid x_i\right) &= \frac{\exp \left( x_i\beta_k\right)} {1+\sum_{j=1}^{p}\exp{(x_i\beta_j)}}, k > 0,\\
-	\Pr\left(y_i= 0\mid x_i\right) &= \frac{1} {1+\sum_{j=1}^{p}\exp{(x_i\beta_j)}}.
+	\Prob\left(y_i= k\mid x_i\right) &= \frac{\exp \left( x_i\beta_k\right)} {1+\sum_{j=1}^{p}\exp{(x_i\beta_j)}}, k > 0,\\
+	\Prob\left(y_i= 0\mid x_i\right) &= \frac{1} {1+\sum_{j=1}^{p}\exp{(x_i\beta_j)}}.
 \end{align}
 
 Poisson regression is a model used to predict count data
@@ -82,7 +82,7 @@ $k=0,1, 2\ldots$ from the Poisson distribution. Under this
 assumption, the probability of the outcome variable $y$
 conditional upon regressors is given by:
 \begin{equation}
-	\Pr\left(y_i= k\mid x_i\right)  = \frac{\exp \left\{-\lambda_{i} \right\} \lambda_{i}^k}{k!},
+	\Prob\left(y_i= k\mid x_i\right)  = \frac{\exp \left\{-\lambda_{i} \right\} \lambda_{i}^k}{k!},
 \end{equation}
 where $\lambda_i= \exp(\sum_{j=1}^{k_r}x_{ij}\beta_{j})$ in model $M_r$.
 
@@ -133,8 +133,6 @@ package. Through the use of model averaging analysis, it is
 possible to estimate parameters, identify the key determinants,
 and make predictions.
 
-
-
 % BACE 3.2: interpretation and model averaging of ORs and AMEs.
 \subsection{Model-averaged odds ratios and marginal effects}
 \label{sec:or_ame_theory}
@@ -143,130 +141,138 @@ alone do not describe changes in outcome probabilities. The
 \pkg{BACE} package therefore provides model-averaged odds ratios
 (ORs) for binary and ordered logit models and average marginal
 effects (AMEs) for binary and ordered logit and probit models.
-These quantities are obtained within each specification before
-averaging across the visited model space.
+Both quantities are first calculated within each model $M_r$ and
+then averaged over the model space in the same way as the
+parameter estimates in Section~\ref{MA_basics}. As there, the sums
+over $2^K$ models are in practice approximated using the models
+visited by the \MCcube algorithm.
+
+We use the notation of the models described above. In model $M_r$
+the latent variable is $z_i=x_i\beta+\epsilon_i=\sum_{j}x_{ij}\beta_j+\epsilon_i$,
+where $x_{ij}$ is the $j$-th of $K$ candidate regressors and
+$\beta_j=0$ whenever $x_j$ is not included in $M_r$. Let $F$ and $f$
+denote the cumulative distribution function and the density of
+$\epsilon_i$, i.e.\ the logistic ones for logit and the standard normal
+ones for probit models. For a binary dependent variable
+\begin{equation}
+	\Prob(y_i=1\mid x_i,M_r)=F(x_i\beta)=1-\Prob(y_i=0\mid x_i,M_r),
+	\label{eq:bace_prob_binary}
+\end{equation}
+and for an ordered one with $L$ categories and cutpoints
+$\alpha_0=-\infty<\alpha_1<\dots<\alpha_L=\infty$
+\begin{equation}
+	\Prob(y_i=l\mid x_i,M_r)=F(\alpha_l-x_i\beta)-F(\alpha_{l-1}-x_i\beta),
+	\quad l=1,\dots,L.
+	\label{eq:bace_prob_ordered}
+\end{equation}
+Here $l$ indexes the observed outcome categories in increasing order;
+their labels need not form a consecutive sequence.
 
 \paragraph{Odds ratios for logit models.}
-Let $w_r=\Prob(M_r\mid y)$ denote the posterior model probability
-(or its empirical \MCcube approximation), with $\sum_r w_r=1$.
-For an included regressor $x_j$ in model $M_r$, the conditional
-odds ratio associated with a one-unit increase is
-$\exp(\beta_{jr})$. In a proportional-odds ordered logit,
-this is the common cumulative-odds ratio under the usual
-orientation of the response probabilities. The value of
-an excluded coefficient is set to zero, so that its OR equals one.
+In the binary logit model the odds $\Prob(y_i=1\mid x_i,M_r)/\Prob(y_i=0\mid x_i,M_r)$
+equal $\exp(x_i\beta)$, so a one-unit increase in $x_{ij}$ multiplies
+the odds by $\mathrm{OR}_j=\exp(\beta_j)$. In the ordered logit model
+(\ref{eq:bace_prob_ordered}), $\Prob(y_i\le l\mid x_i,M_r)=F(\alpha_l-x_i\beta)$,
+so $\exp(\beta_j)$ is the common factor by which the odds
+$\Prob(y_i>l\mid x_i,M_r)/\Prob(y_i\le l\mid x_i,M_r)$ change, the same
+for every $l$. If $x_j\notin M_r$, then $\beta_j=0$ and $\mathrm{OR}_j=1$.
 
-To incorporate within-model coefficient uncertainty, \pkg{BACE}
-uses the normal approximation
-$\beta_{jr}\mid y,M_r\ \dot{\sim}\
-N(\widehat\beta_{jr},\widehat V_{jr})$.
-The first two moments of the corresponding lognormal
-approximation, for an included regressor, are
+To take within-model coefficient uncertainty into account, we use the normal
+approximation $\beta_j\mid y,M_r\ \dot{\sim}\ N\bigl(\E(\beta_j\mid y,M_r),\VAR(\beta_j\mid y,M_r)\bigr)$,
+where $\E(\beta_j\mid y,M_r)$ and $\VAR(\beta_j\mid y,M_r)$ are the
+MLE estimate and its estimated variance from model $M_r$. Then
+$\mathrm{OR}_j$ is approximately lognormal and, for $x_j\in M_r$,
+%\begin{align}
+%	\E(\mathrm{OR}_j\mid y,M_r)&=\exp\!\Bigl(\E(\beta_j\mid y,M_r)+\tfrac12 \VAR(\beta_j\mid y,M_r)\Bigr),
+%	\label{eq:bace_or_moment1}\\
+%	\VAR(\mathrm{OR}_j\mid y,M_r)&=\Bigl[\exp\bigl(\VAR(\beta_j\mid y,M_r)\bigr)-1\Bigr]
+%	\exp\!\Bigl(2\E(\beta_j\mid y,M_r)+\VAR(\beta_j\mid y,M_r)\Bigr),
+%	\label{eq:bace_or_moment2}
+%\end{align}
 \begin{align}
-  \mu_{jr}^{\mathrm{OR}}
-    &=\exp\!\left(\widehat\beta_{jr}+\tfrac12\widehat V_{jr}\right),
-    \label{eq:bace_or_moment1}\\
-  q_{jr}^{\mathrm{OR}}
-    &=\exp\!\left(2\widehat\beta_{jr}+2\widehat V_{jr}\right).
-    \label{eq:bace_or_moment2}
+	\E(\mathrm{OR}_j\mid y,M_r)&=\exp\!\Bigl(\E(\beta_j\mid y,M_r)+\tfrac12 \VAR(\beta_j\mid y,M_r)\Bigr),
+	\label{eq:bace_or_moment1}\\
+	\VAR(\mathrm{OR}_j\mid y,M_r)&=\Bigl[\exp\bigl(\VAR(\beta_j\mid y,M_r)\bigr)-1\Bigr]\nonumber\\
+	&\quad\times\exp\!\Bigl(2\E(\beta_j\mid y,M_r)+\VAR(\beta_j\mid y,M_r)\Bigr),
+	\label{eq:bace_or_moment2}
 \end{align}
-For excluded regressors, both moments equal one. The
-model-averaged OR and its standard deviation are then
+whereas for $x_j\notin M_r$ we have $\E(\mathrm{OR}_j\mid y,M_r)=1$ and
+$\VAR(\mathrm{OR}_j\mid y,M_r)=0$. The model-averaged OR and its variance
+are obtained analogously to $\E(\theta\mid y)$ and $\VAR(\theta\mid y)$:
 \begin{align}
-  \overline{\mathrm{OR}}_j
-    &=\sum_r w_r\mu_{jr}^{\mathrm{OR}},\\
-  \mathrm{SD}(\mathrm{OR}_j)
-    &=\left[\sum_r w_r q_{jr}^{\mathrm{OR}}
-            -\bigl(\overline{\mathrm{OR}}_j\bigr)^2\right]^{1/2}.
-  \label{eq:bace_or_bma}
+	\E(\mathrm{OR}_j\mid y)&\approx\sum_{r=1}^{2^K}\Prob(M_r\mid y)\,\E(\mathrm{OR}_j\mid y,M_r),\\
+	\VAR(\mathrm{OR}_j\mid y)&\approx\sum_{r=1}^{2^K}\Prob(M_r\mid y)\,\VAR(\mathrm{OR}_j\mid y,M_r)\nonumber\\
+	&\quad+\sum_{r=1}^{2^K}\Prob(M_r\mid y)\Bigl(\E(\mathrm{OR}_j\mid y,M_r)-\E(\mathrm{OR}_j\mid y)\Bigr)^2,
+	\label{eq:bace_or_bma}
 \end{align}
-Thus, the reported OR is \emph{not} simply the exponential of
-the model-averaged coefficient. In particular, an OR of one
-corresponds to no change in odds, and the mass assigned to
-models excluding a regressor contributes an OR of one.
-Exponentiating a probit coefficient does not produce an odds
-ratio, so ORs are not reported for probit models. These
-regressor-level ORs should not be confused with posterior
-\emph{model} odds ratios in Equation~\ref{eq:posterior_odds_ratio}.
+and the reported standard deviation is $\sqrt{\VAR(\mathrm{OR}_j\mid y)}$.
+Thus, $\E(\mathrm{OR}_j\mid y)$ is \emph{not} simply the exponential of
+the model-averaged coefficient $\E(\beta_j\mid y)$. In particular, an OR of one
+corresponds to no change in odds, and the posterior mass of models
+excluding a regressor contributes an OR of one. Exponentiating a
+probit coefficient does not produce an odds ratio, so ORs are not
+reported for probit models. These regressor-level ORs should not be
+confused with the posterior \emph{model} odds ratios in
+Equation~\ref{eq:posterior_odds_ratio}.
 
 \paragraph{Average marginal effects.}
-Let $p_{irc}(x_i)=\Prob(Y_i=c\mid x_i,M_r)$ be the fitted
-probability of response category $c$ under model $M_r$.
-For a continuous regressor included in that model, the
-model-specific average marginal effect is
+For a continuous regressor $x_j$, the average marginal effect on
+the probability of category $l$ in model $M_r$ is
 \begin{equation}
-  \mathrm{AME}_{jrc}
-  =\frac1{N_r}\sum_{i=1}^{N_r}
-    \frac{\partial p_{irc}(x_i)}{\partial x_{ij}},
-  \label{eq:bace_ame_continuous}
+	\mathrm{AME}_{jl}(M_r)
+	=\frac1{N}\sum_{i=1}^{N}
+	\frac{\partial\Prob(y_i=l\mid x_i,M_r)}{\partial x_{ij}}.
+	\label{eq:bace_ame_continuous}
 \end{equation}
-where $N_r$ is the number of observations used for the
-model-specific fitted probabilities. In a binary logit or
-probit with $\Pr(Y_i=1\mid x_i,M_r)=F(\eta_{ir})$ and
-$\eta_{ir}=x_i'\beta_r$, this gives
+From (\ref{eq:bace_prob_binary}), in a binary logit or probit
 \begin{equation}
-  \frac{\partial \Pr(Y_i=1\mid x_i,M_r)}{\partial x_{ij}}
-  =\beta_{jr}f(\eta_{ir}),
-  \label{eq:bace_ame_binary}
+	\frac{\partial\Prob(y_i=1\mid x_i,M_r)}{\partial x_{ij}}=\beta_j f(x_i\beta),
+	\label{eq:bace_ame_binary}
 \end{equation}
-with the negative of this effect for $Y_i=0$. Here $F$
-and $f$ are the logistic CDF and density for logit, and the
-standard normal CDF and density for probit.
+with the negative of this effect for $y_i=0$, and from
+(\ref{eq:bace_prob_ordered}), in an ordered logit or probit
+\begin{equation}
+	\frac{\partial\Prob(y_i=l\mid x_i,M_r)}{\partial x_{ij}}
+	=\beta_j\Bigl[f(\alpha_{l-1}-x_i\beta)-f(\alpha_l-x_i\beta)\Bigr],
+	\label{eq:bace_ame_ordered}
+\end{equation}
+where the density at an infinite cutpoint ($\alpha_0$ or $\alpha_L$)
+is zero.
 
-For an ordered logit or probit, let $\kappa_{rc}$ denote
-its cut points and define
-$\Pr(Y_i\leq c\mid x_i,M_r)=F(\kappa_{rc}-\eta_{ir})$.
-The derivative for an interior or boundary category is
+For regressors taking only the values zero and one, the software
+instead computes the average discrete change
 \begin{equation}
-  \frac{\partial p_{irc}(x_i)}{\partial x_{ij}}
-  =\beta_{jr}\left[
-     f(\kappa_{r,c-1}-\eta_{ir})
-     -f(\kappa_{rc}-\eta_{ir})\right],
-  \label{eq:bace_ame_ordered}
+	\mathrm{AME}_{jl}^{(0\to1)}(M_r)=\frac1{N}\sum_{i=1}^{N}
+	\Bigl[\Prob(y_i=l\mid x_{ij}=1,x_{i,-j},M_r)
+	-\Prob(y_i=l\mid x_{ij}=0,x_{i,-j},M_r)\Bigr],
+	\label{eq:bace_ame_binary_regressor}
 \end{equation}
-where densities at infinite boundary cut points are zero.
-The category labels refer to the observed outcome values,
-which need not form a consecutive sequence.
-
-For regressors taking only the values zero and one, the
-software instead computes the average discrete change
+where $x_{i,-j}$ denotes the remaining regressors, held at their observed
+values. For a regressor absent from $M_r$, $\beta_j=0$ and all its marginal
+effects are zero. Finally, the reported effects are averaged across models:
 \begin{equation}
-  \mathrm{AME}_{jrc}^{(0\to1)}
-  =\frac1{N_r}\sum_{i=1}^{N_r}
-   \left[p_{irc}(x_{ij}=1,x_{i,-j})
-        -p_{irc}(x_{ij}=0,x_{i,-j})\right].
-  \label{eq:bace_ame_binary_regressor}
+	\E(\mathrm{AME}_{jl}\mid y)\approx\sum_{r=1}^{2^K}\Prob(M_r\mid y)\,\mathrm{AME}_{jl}(M_r),
+	\label{eq:bace_ame_bma}
 \end{equation}
-Other regressors are held at their observed values. For a
-regressor absent from $M_r$, all of its marginal effects
-are defined to be zero. Finally, the reported effects are
-averaged across models:
-\begin{equation}
-  \overline{\mathrm{AME}}_{jc}
-    =\sum_r w_r\,\mathrm{AME}_{jrc}.
-  \label{eq:bace_ame_bma}
-\end{equation}
-The implementation evaluates the model-specific effects at
-the fitted coefficient estimates; unlike the OR standard
-deviations, it does not propagate the within-model sampling
-variance of AMEs or supply an AME posterior standard
-deviation. In every model and in the model average, the
-marginal effects across the exhaustive outcome categories
-sum to zero (up to numerical rounding). An effect of 0.01
-corresponds to one percentage point.
+with $\mathrm{AME}_{jl}^{(0\to1)}(M_r)$ in place of $\mathrm{AME}_{jl}(M_r)$
+for 0/1 regressors. The model-specific effects are evaluated at the
+estimated coefficients $\E(\beta_j\mid y,M_r)$ and cutpoints; unlike
+the OR variance (\ref{eq:bace_or_bma}), the procedure does not propagate
+the within-model sampling variance and does not supply a standard deviation
+of the AMEs. In every model and in the model average, the marginal effects
+over the exhaustive outcome categories sum to zero (up to numerical
+rounding), i.e.\ $\sum_{l}\E(\mathrm{AME}_{jl}\mid y)=0$. An effect of
+$0.01$ corresponds to one percentage point.
 
-Automatic recognition of 0/1 regressors requires both
-values to occur in the estimation sample and is currently
-used only when no lagged dependent variables have been
-introduced. Otherwise the program reports average derivatives.
-For several dummy variables encoding one categorical regressor,
-the 0-to-1 comparison is performed on each dummy separately;
-users should interpret such changes with care because a
-counterfactual holding the other dummies fixed can represent
-an impossible combination of categories. These are descriptive
-model-based effects, not causal effects without additional
-identifying assumptions.
-
+Automatic recognition of 0/1 regressors requires both values to occur in
+the estimation sample and is currently used only when no lagged dependent
+variables have been introduced. Otherwise the program reports average
+derivatives. For several dummy variables encoding one categorical regressor,
+the 0-to-1 comparison is performed on each dummy separately; users should
+interpret such changes with care, because a counterfactual holding the other
+dummies fixed can represent an impossible combination of categories.
+These are descriptive model-based effects, not causal effects without
+additional identifying assumptions.
 
 \subsection{Jointness measures}\label{sec:jointness_measures}
 The main implementations of  model averaging are concerned
