@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gretl-addon name="BACE" minver="2023a" lives-in-subdir="true">
 <author>Marcin Błażejowski, Jacek Kwiatkowski</author>
-<version>3.2-svn</version>
+<version>3.2</version>
 <date>2026-11-08</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <helpfile>BACE.pdf</helpfile>
