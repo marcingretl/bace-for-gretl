@@ -28,7 +28,7 @@ function void BACE_Plot (const bundle *MODEL)
 
     if inbundle(MODEL, "plotspec") && MODEL.plotspec != ""
         basename = MODEL.plotspec
-    elif $sysinfo.gui_mode
+    elif $sysinfo.gui_mode || strstr($gnuplot, "gp-executor") != "" # gretl4py workaround
         basename = "display"
     else
         # CLI: default to producing .plt files

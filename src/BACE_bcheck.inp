@@ -42,7 +42,7 @@ function string BACE_bcheck (bundle UserOpts,
     strings ConstTypes = defarray("Never", "Always", "Can be dropped")
     strings DataTransTypes = defarray("none", "centering", "standardizing")
     strings OverloadableKeys
-    if $sysinfo["gui_mode"]
+    if $sysinfo["gui_mode"] || strstr($gnuplot, "gp-executor") != "" # gretl4py workaround
         do_plot_tmp = 1
         do_show_progress = 1
     else
