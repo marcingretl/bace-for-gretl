@@ -16,11 +16,11 @@
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 function string BACE_get_plot_outname (const string base, const string insert)
-/*
-   Function makes string for plot output: either 'display' (in gui mode)
-   or file name with one of supported extensions.
+    /*
+       Function makes string for plot output: either 'display' (in gui mode)
+       or file name with one of supported extensions.
 
-   This code was written by Allin Cottrell.
+       This code was written by Allin Cottrell.
     */
     string s = base
     if instring(s, ".")
@@ -38,5 +38,6 @@ function string BACE_get_plot_outname (const string base, const string insert)
     else
         errorif(s != "display", sprintf("Invalid plot output spec '%s'", s))
     endif
+
     return s
 end function

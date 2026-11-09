@@ -675,21 +675,42 @@ else
 endif
 
 #########################################################
-#						Fitted							#
+#                       Fitted                          #
 #########################################################
-idx = 1 + nelem({MODEL.Y}) - nelem(MODEL.Yhat)
-plotmat = {MODEL.Y}[idx:end] ~ MODEL.Yhat
-title = defarray(&quot;actual&quot;, &quot;fitted&quot;)
-cnameset(plotmat, title)
-plot_title = &quot;Fitted&quot;
-output = BACE_get_plot_outname(basename, &quot;-fitted&quot;)
-catch plot plotmat
-  options time-series with-lines
-  options with-line fit=none
-  printf &quot;set title \&quot;%s\&quot;&quot;, plot_title
-end plot --output=display
-if error
-  printf &quot;Fitted: %s\n&quot;, errmsg(error)
+if MODEL.limited_y
+  # Discrete dependent variable: classification heatmap
+  BACE_contingency_heatmap(MODEL, basename)
+else
+  # Continuous dependent variable: actual vs fitted
+  idx = 1 + nelem({MODEL.Y}) - nelem(MODEL.Yhat)
+  plotmat = {MODEL.Y}[idx:end] ~ MODEL.Yhat
+
+  title = defarray(&quot;actual&quot;, &quot;fitted&quot;)
+  cnameset(plotmat, title)
+
+  plot_title = &quot;Fitted&quot;
+  output = BACE_get_plot_outname(basename, &quot;-fitted&quot;)
+
+  if $datatype == 2
+    # Time series: two lines over time
+    catch plot plotmat
+      options time-series with-lines fit=none
+      printf &quot;set title \&quot;%s\&quot;&quot;, plot_title
+    end plot --output=&quot;@output&quot;
+  else
+    # Cross-section and panel: actual versus fitted
+    catch plot plotmat
+      options fit=none
+      printf &quot;set title \&quot;%s\&quot;&quot;, plot_title
+      literal set xlabel &quot;Fitted&quot;
+      literal set ylabel &quot;Actual&quot;
+    end plot --output=&quot;@output&quot;
+  endif
+
+  error = $error
+  if error
+    printf &quot;Fitted: %s\n&quot;, errmsg(error)
+  endif
 endif
 
 #########################################################
@@ -3204,7 +3225,153 @@ if instring(s, &quot;.&quot;)
 else
   errorif(s != &quot;display&quot;, sprintf(&quot;Invalid plot output spec '%s'&quot;, s))
 endif
+
 return s
+</code>
+</gretl-function>
+<gretl-function name="BACE_contingency_heatmap" type="void" private="1">
+ <params count="2">
+  <param name="M" type="bundle" const="true"/>
+  <param name="basename" type="string" const="true"/>
+ </params>
+<code>/*
+Plot a classification confusion matrix.
+
+Rows represent actual categories, columns represent predicted
+categories. Cell colors show row percentages, while labels
+show the corresponding frequencies.
+*/
+
+matrix C = M.contingency
+strings actual = rnameget(C)
+strings predicted = cnameget(C)
+
+# Remove marginal totals, if present
+if nelem(actual) == rows(C)
+  if actual[rows(C)] == &quot;TOTAL&quot;
+    C = C[1:rows(C)-1,]
+    actual = actual[1:nelem(actual)-1]
+  endif
+endif
+
+if nelem(predicted) == cols(C)
+  if predicted[cols(C)] == &quot;TOTAL&quot;
+    C = C[,1:cols(C)-1]
+    predicted = predicted[1:nelem(predicted)-1]
+  endif
+endif
+
+# Category labels must be available from xtab
+errorif(nelem(actual) != rows(C) || nelem(predicted) != cols(C), &quot;Missing category labels in contingency matrix&quot;)
+
+scalar nr = rows(C)
+scalar nc = cols(C)
+scalar n = sum(C)
+
+errorif(n == 0, &quot;Empty contingency matrix&quot;)
+
+# Raw frequencies and row percentages
+# Reverse rows so the first actual category appears at the top
+matrix counts = zeros(nr, nc)
+matrix shares = zeros(nr, nc)
+
+loop i=1..nr
+  counts[i,] = C[nr-i+1,]
+  scalar total = sum(counts[i,])
+
+  if total &gt; 0
+    shares[i,] = 100 * counts[i,] / total
+  endif
+endloop
+
+# Generate axis tick labels
+string xtics = &quot;(&quot;
+loop j=1..nc
+  if j &gt; 1
+    xtics += &quot;, &quot;
+  endif
+  xtics += sprintf(&quot;\&quot;%s\&quot; %d&quot;, predicted[j], j-1)
+endloop
+xtics += &quot;)&quot;
+
+string ytics = &quot;(&quot;
+loop i=1..nr
+  if i &gt; 1
+    ytics += &quot;, &quot;
+  endif
+  ytics += sprintf(&quot;\&quot;%s\&quot; %d&quot;, actual[i], nr-i)
+endloop
+ytics += &quot;)&quot;
+
+# Convert matrices to gnuplot data blocks
+set force_decpoint on
+string color_grid = sprintf(&quot;%8.4f&quot;, shares)
+# Convert frequency matrix to space-separated gnuplot data
+string count_grid = &quot;&quot;
+
+loop i=1..nr
+  loop j=1..nc
+    count_grid += sprintf(&quot;%d &quot;, counts[i,j])
+  endloop
+  count_grid += &quot;\n&quot;
+endloop
+set force_decpoint off
+
+# Overall classification accuracy
+scalar accuracy = 100 * M.correctly_predicted / n
+string title = sprintf(&quot;Classification accuracy: %.1f%%&quot;, accuracy)
+
+# Output specification
+string output = BACE_get_plot_outname(basename, &quot;-fitted&quot;)
+
+# Generate gnuplot commands for cell frequencies
+string gp_labels = &quot;unset label; &quot;
+
+loop i=1..nr
+  loop j=1..nc
+    gp_labels += sprintf(&quot;set label \&quot;%d\&quot; at %d,%d center front; &quot;, counts[i,j], j-1, i-1)
+  endloop
+endloop
+
+# Draw the heatmap with frequency labels
+catch plot
+  literal set encoding utf8
+  literal set decimalsign '.'
+  literal set nokey
+  literal set size ratio -1
+
+  # Define a white-to-green palette using numeric RGB values
+  literal set palette model RGB
+  literal set palette defined (0 1 1 1, 50 0.816 0.910 0.867, 100 0.475 0.745 0.627)
+  literal set cbrange [0:100]
+  literal set cblabel 'Share of actual class (%)'
+
+  printf &quot;set title \&quot;%s\&quot;&quot;, title
+  literal set xlabel &quot;Predicted&quot;
+  literal set ylabel &quot;Actual&quot;
+
+  printf &quot;set xtics %s&quot;, xtics
+  printf &quot;set ytics %s&quot;, ytics
+
+  printf &quot;set xrange [-0.5:%g]&quot;, nc-0.5
+  printf &quot;set yrange [-0.5:%g]&quot;, nr-0.5
+
+  # Cell frequency labels
+  printf &quot;%s&quot;, gp_labels
+
+  # Data block containing row percentages
+  literal $colors &lt;&lt; EOD
+  printf &quot;%s&quot;, color_grid
+  literal EOD
+
+  # Draw heatmap; labels are added by set label
+  literal plot $colors matrix with image
+end plot --output=&quot;@output&quot;
+
+error = $error
+if error
+  printf &quot;Contingency heatmap: error %d (%s)\n&quot;, error, errmsg(error)
+endif
 </code>
 </gretl-function>
 <sample-script filename="examples/BACE_sample.inp">

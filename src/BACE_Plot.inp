@@ -176,25 +176,44 @@ function void BACE_Plot (const bundle *MODEL)
         endif
     endif
 
+    #########################################################
+    #                       Fitted                          #
+    #########################################################
+    if MODEL.limited_y
+        # Discrete dependent variable: classification heatmap
+        BACE_contingency_heatmap(MODEL, basename)
+    else
+        # Continuous dependent variable: actual vs fitted
+        idx = 1 + nelem({MODEL.Y}) - nelem(MODEL.Yhat)
+        plotmat = {MODEL.Y}[idx:end] ~ MODEL.Yhat
 
-    #########################################################
-    #						Fitted							#
-    #########################################################
-    idx = 1 + nelem({MODEL.Y}) - nelem(MODEL.Yhat)    
-    plotmat = {MODEL.Y}[idx:end] ~ MODEL.Yhat
-    title = defarray("actual", "fitted")
-    cnameset(plotmat, title)
-    plot_title = "Fitted"
-    output = BACE_get_plot_outname(basename, "-fitted")
-    catch plot plotmat
-        options time-series with-lines
-        options with-line fit=none
-        printf "set title \"%s\"", plot_title
-    end plot --output=display
-    if error
-        printf "Fitted: %s\n", errmsg(error)
+        title = defarray("actual", "fitted")
+        cnameset(plotmat, title)
+
+        plot_title = "Fitted"
+        output = BACE_get_plot_outname(basename, "-fitted")
+
+        if $datatype == 2
+            # Time series: two lines over time
+            catch plot plotmat
+                options time-series with-lines fit=none
+                printf "set title \"%s\"", plot_title
+            end plot --output="@output"
+        else
+            # Cross-section and panel: actual versus fitted
+            catch plot plotmat
+                options fit=none
+                printf "set title \"%s\"", plot_title
+                literal set xlabel "Fitted"
+                literal set ylabel "Actual"
+            end plot --output="@output"
+        endif
+
+        error = $error
+        if error
+            printf "Fitted: %s\n", errmsg(error)
+        endif
     endif
-    
 
     #########################################################
     #						Forecasts						#

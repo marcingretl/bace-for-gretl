@@ -1,0 +1,160 @@
+/*
+   BACE -- package implementing Bayesian Averaging of Classical Estimates for gretl
+   Copyright (C) 2018 Marcin Błażejowski and Jacek Kwiatkowski
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+function void BACE_contingency_heatmap (const bundle M, const string basename)
+    /*
+       Plot a classification confusion matrix.
+
+       Rows represent actual categories, columns represent predicted
+       categories. Cell colors show row percentages, while labels
+       show the corresponding frequencies.
+    */
+
+    matrix C = M.contingency
+    strings actual = rnameget(C)
+    strings predicted = cnameget(C)
+
+    # Remove marginal totals, if present
+    if nelem(actual) == rows(C)
+        if actual[rows(C)] == "TOTAL"
+            C = C[1:rows(C)-1,]
+            actual = actual[1:nelem(actual)-1]
+        endif
+    endif
+
+    if nelem(predicted) == cols(C)
+        if predicted[cols(C)] == "TOTAL"
+            C = C[,1:cols(C)-1]
+            predicted = predicted[1:nelem(predicted)-1]
+        endif
+    endif
+
+    # Category labels must be available from xtab
+    errorif(nelem(actual) != rows(C) || nelem(predicted) != cols(C), \
+      "Missing category labels in contingency matrix")
+
+    scalar nr = rows(C)
+    scalar nc = cols(C)
+    scalar n = sum(C)
+
+    errorif(n == 0, "Empty contingency matrix")
+
+    # Raw frequencies and row percentages
+    # Reverse rows so the first actual category appears at the top
+    matrix counts = zeros(nr, nc)
+    matrix shares = zeros(nr, nc)
+
+    loop i=1..nr
+        counts[i,] = C[nr-i+1,]
+        scalar total = sum(counts[i,])
+
+        if total > 0
+            shares[i,] = 100 * counts[i,] / total
+        endif
+    endloop
+
+    # Generate axis tick labels
+    string xtics = "("
+    loop j=1..nc
+        if j > 1
+            xtics += ", "
+        endif
+        xtics += sprintf("\"%s\" %d", predicted[j], j-1)
+    endloop
+    xtics += ")"
+
+    string ytics = "("
+    loop i=1..nr
+        if i > 1
+            ytics += ", "
+        endif
+        ytics += sprintf("\"%s\" %d", actual[i], nr-i)
+    endloop
+    ytics += ")"
+
+    # Convert matrices to gnuplot data blocks
+    set force_decpoint on
+    string color_grid = sprintf("%8.4f", shares)
+    # Convert frequency matrix to space-separated gnuplot data
+    string count_grid = ""
+
+    loop i=1..nr
+        loop j=1..nc
+            count_grid += sprintf("%d ", counts[i,j])
+        endloop
+        count_grid += "\n"
+    endloop
+    set force_decpoint off
+
+    # Overall classification accuracy
+    scalar accuracy = 100 * M.correctly_predicted / n
+    string title = sprintf("Classification accuracy: %.1f%%", accuracy)
+
+    # Output specification
+    string output = BACE_get_plot_outname(basename, "-fitted")
+
+    # Generate gnuplot commands for cell frequencies
+    string gp_labels = "unset label; "
+
+    loop i=1..nr
+        loop j=1..nc
+            gp_labels += sprintf("set label \"%d\" at %d,%d center front; ", \
+              counts[i,j], j-1, i-1)
+        endloop
+    endloop
+
+    # Draw the heatmap with frequency labels
+    catch plot
+        literal set encoding utf8
+        literal set decimalsign '.'
+        literal set nokey
+        literal set size ratio -1
+
+        # Define a white-to-green palette using numeric RGB values
+        literal set palette model RGB
+        literal set palette defined (0 1 1 1, 50 0.816 0.910 0.867, 100 0.475 0.745 0.627)
+        literal set cbrange [0:100]
+        literal set cblabel 'Share of actual class (%)'
+
+        printf "set title \"%s\"", title
+        literal set xlabel "Predicted"
+        literal set ylabel "Actual"
+
+        printf "set xtics %s", xtics
+        printf "set ytics %s", ytics
+
+        printf "set xrange [-0.5:%g]", nc-0.5
+        printf "set yrange [-0.5:%g]", nr-0.5
+
+        # Cell frequency labels
+        printf "%s", gp_labels
+
+        # Data block containing row percentages
+        literal $colors << EOD
+        printf "%s", color_grid
+        literal EOD
+
+        # Draw heatmap; labels are added by set label
+        literal plot $colors matrix with image
+    end plot --output="@output"
+
+    error = $error
+    if error
+        printf "Contingency heatmap: error %d (%s)\n", error, errmsg(error)
+    endif
+end function
