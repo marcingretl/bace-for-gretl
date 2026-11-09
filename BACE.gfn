@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.2</version>
-<date>2026-11-08</date>
+<date>2026-11-09</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -2021,7 +2021,7 @@ if nelem(X) &gt; 0 || M.limited_y &amp;&amp; M.ordered
   endif
 
   # for M.ordered, we need check if some variables were not dropped somehow (8.10.2026)
-  if M.ordered &amp;&amp; ($model.nx - nelem(X))
+  if M.limited_y &amp;&amp; M.ordered &amp;&amp; ($model.nx - nelem(X))
     M.lprob_new = -10^100
     if M.verbosity == 2
       printf &quot;\nspecification dropped: &quot;
@@ -3226,8 +3226,11 @@ list X = 2..14
 set seed 1000000
 
 set stopwatch
-BACE(psechoice, X, _(model_type=&quot;probit&quot;))
+res = BACE(psechoice, X, _(model_type=&quot;probit&quot;, do_plot=0))
 printf &quot;Total execution time: %.2f sec.\n&quot;, $stopwatch
+
+# Generate plots
+#BACE_Plot(&amp;res)
 </sample-script>
 </gretl-function-package>
 </gretl-functions>

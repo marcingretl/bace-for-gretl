@@ -16,6 +16,8 @@ list X = 2..14
 set seed 1000000
 
 set stopwatch
-BACE(psechoice, X, _(model_type="probit"))
+res = BACE(psechoice, X, _(model_type="probit", do_plot=0))
 printf "Total execution time: %.2f sec.\n", $stopwatch
 
+# Generate plots
+#BACE_Plot(&res)

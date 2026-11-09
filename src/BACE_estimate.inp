@@ -86,7 +86,7 @@ function void BACE_estimate (bundle *M)
         endif
 
         # for M.ordered, we need check if some variables were not dropped somehow (8.10.2026)
-        if M.ordered && ($model.nx - nelem(X))
+        if M.limited_y && M.ordered && ($model.nx - nelem(X))
             M.lprob_new = -10^100
             if M.verbosity == 2
                 printf "\nspecification dropped: "
