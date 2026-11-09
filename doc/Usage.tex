@@ -196,8 +196,8 @@ Data transformation: none
 Total number of iterations: 10000
 Number of burn-in draws: 1000
 Total number of possible models: 8192
-Number of models visited: 114
-Number of models accepted: 15
+Number of models visited: 106
+Number of models accepted: 12
 \end{CodeOutput}
 \end{CodeChunk}
 The results printed above are fairly self-explanatory,
@@ -284,8 +284,8 @@ Prior:
 	average model size: 6.500000
 	standard deviation: 1.802776
 Posterior:
-	average model size: 10.548111
-	standard deviation: 0.638328
+	average model size: 10.669444
+	standard deviation: 0.616946
 \end{CodeOutput}
 \end{CodeChunk}
 
@@ -302,19 +302,19 @@ model averaging approach.
 \begin{CodeChunk}\begin{CodeOutput}
   Posterior moments (unconditional and conditional on inclusion):
                  PIP        Mean     Std.Dev.    Cond.Mean Cond.Std.Dev.
-   loans    1.000000    1.089366     0.052477     1.089366     0.052477
-  grants    1.000000    0.796474     0.040560     0.796474     0.040560
- parcoll    1.000000    0.689982     0.048644     0.689982     0.048644
- parsome    1.000000    0.326197     0.040197     0.326197     0.040197
-  faminc    1.000000    0.007738     0.000521     0.007738     0.000521
-  grades    1.000000   -0.229508     0.008326    -0.229508     0.008326
- hsrural    1.000000   -0.199767     0.035077    -0.199767     0.035077
-  hscath    1.000000    0.341419     0.066410     0.341419     0.066410
-   black    0.990222    0.240438     0.062522     0.242812     0.058061
-  famsiz    0.980889   -0.047048     0.013558    -0.047965     0.011976
-  hispan    0.460667    0.066270     0.080632     0.143856     0.054333
-   asian    0.094000    0.008674     0.033129     0.092273     0.062943
-  female    0.022333   -0.000169     0.004942    -0.007560     0.032215
+ loans      1.000000    1.089940    0.052477      1.089940     0.052477
+grants      1.000000    0.795618    0.040526      0.795618     0.040526
+parcoll     1.000000    0.690291    0.048639      0.690291     0.048639
+parsome     1.000000    0.325907    0.040200      0.325907     0.040200
+faminc      1.000000    0.007751    0.000521      0.007751     0.000521
+grades      1.000000   -0.229805    0.008307     -0.229805     0.008307
+hsrural     1.000000   -0.199081    0.035075     -0.199081     0.035075
+hscath      1.000000    0.341645    0.066409      0.341645     0.066409
+black       0.997444    0.244174    0.059340      0.244799     0.058113
+famsiz      0.997000   -0.047954    0.012243     -0.048099     0.011975
+hispan      0.563000    0.080988    0.082168      0.143852     0.054306
+asian       0.078222    0.007461    0.031069      0.095381     0.062885
+female      0.033778   -0.000252    0.006072     -0.007455     0.032215
 \end{CodeOutput}
 \end{CodeChunk}
 The main output of \pkg{BACE}  includes typical model averaging
@@ -335,8 +335,8 @@ the total model space.
 \begin{CodeChunk}
 \begin{CodeOutput}
                 Mean       Std.Dev.
-cut1       -1.682247       0.095886
-cut2       -0.527395       0.093964
+cut1       -1.685922       0.092787
+cut2       -0.530911       0.090890
 \end{CodeOutput}
 \end{CodeChunk}
 
@@ -404,13 +404,12 @@ Next, we print a CDF-like table showing the
 probabilities associated with the models.
 \begin{CodeChunk}\begin{CodeOutput}
 Posterior probability of models:
-Best 5 models account for 0.9630 of mass
-Best 6 models account for 0.9732 of mass
-Best 7 models account for 0.9828 of mass
-Best 8 models account for 0.9916 of mass
-Best 9 models account for 0.9963 of mass
-Best 15 models account for 1.0000 of mass
-Best 14 models account for 1.0000 of mass
+Best 5   models account for 0.9746 of mass
+Best 6   models account for 0.9877 of mass
+Best 7   models account for 0.9929 of mass
+Best 8   models account for 0.9953 of mass
+Best 9   models account for 0.9972 of mass
+Best 12  models account for 1.0000 of mass
 \end{CodeOutput}
 \end{CodeChunk}
 
@@ -420,15 +419,15 @@ on both the analytical and numerical probabilities of
 the models. In the case of NELS, this would be:
 \begin{CodeChunk}\begin{CodeOutput}
 Best models ranking:
-Model 1:	0.459889
-Model 2:	0.398444
-Model 3:	0.046111
-Model 4:	0.045444
-Model 5:	0.013111
-Total probability of the models in ranking (numerical): 0.963000
+Model 1:	0.496889
+Model 2:	0.392333
+Model 3:	0.045000
+Model 4:	0.026444
+Model 5:	0.013889
+Total probability of the models in ranking (numerical): 0.974556
 
 Correlation coefficient between the analytical
-and numerical probabilities of the above models: 0.917611
+and numerical probabilities of the above models: 0.953527
 \end{CodeOutput}
 \end{CodeChunk}
 
@@ -444,13 +443,13 @@ approximations \ref{eq: BIC}--\ref{eq: EBIC}.
 \\
 \begin{CodeChunk}\begin{CodeOutput}
 Contingency table (actual in rows, predicted in columns):
-             1            2            3 
+             1         2         3
 
-1          876          404          115 
-2          355          660          786 
-3          123          534         2796 
+1          896       376       123
+2          376       610       815
+3          128       500      2825
 
-Number of cases 'correctly predicted' = 4332 (accuracy 65.2%)		
+Number of cases 'correctly predicted' = 4331 (accuracy 65.1%)
 \end{CodeOutput}
 \end{CodeChunk}
 
@@ -466,43 +465,45 @@ based on the total model space.
 
 The joint probability  and jointness  analysis for the current
 example should appear as follows:
+
 \begin{CodeChunk}\begin{CodeOutput}
 Posterior joint probability of variables:
-            hscath        hsrural        grades        faminc         
-hscath     0.000000      1.000000      1.000000      1.000000     ...       
-hsrural    1.000000      0.000000      1.000000      1.000000     ... 
-grades     1.000000      1.000000      0.000000      1.000000     ...      
-faminc     1.000000      1.000000      1.000000      0.000000     ...     
-famsiz     0.980889      0.980889      0.980889      0.980889     ...       
-parsome    1.000000      1.000000      1.000000      1.000000     ...      
-parcoll    1.000000      1.000000      1.000000      1.000000     ...       
-female     0.022333      0.022333      0.022333      0.022333     ...       
-asian      0.094000      0.094000      0.094000      0.094000     ...       
-hispan     0.460667      0.460667      0.460667      0.460667     ...       
-black      0.990222      0.990222      0.990222      0.990222     ...       
-grants     1.000000      1.000000      1.000000      1.000000     ...       
-loans      1.000000      1.000000      1.000000      1.000000     ...       
+             hscath       hsrural        grades        faminc
+hscath     0.000000      1.000000      1.000000      1.000000     ...
+hsrural    1.000000      0.000000      1.000000      1.000000     ...
+grades     1.000000      1.000000      0.000000      1.000000     ...
+faminc     1.000000      1.000000      1.000000      0.000000     ...
+famsiz     0.997000      0.997000      0.997000      0.997000     ...
+parsome    1.000000      1.000000      1.000000      1.000000     ...
+parcoll    1.000000      1.000000      1.000000      1.000000     ...
+female     0.033778      0.033778      0.033778      0.033778     ...
+asian      0.078222      0.078222      0.078222      0.078222     ...
+hispan     0.563000      0.563000      0.563000      0.563000     ...
+black      0.997444      0.997444      0.997444      0.997444     ...
+grants     1.000000      1.000000      1.000000      1.000000     ...
+loans      1.000000      1.000000      1.000000      1.000000     ...
 \end{CodeOutput}
 \end{CodeChunk}
 
 \begin{CodeChunk}\begin{CodeOutput}
 Jointness statistics (Modified Yule's Q Measure (MYQ)):
-             hscath      hsrural         grades        faminc     ...         
-hscath          nan      1.000000      1.000000      1.000000     ...       
-hsrural    1.000000           nan      1.000000      1.000000     ... 
-grades     1.000000      1.000000           nan      1.000000     ... 
+             hscath       hsrural        grades        faminc
+hscath          nan      1.000000      1.000000      1.000000     ...
+hsrural    1.000000           nan      1.000000      1.000000     ...
+grades     1.000000      1.000000           nan      1.000000     ...
 faminc     1.000000      1.000000      1.000000           nan     ...
-famsiz     0.961778      0.961778      0.961778      0.961778     ... 
-parsome    1.000000      1.000000      1.000000      1.000000     ...      
-parcoll    1.000000      1.000000      1.000000      1.000000     ...       
-female    -0.955333     -0.955333     -0.955333     -0.955333     ...
-asian     -0.812000     -0.812000     -0.812000     -0.812000     ...      
-hispan    -0.078667     -0.078667     -0.078667     -0.078667     ...      
-black      0.980444      0.980444      0.980444      0.980444     ... 
-grants     1.000000      1.000000      1.000000      1.000000     ...      
-loans      1.000000      1.000000      1.000000      1.000000     ... 
+famsiz     0.994000      0.994000      0.994000      0.994000     ...
+parsome    1.000000      1.000000      1.000000      1.000000     ...
+parcoll    1.000000      1.000000      1.000000      1.000000     ...
+female    -0.932444     -0.932444     -0.932444     -0.932444     ...
+asian     -0.843556     -0.843556     -0.843556     -0.843556     ...
+hispan     0.126000      0.126000      0.126000      0.126000     ...
+black      0.994889      0.994889      0.994889      0.994889     ...
+grants     1.000000      1.000000      1.000000      1.000000     ...
+loans      1.000000      1.000000      1.000000      1.000000     ...
 \end{CodeOutput}
 \end{CodeChunk}
+
 
 In the binary dependent variable models, by default, we use a
 threshold of 0.5. It is also worth noting that  this threshold
@@ -523,21 +524,22 @@ as the number of cases of dependent variable minus 1.
 Best specifications (MLE estimates for ordered probit model):
 ----------------------------------
 
-Model 1: HBIC: 9951.131386, posterior probability: 0.459889
-         coefficient    std. error       z       p-value 
+Model 1: HBIC: 9951.109701, posterior probability: 0.496889
+coefficient   std. error       z       p-value 
 ----------------------------------------------------------
-hscath      0.339743     0.0663548       5.120   3.05e-07  ***
-hsrural    -0.204022     0.0346748      -5.884   4.01e-09  ***
-grades     -0.228665     0.00819836    -27.89    3.38e-171 ***
-faminc      0.00769592   0.000517451    14.87    4.95e-50  ***
-famsiz     -0.0469671    0.0119120      -3.943   8.05e-05  ***
-parsome     0.327804     0.0401469       8.165   3.21e-16  ***
-parcoll     0.689699     0.0485704      14.20    9.16e-46  ***
-black       0.232157     0.0567165       4.093   4.25e-05  ***
-grants      0.799516     0.0403133      19.83    1.56e-87  ***
-loans       1.08691      0.0523804      20.75    1.22e-95  ***
-cut1       -1.68606      0.0919803     -18.33    4.71e-75  ***
-cut2       -0.531627     0.0900860      -5.901   3.61e-09  ***
+hscath      0.342363     0.0663763       5.158   2.50e-07  ***
+hsrural    -0.196331     0.0348047      -5.641   1.69e-08  ***
+grades     -0.230822     0.00824164    -28.01    1.34e-172 ***
+faminc      0.00779033   0.000519056    15.01    6.45e-51  ***
+famsiz     -0.0486772    0.0119286      -4.081   4.49e-05  ***
+parsome     0.324538     0.0401778       8.078   6.61e-16  ***
+parcoll     0.691747     0.0485812      14.24    5.25e-46  ***
+hispan      0.142987     0.0541899       2.639   0.0083    ***
+black       0.253508     0.0573134       4.423   9.73e-06  ***
+grants      0.792533     0.0403953      19.62    1.05e-85  ***
+loans       1.09204      0.0524286      20.83    2.36e-96  ***
+cut1       -1.68766      0.0919964     -18.34    3.63e-75  ***
+cut2       -0.532211     0.0900963      -5.907   3.48e-09  ***
 \end{CodeOutput}
 \end{CodeChunk}
 
@@ -591,7 +593,8 @@ consisting of 8 or less  elements are highly improbable.
 \begin{figure}[h!]%{0.4\textwidth}
 	\centering
 	\includegraphics[width=0.4\textwidth]{PNG/NELS_model_size_CDF}
-	\caption{Cumulative Model Probabilities.}
+	\includegraphics[width=0.4\textwidth]{PNG/NELS_contingency}
+	\caption{Cumulative Model Probabilities and Contingency.}
 	\label{fig:NELS_model_size_CDF}
 	\label{fig:CMP}
 \end{figure}

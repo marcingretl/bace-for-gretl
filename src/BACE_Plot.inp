@@ -182,6 +182,8 @@ function void BACE_Plot (const bundle *MODEL)
     if MODEL.limited_y
         # Discrete dependent variable: classification heatmap
         BACE_contingency_heatmap(MODEL, basename)
+    elif MODEL.estimator == "intreg"
+        # to be worked out
     else
         # Continuous dependent variable: actual vs fitted
         idx = 1 + nelem({MODEL.Y}) - nelem(MODEL.Yhat)

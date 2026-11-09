@@ -1,16 +1,18 @@
-gretl version 2024c
-Current session: 2024-12-12 14:36
+gretl version 2026e
+Current session: 2026-11-09 12:55
 
 #######################################################
 #   https://sourceforge.net/projects/bace-for-gretl/  #
 #######################################################
 # Usage:
-BACE 3.11, 2024-12-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+BACE 3.2, 2026-11-09 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
-MC3:                  done!
-Collecting results:   done!
+MC3 overall progress: [#########################] 100.0%
+Collecting results:
+           averaging: [#########################] 100.0%
+                      done!
 Summarizing:          done!
 ----------------------------------
 Model type: ordered probit
@@ -23,8 +25,8 @@ Data transformation: none
 Total number of iterations: 10000
 Number of burn-in draws: 1000
 Total number of possible models: 8192
-Number of models visited: 114
-Number of models accepted: 15
+Number of models visited: 106
+Number of models accepted: 12
 
 ----------------------------------
 The initial model: ordered probit, dependent variable: psechoice
@@ -33,7 +35,7 @@ The initial model: ordered probit, dependent variable: psechoice
   ----------------------------------------------------------
   hscath      0.348616     0.0664749       5.244   1.57e-07  ***
   hsrural    -0.187616     0.0352010      -5.330   9.83e-08  ***
-  grades     -0.229958     0.00825797    -27.85    1.18e-170 ***
+  grades     -0.229958     0.00825795    -27.85    1.18e-170 ***
   faminc      0.00782622   0.000519981    15.05    3.40e-51  ***
   famsiz     -0.0510152    0.0120154      -4.246   2.18e-05  ***
   parsome     0.323895     0.0401926       8.059   7.72e-16  ***
@@ -43,8 +45,8 @@ The initial model: ordered probit, dependent variable: psechoice
   black       0.261885     0.0575335       4.552   5.32e-06  ***
   grants      0.792064     0.0403978      19.61    1.36e-85  ***
   loans       1.09411      0.0524522      20.86    1.26e-96  ***
-  cut1       -1.67948      0.0921332     -18.23    3.05e-74  ***
-  cut2       -0.523737     0.0902468      -5.803   6.50e-09  ***
+  cut1       -1.67948      0.0921328     -18.23    3.05e-74  ***
+  cut2       -0.523737     0.0902464      -5.803   6.50e-09  ***
 
 ----------------------------------
 
@@ -52,73 +54,110 @@ Prior:
 	average model size: 6.500000
 	standard deviation: 1.802776
 Posterior:
-	average model size: 10.548111
-	standard deviation: 0.638328
+	average model size: 10.669444
+	standard deviation: 0.616946
 
 ----------------------------------
 
 Posterior moments (unconditional and conditional on inclusion):
                     PIP           Mean       Std.Dev.      Cond.Mean  Cond.Std.Dev.
-  loans        1.000000       1.089366       0.052477       1.089366       0.052477
- grants        1.000000       0.796474       0.040560       0.796474       0.040560
-parcoll        1.000000       0.689982       0.048644       0.689982       0.048644
-parsome        1.000000       0.326197       0.040197       0.326197       0.040197
- faminc        1.000000       0.007738       0.000521       0.007738       0.000521
- grades        1.000000      -0.229508       0.008326      -0.229508       0.008326
-hsrural        1.000000      -0.199767       0.035077      -0.199767       0.035077
- hscath        1.000000       0.341419       0.066410       0.341419       0.066410
-  black        0.990222       0.240438       0.062522       0.242812       0.058061
- famsiz        0.980889      -0.047048       0.013558      -0.047965       0.011976
- hispan        0.460667       0.066270       0.080632       0.143856       0.054333
-  asian        0.094000       0.008674       0.033129       0.092273       0.062943
- female        0.022333      -0.000169       0.004942      -0.007560       0.032215
+  loans        1.000000       1.089940       0.052477       1.089940       0.052477
+ grants        1.000000       0.795618       0.040526       0.795618       0.040526
+parcoll        1.000000       0.690291       0.048639       0.690291       0.048639
+parsome        1.000000       0.325907       0.040200       0.325907       0.040200
+ faminc        1.000000       0.007751       0.000521       0.007751       0.000521
+ grades        1.000000      -0.229805       0.008307      -0.229805       0.008307
+hsrural        1.000000      -0.199081       0.035075      -0.199081       0.035075
+ hscath        1.000000       0.341645       0.066409       0.341645       0.066409
+  black        0.997444       0.244174       0.059340       0.244799       0.058113
+ famsiz        0.997000      -0.047954       0.012243      -0.048099       0.011975
+ hispan        0.563000       0.080988       0.082168       0.143852       0.054306
+  asian        0.078222       0.007461       0.031069       0.095381       0.062885
+ female        0.033778      -0.000252       0.006072      -0.007455       0.032215
 
                 Mean       Std.Dev.
-cut1       -1.682247       0.095886
-cut2       -0.527395       0.093964
+cut1       -1.685922       0.092787
+cut2       -0.530911       0.090890
+
+Posterior average marginal effects (model averaged):
+                     PIP         P(Y=1)         P(Y=2)         P(Y=3)
+  loans*        1.000000      -0.172600      -0.121357       0.293957
+ grants*        1.000000      -0.146533      -0.076287       0.222819
+parcoll*        1.000000      -0.131149      -0.054788       0.185938
+parsome*        1.000000      -0.065618      -0.015486       0.081104
+  faminc        1.000000      -0.001561      -0.000414       0.001975
+  grades        1.000000       0.046270       0.012288      -0.058557
+hsrural*        1.000000       0.040920       0.009878      -0.050798
+ hscath*        1.000000      -0.063831      -0.023747       0.087578
+  black*        0.997444      -0.046637      -0.015510       0.062147
+  famsiz        0.997000       0.009655       0.002564      -0.012219
+ hispan*        0.563000      -0.015839      -0.004773       0.020613
+  asian*        0.078222      -0.001473      -0.000432       0.001905
+ female*        0.033778       0.000051       0.000013      -0.000064
+* Average discrete change for a binary regressor (0 -> 1).
+  Unmarked regressors: average derivative per unit increase.
+  Effects are changes in probabilities (multiply by 100 for pp).
 
 ----------------------------------
 
 Posterior probability of models:
-Best 5	 models account for 0.9630 of mass
-Best 6	 models account for 0.9732 of mass
-Best 7	 models account for 0.9828 of mass
-Best 8	 models account for 0.9916 of mass
-Best 9 models account for 0.9963 of mass
-Best 15 models account for 1.0000 of mass
+Best 5	 models account for 0.9746 of mass
+Best 6	 models account for 0.9877 of mass
+Best 7	 models account for 0.9929 of mass
+Best 8	 models account for 0.9953 of mass
+Best 9 models account for 0.9972 of mass
+Best 12 models account for 1.0000 of mass
 
 Best models ranking:
-Model 1:	0.459889
-Model 2:	0.398444
-Model 3:	0.046111
-Model 4:	0.045444
-Model 5:	0.013111
-Total probability of the models in ranking (numerical): 0.963000
+Model 1:	0.496889
+Model 2:	0.392333
+Model 3:	0.045000
+Model 4:	0.026444
+Model 5:	0.013889
+Total probability of the models in ranking (numerical): 0.974556
 
 Correlation coefficient between the analytical
-and numerical probabilities of the above models: 0.917611
+and numerical probabilities of the above models: 0.953527
 
 ----------------------------------
 
 Contingency table (actual in rows, predicted in columns):
-                1            2            3 
+             1         2         3 
 
-   1          896          375          124 
-   2          375          610          816 
-   3          129          496         2828 
+   1       896       376       123 
+   2       376       610       815 
+   3       128       500      2825 
 
-Number of cases 'correctly predicted' = 4334 (accuracy 65.2%)
-
+Number of cases 'correctly predicted' = 4331 (accuracy 65.1%)
 
 Best specifications (MLE estimates for ordered probit model):
 ----------------------------------
 
-Model 1: HBIC: 9951.131386, posterior probability: 0.459889
+Model 1: HBIC: 9951.109701, posterior probability: 0.496889
+             coefficient   std. error       z       p-value 
+  ----------------------------------------------------------
+  hscath      0.342363     0.0663763       5.158   2.50e-07  ***
+  hsrural    -0.196331     0.0348047      -5.641   1.69e-08  ***
+  grades     -0.230822     0.00824164    -28.01    1.34e-172 ***
+  faminc      0.00779033   0.000519056    15.01    6.45e-51  ***
+  famsiz     -0.0486772    0.0119286      -4.081   4.49e-05  ***
+  parsome     0.324538     0.0401778       8.078   6.61e-16  ***
+  parcoll     0.691747     0.0485812      14.24    5.25e-46  ***
+  hispan      0.142987     0.0541899       2.639   0.0083    ***
+  black       0.253508     0.0573134       4.423   9.73e-06  ***
+  grants      0.792533     0.0403953      19.62    1.05e-85  ***
+  loans       1.09204      0.0524286      20.83    2.36e-96  ***
+  cut1       -1.68766      0.0919964     -18.34    3.63e-75  ***
+  cut2       -0.532211     0.0900963      -5.907   3.48e-09  ***
+
+----------------------------------
+
+Model 2: HBIC: 9951.131386, posterior probability: 0.392333
              coefficient   std. error       z       p-value 
   ----------------------------------------------------------
   hscath      0.339743     0.0663548       5.120   3.05e-07  ***
   hsrural    -0.204022     0.0346748      -5.884   4.01e-09  ***
-  grades     -0.228665     0.00819836    -27.89    3.38e-171 ***
+  grades     -0.228665     0.00819837    -27.89    3.38e-171 ***
   faminc      0.00769592   0.000517451    14.87    4.95e-50  ***
   famsiz     -0.0469671    0.0119120      -3.943   8.05e-05  ***
   parsome     0.327804     0.0401469       8.165   3.21e-16  ***
@@ -126,38 +165,17 @@ Model 1: HBIC: 9951.131386, posterior probability: 0.459889
   black       0.232157     0.0567164       4.093   4.25e-05  ***
   grants      0.799516     0.0403133      19.83    1.56e-87  ***
   loans       1.08691      0.0523804      20.75    1.22e-95  ***
-  cut1       -1.68606      0.0919804     -18.33    4.72e-75  ***
-  cut2       -0.531627     0.0900861      -5.901   3.61e-09  ***
-
-
-----------------------------------
-
-Model 2: HBIC: 9951.109701, posterior probability: 0.398444
-             coefficient   std. error       z       p-value 
-  ----------------------------------------------------------
-  hscath      0.342363     0.0663763       5.158   2.50e-07  ***
-  hsrural    -0.196331     0.0348047      -5.641   1.69e-08  ***
-  grades     -0.230822     0.00824167    -28.01    1.34e-172 ***
-  faminc      0.00779033   0.000519056    15.01    6.44e-51  ***
-  famsiz     -0.0486772    0.0119287      -4.081   4.49e-05  ***
-  parsome     0.324538     0.0401778       8.078   6.61e-16  ***
-  parcoll     0.691747     0.0485812      14.24    5.25e-46  ***
-  hispan      0.142987     0.0541899       2.639   0.0083    ***
-  black       0.253508     0.0573135       4.423   9.73e-06  ***
-  grants      0.792533     0.0403953      19.62    1.05e-85  ***
-  loans       1.09204      0.0524286      20.83    2.36e-96  ***
-  cut1       -1.68766      0.0919971     -18.34    3.64e-75  ***
-  cut2       -0.532211     0.0900970      -5.907   3.48e-09  ***
-
+  cut1       -1.68606      0.0919805     -18.33    4.72e-75  ***
+  cut2       -0.531627     0.0900862      -5.901   3.61e-09  ***
 
 ----------------------------------
 
-Model 3: HBIC: 9955.352276, posterior probability: 0.046111
+Model 3: HBIC: 9955.352276, posterior probability: 0.045000
              coefficient   std. error       z       p-value 
   ----------------------------------------------------------
   hscath      0.348616     0.0664749       5.244   1.57e-07  ***
   hsrural    -0.187616     0.0352010      -5.330   9.83e-08  ***
-  grades     -0.229958     0.00825797    -27.85    1.18e-170 ***
+  grades     -0.229958     0.00825795    -27.85    1.18e-170 ***
   faminc      0.00782622   0.000519981    15.05    3.40e-51  ***
   famsiz     -0.0510152    0.0120154      -4.246   2.18e-05  ***
   parsome     0.323895     0.0401926       8.059   7.72e-16  ***
@@ -167,13 +185,12 @@ Model 3: HBIC: 9955.352276, posterior probability: 0.046111
   black       0.261885     0.0575335       4.552   5.32e-06  ***
   grants      0.792064     0.0403978      19.61    1.36e-85  ***
   loans       1.09411      0.0524522      20.86    1.26e-96  ***
-  cut1       -1.67948      0.0921332     -18.23    3.05e-74  ***
-  cut2       -0.523737     0.0902468      -5.803   6.50e-09  ***
-
+  cut1       -1.67948      0.0921328     -18.23    3.05e-74  ***
+  cut2       -0.523737     0.0902464      -5.803   6.50e-09  ***
 
 ----------------------------------
 
-Model 4: HBIC: 9956.306055, posterior probability: 0.045444
+Model 4: HBIC: 9956.306055, posterior probability: 0.026444
              coefficient   std. error       z       p-value 
   ----------------------------------------------------------
   hscath      0.344616     0.0664460       5.186   2.14e-07  ***
@@ -187,28 +204,29 @@ Model 4: HBIC: 9956.306055, posterior probability: 0.045444
   black       0.237668     0.0568604       4.180   2.92e-05  ***
   grants      0.799550     0.0403147      19.83    1.55e-87  ***
   loans       1.08827      0.0523965      20.77    8.10e-96  ***
-  cut1       -1.67936      0.0921179     -18.23    2.95e-74  ***
-  cut2       -0.524760     0.0902349      -5.815   6.05e-09  ***
-
-
-----------------------------------
-
-Model 5: HBIC: 9959.709125, posterior probability: 0.013111
-             coefficient   std. error       z       p-value 
-  ----------------------------------------------------------
-  hscath      0.340332     0.0662930       5.134   2.84e-07  ***
-  hsrural    -0.201060     0.0346466      -5.803   6.51e-09  ***
-  grades     -0.227879     0.00819169    -27.82    2.61e-170 ***
-  faminc      0.00757034   0.000515529    14.68    8.09e-49  ***
-  parsome     0.324943     0.0401120       8.101   5.46e-16  ***
-  parcoll     0.688525     0.0485447      14.18    1.16e-45  ***
-  black       0.236111     0.0565774       4.173   3.00e-05  ***
-  grants      0.799389     0.0403027      19.83    1.50e-87  ***
-  loans       1.08194      0.0523651      20.66    7.70e-95  ***
-  cut1       -1.48659      0.0766852     -19.39    1.02e-83  ***
-  cut2       -0.334659     0.0748474      -4.471   7.78e-06  ***
+  cut1       -1.67936      0.0921176     -18.23    2.95e-74  ***
+  cut2       -0.524760     0.0902346      -5.816   6.05e-09  ***
 
 ----------------------------------
 
+Model 5: HBIC: 9958.016843, posterior probability: 0.013889
+             coefficient   std. error       z        p-value 
+  -----------------------------------------------------------
+  hscath      0.342038     0.0663909       5.152    2.58e-07  ***
+  hsrural    -0.196452     0.0348087      -5.644    1.66e-08  ***
+  grades     -0.231159     0.00836161    -27.65     3.18e-168 ***
+  faminc      0.00779026   0.000519065    15.01     6.48e-51  ***
+  famsiz     -0.0486445    0.0119296      -4.078    4.55e-05  ***
+  parsome     0.324231     0.0401984       8.066    7.28e-16  ***
+  parcoll     0.691065     0.0486656      14.20     9.13e-46  ***
+  female     -0.00770505   0.0322167      -0.2392   0.8110   
+  hispan      0.143053     0.0541933       2.640    0.0083    ***
+  black       0.253758     0.0573210       4.427    9.56e-06  ***
+  grants      0.792704     0.0404034      19.62     1.05e-85  ***
+  loans       1.09235      0.0524487      20.83     2.46e-96  ***
+  cut1       -1.69397      0.0957091     -17.70     4.25e-70  ***
+  cut2       -0.538537     0.0939041      -5.735    9.75e-09  ***
 
-Total execution time: 5.78 sec.
+----------------------------------
+
+Total execution time: 10.25 sec.

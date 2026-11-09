@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gretl-functions>
-<gretl-function-package name="BACE" minver="2023a" lives-in-subdir="true">
+<gretl-function-package name="BACE" minver="2026a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.2</version>
 <date>2026-11-09</date>
@@ -680,6 +680,8 @@ endif
 if MODEL.limited_y
   # Discrete dependent variable: classification heatmap
   BACE_contingency_heatmap(MODEL, basename)
+elif MODEL.estimator == &quot;intreg&quot;
+  # to be worked out
 else
   # Continuous dependent variable: actual vs fitted
   idx = 1 + nelem({MODEL.Y}) - nelem(MODEL.Yhat)
@@ -1569,11 +1571,6 @@ if M.Npredict
   endif
   cnameset(M.prediction, title)
   rnameset(M.prediction, M.predict_obs_names)
-  # individual contribution to prediction
-  matrix betas = M.Post_Results[2:end, 2]
-  matrix M.X_individual_contrib = M.X_mat_predict .* betas'
-  rnameset(M.X_individual_contrib, M.predict_obs_names)
-  cnameset(M.X_individual_contrib, M.all_names_sp_m[2:end])
 endif
 
 # Jointess analysis
@@ -1625,7 +1622,6 @@ delete M.CPU_num
 delete M.DiscreteModelTypes
 if M.Npredict
   delete M.Y_mat_predict
-  #delete M.X_mat_predict
   delete M.Yhat_predict_avg
   delete M.Yhat_predict_var_avg
   catch delete M.ess
@@ -1752,7 +1748,6 @@ if M.Npredict
   scalar M.first_obs = $t1 #y_lag+1 # the first observation for smpl command
   scalar M.last_obs = $tmax-M.Npredict # the last observation for smpl command
   matrix M.Y_mat_predict = M.Y_mat[end-M.Npredict+1:end] # &quot;out-of-sample&quot; matrix of the dependent variable
-  matrix M.X_mat_predict = { X_list }[end-M.Npredict+1:end, ] # &quot;out-of-sample&quot; matrix of the independent variables
   M.Y_mat = M.Y_mat[1:end-M.Npredict]
   matrix M.Yhat_predict = zeros(M.Npredict) # vector of Y predictions in current draw
   matrix M.Yhat_predict_var = zeros(M.Npredict) # vector of Y predictions in current draw (variances!!!)
@@ -1760,7 +1755,6 @@ if M.Npredict
   matrix M.Yhat_predict_var_avg = zeros(M.Npredict,1) # predicion variance
   matrix M.prediction = {} # matrix with prediction results
   strings M.predict_obs_names = obslabel(seq($nobs-M.Npredict+1,$nobs)) # obs labels for forecasts
-  rnameset(M.X_mat_predict, M.predict_obs_names)
   smpl M.first_obs M.last_obs #$nobs-h_predict-y_lag #M.last_obs # setting sample
 else
   matrix M.Yhat_avg = {}
@@ -3393,11 +3387,8 @@ list X = 2..14
 set seed 1000000
 
 set stopwatch
-res = BACE(psechoice, X, _(model_type=&quot;probit&quot;, do_plot=0))
+res = BACE(psechoice, X, _(model_type=&quot;probit&quot;))
 printf &quot;Total execution time: %.2f sec.\n&quot;, $stopwatch
-
-# Generate plots
-#BACE_Plot(&amp;res)
 </sample-script>
 </gretl-function-package>
 </gretl-functions>

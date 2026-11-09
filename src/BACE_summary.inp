@@ -338,12 +338,7 @@ function void BACE_summary (bundle *M)
             endif
         endif
         cnameset(M.prediction, title)
-        rnameset(M.prediction, M.predict_obs_names)
-        # individual contribution to prediction
-        matrix betas = M.Post_Results[2:end, 2]
-        matrix M.X_individual_contrib = M.X_mat_predict .* betas'
-        rnameset(M.X_individual_contrib, M.predict_obs_names)
-        cnameset(M.X_individual_contrib, M.all_names_sp_m[2:end])
+        rnameset(M.prediction, M.predict_obs_names)       
     endif
 
     # Jointess analysis
@@ -395,7 +390,6 @@ function void BACE_summary (bundle *M)
     delete M.DiscreteModelTypes
     if M.Npredict
         delete M.Y_mat_predict
-        #delete M.X_mat_predict
         delete M.Yhat_predict_avg
         delete M.Yhat_predict_var_avg
         catch delete M.ess

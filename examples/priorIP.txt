@@ -1,5 +1,5 @@
-gretl version 2024c
-Current session: 2024-12-12 14:44
+gretl version 2026e
+Current session: 2026-11-09 12:58
 
 #######################################################
 #   https://sourceforge.net/projects/bma-for-gretl/   #
@@ -13,12 +13,14 @@ observations range: 1 to 25
 Listing 5 variables:
   0) const      1) valadd     2) capital    3) labor      4) nfirm    
 
-BACE 3.11, 2024-12-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+BACE 3.2, 2026-11-09 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
-MC3:                  done!
-Collecting results:   done!
+MC3 overall progress: [#########################] 100.0%
+Collecting results:
+           averaging: [#########################] 100.0%
+                      done!
 Summarizing:          done!
 ----------------------------------
 Model type: linear
@@ -31,8 +33,8 @@ Data transformation: none
 Total number of iterations: 10000
 Number of burn-in draws: 1000
 Total number of possible models: 8
-Number of models visited: 7
-Number of models accepted: 3
+Number of models visited: 8
+Number of models accepted: 5
 
 ----------------------------------
 The initial model: ols, dependent variable: valadd
@@ -50,58 +52,60 @@ Prior:
 	average model size: NA
 	standard deviation: NA
 Posterior:
-	average model size: 2.661000
-	standard deviation: 0.473370
+	average model size: 2.653556
+	standard deviation: 0.477003
 
 ----------------------------------
 
 Posterior moments (unconditional and conditional on inclusion):
                     PIP           Mean       Std.Dev.      Cond.Mean  Cond.Std.Dev.
-  const        1.000000     -25.273881      29.907847     -25.273881      29.907847
-capital        1.000000       3.832982       0.865368       3.832982       0.865368
-  labor        0.999778       4.563031       0.946626       4.564045       0.944283
-  nfirm        0.661222       0.218920       0.225733       0.331083       0.199818
+  const        1.000000     -25.392339      30.084731     -25.392339      30.084731
+  labor        0.999222       4.576155       0.969660       4.579717       0.961592
+capital        0.997222       3.820167       0.892067       3.830809       0.870194
+  nfirm        0.657111       0.216430       0.228493       0.329365       0.205561
 
 Inclusion Probabilities
                   Prior            PIP
-capital        0.500000       1.000000
-  labor        0.500000       0.999778
-  nfirm        0.500000       0.661222
+  labor        0.500000       0.999222
+capital        0.500000       0.997222
+  nfirm        0.500000       0.657111
 
 ----------------------------------
 
 Posterior probability of models:
-Best 1	 models account for 0.6610 of mass
-Best 2	 models account for 0.9998 of mass
-Best 3	 models account for 1.0000 of mass
+Best 1	 models account for 0.6541 of mass
+Best 2	 models account for 0.9964 of mass
+Best 3	 models account for 0.9987 of mass
+Best 4	 models account for 0.9994 of mass
+Best 5 models account for 1.0000 of mass
 
 Best models ranking:
-Model 1:	0.661000
-Model 2:	0.338778
-Model 3:	0.000222
-Total probability of the models in ranking (numerical): 1.000000
+Model 1:	0.654111
+Model 2:	0.342333
+Model 3:	0.002222
+Model 4:	0.000778
+Total probability of the models in ranking (numerical): 0.999444
 
 Correlation coefficient between the analytical
-and numerical probabilities of the above models: 0.999515
+and numerical probabilities of the above models: 0.999846
 ----------------------------------
 
 Posterior joint probability of variables:
                 capital          labor          nfirm
-capital        0.000000       0.999778       0.661222
-  labor        0.999778       0.000000       0.661000
-  nfirm        0.661222       0.661000       0.000000
+capital        0.000000       0.996444       0.654889
+  labor        0.996444       0.000000       0.656333
+  nfirm        0.654889       0.656333       0.000000
 
 Jointness statistics (Modified Yule's Q Measure (MYQ)):
                 capital          labor          nfirm
-capital             nan       0.999556       0.322444
-  labor        0.999556            nan       0.321801
-  nfirm        0.322444       0.321801            nan
-
+capital             nan       0.992880       0.309399
+  labor        0.992880            nan       0.311967
+  nfirm        0.309399       0.311967            nan
 
 Best specifications (MLE estimates for linear model):
 ----------------------------------
 
-Model 1: HBIC: 308.531519, posterior probability: 0.661000
+Model 1: HBIC: 308.531519, posterior probability: 0.654111
              coefficient   std. error      z      p-value 
   --------------------------------------------------------
   const      -24.3770      29.3434      -0.8307   0.4061  
@@ -109,20 +113,27 @@ Model 1: HBIC: 308.531519, posterior probability: 0.661000
   labor        4.14645      0.855205     4.848    1.24e-06 ***
   nfirm        0.330802     0.199243     1.660    0.0969   *
 
-
 ----------------------------------
 
-Model 2: HBIC: 309.765434, posterior probability: 0.338778
+Model 2: HBIC: 309.765434, posterior probability: 0.342333
              coefficient   std. error      z      p-value 
   --------------------------------------------------------
   const       -27.0555     30.8720      -0.8764   0.3808  
   capital       3.21638     0.606070     5.307    1.11e-07 ***
   labor         5.37883     0.447559    12.02     2.85e-33 ***
 
+----------------------------------
+
+Model 3: HBIC: 325.291832, posterior probability: 0.002222
+             coefficient   std. error     z      p-value 
+  -------------------------------------------------------
+  const      -69.6316      40.2517      -1.730   0.0836   *
+  labor        8.26373      0.443789    18.62    2.18e-77 ***
+  nfirm       -0.387342     0.205034    -1.889   0.0589   *
 
 ----------------------------------
 
-Model 3: HBIC: 323.721760, posterior probability: 0.000222
+Model 4: HBIC: 323.721760, posterior probability: 0.000778
              coefficient   std. error      z      p-value 
   --------------------------------------------------------
   const       22.9084      38.5503       0.5942   0.5523  
@@ -131,9 +142,3 @@ Model 3: HBIC: 323.721760, posterior probability: 0.000222
 
 ----------------------------------
 
-
-wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-PIP.plt
-wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-Jointness.plt
-wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-MSD.plt
-wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-CDF.plt
-wrote /media/marcin/c6456724-5b23-4f50-9a50-7ee838e930d3/Gretl/Dodatki/BACE/SVN/tags/3.11/examples/20241212144411-MPD.plt

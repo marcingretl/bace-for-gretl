@@ -1,12 +1,14 @@
-gretl version 2024c
-Current session: 2024-12-12 14:43
+gretl version 2026e
+Current session: 2026-11-09 12:57
 
-BACE 3.11, 2024-12-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+BACE 3.2, 2026-11-09 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
-MC3:                  done!
-Collecting results:   done!
+MC3 overall progress: [#########################] 100.0%
+Collecting results:
+           averaging: [#########################] 100.0%
+                      done!
 Summarizing:          done!
 ----------------------------------
 Model type: logit
@@ -20,8 +22,8 @@ Threshold for binary dependent variable: 0.600000
 Total number of iterations: 10000
 Number of burn-in draws: 1000
 Total number of possible models: 512
-Number of models visited: 485
-Number of models accepted: 425
+Number of models visited: 484
+Number of models accepted: 420
 
 ----------------------------------
 The initial model: logit, dependent variable: low
@@ -44,89 +46,115 @@ Prior:
 	average model size: NA
 	standard deviation: NA
 Posterior:
-	average model size: 4.715111
-	standard deviation: 1.304162
+	average model size: 4.853111
+	standard deviation: 1.335158
 
 ----------------------------------
 
 Posterior moments (unconditional and conditional on inclusion):
                     PIP           Mean       Std.Dev.      Cond.Mean  Cond.Std.Dev.
-  const        1.000000       0.449658       1.327281       0.449658       1.327281
-     ht        0.842333       1.496410       0.921035       1.776505       0.713791
-    lwt        0.809222      -0.013590       0.009192      -0.016794       0.007114
-  smoke        0.632556       0.517846       0.513218       0.818657       0.412473
-Drace_2        0.573889       0.612028       0.664410       1.066458       0.533460
-    ptl        0.545889       0.359846       0.415329       0.659193       0.344482
-     ui        0.485111       0.412825       0.529460       0.850990       0.452758
-Drace_3        0.442667       0.345444       0.497936       0.780370       0.469791
-    age        0.232111      -0.008951       0.023739      -0.038562       0.035862
-    ftv        0.151333      -0.004575       0.067230      -0.030231       0.170562
+  const        1.000000       0.391951       1.318238       0.391951       1.318238
+     ht        0.819889       1.459381       0.940639       1.779974       0.713110
+    lwt        0.805111      -0.013392       0.009196      -0.016634       0.007148
+  smoke        0.651111       0.542924       0.518619       0.833843       0.412924
+Drace_2        0.616444       0.660409       0.670617       1.071319       0.537898
+     ui        0.538000       0.459724       0.540310       0.854506       0.453086
+    ptl        0.527444       0.345582       0.412241       0.655201       0.345451
+Drace_3        0.487444       0.380067       0.510129       0.779712       0.471444
+    age        0.235667      -0.009026       0.023901      -0.038299       0.036096
+    ftv        0.172000      -0.003230       0.071569      -0.018776       0.171719
+
+Posterior odds ratios:
+                    PIP     odds ratio       Std.Dev.
+     ht        0.819889       6.452850       6.200168
+    lwt        0.805111       0.986739       0.009076
+  smoke        0.651111       1.983190       1.145015
+Drace_2        0.616444       2.466694       1.946461
+     ui        0.538000       1.862776       1.210119
+    ptl        0.527444       1.550516       0.741273
+Drace_3        0.487444       1.700617       1.109822
+    age        0.235667       0.991293       0.023044
+    ftv        0.172000       0.999311       0.071602
+
+Posterior average marginal effects (model averaged):
+                     PIP         P(Y=0)         P(Y=1)
+     ht*        0.819889      -0.306632       0.306632
+     lwt        0.805111       0.002518      -0.002518
+  smoke*        0.651111      -0.105428       0.105428
+Drace_2*        0.616444      -0.133953       0.133953
+     ui*        0.538000      -0.095181       0.095181
+     ptl        0.527444      -0.065484       0.065484
+Drace_3*        0.487444      -0.072394       0.072394
+     age        0.235667       0.001721      -0.001721
+     ftv        0.172000       0.000646      -0.000646
+* Average discrete change for a binary regressor (0 -> 1).
+  Unmarked regressors: average derivative per unit increase.
+  Effects are changes in probabilities (multiply by 100 for pp).
 
 ----------------------------------
 
 Posterior probability of models:
-Best 5	 models account for 0.1611 of mass
-Best 25	 models account for 0.4724 of mass
-Best 50	 models account for 0.6274 of mass
-Best 75	 models account for 0.7157 of mass
-Best 100 models account for 0.7812 of mass
-Best 101 models account for 0.7834 of mass
-Best 181 models account for 0.9004 of mass
-Best 248 models account for 0.9500 of mass
-Best 354 models account for 0.9901 of mass
-Best 425 models account for 1.0000 of mass
+Best 5	 models account for 0.1723 of mass
+Best 25	 models account for 0.4401 of mass
+Best 50	 models account for 0.5934 of mass
+Best 75	 models account for 0.6937 of mass
+Best 100 models account for 0.7591 of mass
+Best 101 models account for 0.7614 of mass
+Best 189 models account for 0.9009 of mass
+Best 251 models account for 0.9504 of mass
+Best 352 models account for 0.9900 of mass
+Best 420 models account for 1.0000 of mass
 
 Best models ranking:
-Model 1:	0.042667
-Model 2:	0.039333
-Model 3:	0.028444
-Model 4:	0.027000
-Model 5:	0.023667
-Total probability of the models in ranking (numerical): 0.161111
+Model 1:	0.047889
+Model 2:	0.036111
+Model 3:	0.035889
+Model 4:	0.026667
+Model 5:	0.025778
+Total probability of the models in ranking (numerical): 0.172333
 
 Correlation coefficient between the analytical
-and numerical probabilities of the above models: 0.879544
+and numerical probabilities of the above models: 0.999267
 
 ----------------------------------
 
 Contingency table (actual in rows, predicted in columns):
-                0            1 
+             0         1 
 
-   0          128            2 
-   1           54            5 
+   0       128         2 
+   1        54         5 
 
 Number of cases 'correctly predicted' = 133 (accuracy 70.4%)
 ----------------------------------
 
 Posterior joint probability of variables:
                     age            lwt        Drace_2        Drace_3          smoke            ptl             ht             ui            ftv
-    age        0.000000       0.176000       0.114778       0.093444       0.136333       0.143000       0.187111       0.109222       0.035889
-    lwt        0.176000       0.000000       0.493333       0.321889       0.498222       0.421778       0.718667       0.397222       0.107333
-Drace_2        0.114778       0.493333       0.000000       0.315556       0.389222       0.291333       0.485889       0.286889       0.076778
-Drace_3        0.093444       0.321889       0.315556       0.000000       0.353333       0.216000       0.359667       0.208000       0.067444
-  smoke        0.136333       0.498222       0.389222       0.353333       0.000000       0.304222       0.527222       0.297778       0.099556
-    ptl        0.143000       0.421778       0.291333       0.216000       0.304222       0.000000       0.448333       0.227111       0.080667
-     ht        0.187111       0.718667       0.485889       0.359667       0.527222       0.448333       0.000000       0.424778       0.117889
-     ui        0.109222       0.397222       0.286889       0.208000       0.297778       0.227111       0.424778       0.000000       0.077111
-    ftv        0.035889       0.107333       0.076778       0.067444       0.099556       0.080667       0.117889       0.077111       0.000000
+    age        0.000000       0.174444       0.126444       0.097111       0.146667       0.141889       0.190000       0.119889       0.042222
+    lwt        0.174444       0.000000       0.523111       0.370000       0.518889       0.400778       0.701778       0.431444       0.140333
+Drace_2        0.126444       0.523111       0.000000       0.347111       0.435667       0.308889       0.507111       0.333889       0.112444
+Drace_3        0.097111       0.370000       0.347111       0.000000       0.394889       0.237889       0.383556       0.257667       0.092111
+  smoke        0.146667       0.518889       0.435667       0.394889       0.000000       0.311889       0.527889       0.344222       0.119667
+    ptl        0.141889       0.400778       0.308889       0.237889       0.311889       0.000000       0.417556       0.224667       0.087000
+     ht        0.190000       0.701778       0.507111       0.383556       0.527889       0.417556       0.000000       0.448000       0.135889
+     ui        0.119889       0.431444       0.333889       0.257667       0.344222       0.224667       0.448000       0.000000       0.088111
+    ftv        0.042222       0.140333       0.112444       0.092111       0.119667       0.087000       0.135889       0.088111       0.000000
 
 Jointness statistics (Modified Yule's Q Measure (MYQ)):
                     age            lwt        Drace_2        Drace_3          smoke            ptl             ht             ui            ftv
-    age             nan      -0.359713      -0.160989       0.004779      -0.175327       0.041308      -0.378930      -0.003659       0.346287
-    lwt       -0.359713            nan       0.228493      -0.248435       0.071962      -0.054708       0.577034       0.008267      -0.477497
-Drace_2       -0.160989       0.228493            nan       0.280729       0.159405      -0.094962       0.102684       0.037390      -0.144911
-Drace_3        0.004779      -0.248435       0.280729            nan       0.328568      -0.131755      -0.139126      -0.029713       0.073380
-  smoke       -0.175327       0.071962       0.159405       0.328568            nan      -0.179859       0.131878      -0.050609      -0.144804
-    ptl        0.041308      -0.054708      -0.094962      -0.131755      -0.179859            nan      -0.005382      -0.182652      -0.067103
-     ht       -0.378930       0.577034       0.102684      -0.139126       0.131878      -0.005382            nan       0.067539      -0.496356
-     ui       -0.003659       0.008267       0.037390      -0.029713      -0.050609      -0.182652       0.067539            nan       0.038059
-    ftv        0.346287      -0.477497      -0.144911       0.073380      -0.144804      -0.067103      -0.496356       0.038059            nan
-
+    age             nan      -0.368699      -0.200700      -0.079018      -0.171905       0.064849      -0.322520      -0.069143       0.323367
+    lwt       -0.368699            nan       0.261408      -0.129369       0.133648      -0.094846       0.565695       0.031271      -0.357731
+Drace_2       -0.200700       0.261408            nan       0.220118       0.225536      -0.068527       0.139599       0.025219      -0.100873
+Drace_3       -0.079018      -0.129369       0.220118            nan       0.366005      -0.093269      -0.098017      -0.023532       0.057834
+  smoke       -0.171905       0.133648       0.225536       0.366005            nan      -0.140415       0.139269      -0.011001      -0.135101
+    ptl        0.064849      -0.094846      -0.068527      -0.093269      -0.140415            nan      -0.047273      -0.277827      -0.051063
+     ht       -0.322520       0.565695       0.139599      -0.098017       0.139269      -0.047273            nan       0.078438      -0.413846
+     ui       -0.069143       0.031271       0.025219      -0.023532      -0.011001      -0.277827       0.078438            nan      -0.066898
+    ftv        0.323367      -0.357731      -0.100873       0.057834      -0.135101      -0.051063      -0.413846      -0.066898            nan
 
 Best specifications (MLE estimates for logit model):
 ----------------------------------
 
-Model 1: HBIC: 228.043710, posterior probability: 0.042667
+Model 1: HBIC: 228.043710, posterior probability: 0.047889
              coefficient   std. error      z       p-value
   --------------------------------------------------------
   const       0.0562761    0.937860      0.06000   0.9522 
@@ -137,10 +165,9 @@ Model 1: HBIC: 228.043710, posterior probability: 0.042667
   ht          1.87142      0.690905      2.709     0.0068  ***
   ui          0.904974     0.447554      2.022     0.0432  **
 
-
 ----------------------------------
 
-Model 2: HBIC: 228.670636, posterior probability: 0.039333
+Model 2: HBIC: 228.670636, posterior probability: 0.036111
              coefficient   std. error      z      p-value
   -------------------------------------------------------
   const       0.352049     0.924443      0.3808   0.7033 
@@ -150,10 +177,9 @@ Model 2: HBIC: 228.670636, posterior probability: 0.039333
   smoke       1.07157      0.387519      2.765    0.0057  ***
   ht          1.74916      0.690822      2.532    0.0113  **
 
-
 ----------------------------------
 
-Model 3: HBIC: 228.724775, posterior probability: 0.028444
+Model 3: HBIC: 228.724775, posterior probability: 0.035889
              coefficient   std. error      z      p-value
   -------------------------------------------------------
   const       0.117888     0.944157      0.1249   0.9006 
@@ -164,21 +190,21 @@ Model 3: HBIC: 228.724775, posterior probability: 0.028444
   ptl         0.602481     0.335234      1.797    0.0723  *
   ht          1.74505      0.694904      2.511    0.0120  **
 
-
 ----------------------------------
 
-Model 4: HBIC: 229.579277, posterior probability: 0.027000
+Model 4: HBIC: 229.437919, posterior probability: 0.026667
              coefficient   std. error     z      p-value
   ------------------------------------------------------
-  const       1.09291      0.841493      1.299   0.1940 
-  lwt        -0.0170673    0.00666578   -2.560   0.0105  **
-  ptl         0.725600     0.327935      2.213   0.0269  **
-  ht          1.85604      0.704894      2.633   0.0085  ***
-
+  const       0.936957     0.859147      1.091   0.2755 
+  lwt        -0.0192464    0.00678574   -2.836   0.0046  ***
+  Drace_2     0.941682     0.477936      1.970   0.0488  **
+  smoke       0.664401     0.339388      1.958   0.0503  *
+  ht          1.93815      0.687342      2.820   0.0048  ***
+  ui          0.931897     0.441674      2.110   0.0349  **
 
 ----------------------------------
 
-Model 5: HBIC: 229.452650, posterior probability: 0.023667
+Model 5: HBIC: 229.452650, posterior probability: 0.025778
              coefficient   std. error     z      p-value
   ------------------------------------------------------
   const       1.28483      0.850548      1.511   0.1309 
@@ -189,11 +215,7 @@ Model 5: HBIC: 229.452650, posterior probability: 0.023667
 
 ----------------------------------
 
-
-Total execution time: 0.20 sec.
-
-
-
+Total execution time: 0.81 sec.
 
 ----------------------------------
 Model type: logit
@@ -207,8 +229,8 @@ Threshold for binary dependent variable: 0.600000
 Total number of iterations: 10000
 Number of burn-in draws: 1000
 Total number of possible models: 512
-Number of models visited: 485
-Number of models accepted: 425
+Number of models visited: 484
+Number of models accepted: 420
 
 ----------------------------------
 The initial model: logit, dependent variable: low
@@ -231,89 +253,115 @@ Prior:
 	average model size: NA
 	standard deviation: NA
 Posterior:
-	average model size: 4.715111
-	standard deviation: 1.304162
+	average model size: 4.853111
+	standard deviation: 1.335158
 
 ----------------------------------
 
 Posterior moments (unconditional and conditional on inclusion):
                     PIP           Mean       Std.Dev.      Cond.Mean  Cond.Std.Dev.
-  const        1.000000       0.449658       1.327281       0.449658       1.327281
-     ht        0.842333       1.496410       0.921035       1.776505       0.713791
-    lwt        0.809222      -0.013590       0.009192      -0.016794       0.007114
-  smoke        0.632556       0.517846       0.513218       0.818657       0.412473
-Drace_2        0.573889       0.612028       0.664410       1.066458       0.533460
-    ptl        0.545889       0.359846       0.415329       0.659193       0.344482
-     ui        0.485111       0.412825       0.529460       0.850990       0.452758
-Drace_3        0.442667       0.345444       0.497936       0.780370       0.469791
-    age        0.232111      -0.008951       0.023739      -0.038562       0.035862
-    ftv        0.151333      -0.004575       0.067230      -0.030231       0.170562
+  const        1.000000       0.391951       1.318238       0.391951       1.318238
+     ht        0.819889       1.459381       0.940639       1.779974       0.713110
+    lwt        0.805111      -0.013392       0.009196      -0.016634       0.007148
+  smoke        0.651111       0.542924       0.518619       0.833843       0.412924
+Drace_2        0.616444       0.660409       0.670617       1.071319       0.537898
+     ui        0.538000       0.459724       0.540310       0.854506       0.453086
+    ptl        0.527444       0.345582       0.412241       0.655201       0.345451
+Drace_3        0.487444       0.380067       0.510129       0.779712       0.471444
+    age        0.235667      -0.009026       0.023901      -0.038299       0.036096
+    ftv        0.172000      -0.003230       0.071569      -0.018776       0.171719
+
+Posterior odds ratios:
+                    PIP     odds ratio       Std.Dev.
+     ht        0.819889       6.452850       6.200168
+    lwt        0.805111       0.986739       0.009076
+  smoke        0.651111       1.983190       1.145015
+Drace_2        0.616444       2.466694       1.946461
+     ui        0.538000       1.862776       1.210119
+    ptl        0.527444       1.550516       0.741273
+Drace_3        0.487444       1.700617       1.109822
+    age        0.235667       0.991293       0.023044
+    ftv        0.172000       0.999311       0.071602
+
+Posterior average marginal effects (model averaged):
+                     PIP         P(Y=0)         P(Y=1)
+     ht*        0.819889      -0.306632       0.306632
+     lwt        0.805111       0.002518      -0.002518
+  smoke*        0.651111      -0.105428       0.105428
+Drace_2*        0.616444      -0.133953       0.133953
+     ui*        0.538000      -0.095181       0.095181
+     ptl        0.527444      -0.065484       0.065484
+Drace_3*        0.487444      -0.072394       0.072394
+     age        0.235667       0.001721      -0.001721
+     ftv        0.172000       0.000646      -0.000646
+* Average discrete change for a binary regressor (0 -> 1).
+  Unmarked regressors: average derivative per unit increase.
+  Effects are changes in probabilities (multiply by 100 for pp).
 
 ----------------------------------
 
 Posterior probability of models:
-Best 5	 models account for 0.1611 of mass
-Best 25	 models account for 0.4724 of mass
-Best 50	 models account for 0.6274 of mass
-Best 75	 models account for 0.7157 of mass
-Best 100 models account for 0.7812 of mass
-Best 101 models account for 0.7834 of mass
-Best 181 models account for 0.9004 of mass
-Best 248 models account for 0.9500 of mass
-Best 354 models account for 0.9901 of mass
-Best 425 models account for 1.0000 of mass
+Best 5	 models account for 0.1723 of mass
+Best 25	 models account for 0.4401 of mass
+Best 50	 models account for 0.5934 of mass
+Best 75	 models account for 0.6937 of mass
+Best 100 models account for 0.7591 of mass
+Best 101 models account for 0.7614 of mass
+Best 189 models account for 0.9009 of mass
+Best 251 models account for 0.9504 of mass
+Best 352 models account for 0.9900 of mass
+Best 420 models account for 1.0000 of mass
 
 Best models ranking:
-Model 1:	0.042667
-Model 2:	0.039333
-Model 3:	0.028444
-Model 4:	0.027000
-Model 5:	0.023667
-Total probability of the models in ranking (numerical): 0.161111
+Model 1:	0.047889
+Model 2:	0.036111
+Model 3:	0.035889
+Model 4:	0.026667
+Model 5:	0.025778
+Total probability of the models in ranking (numerical): 0.172333
 
 Correlation coefficient between the analytical
-and numerical probabilities of the above models: 0.879544
+and numerical probabilities of the above models: 0.999267
 
 ----------------------------------
 
 Contingency table (actual in rows, predicted in columns):
-                0            1 
+             0         1 
 
-   0          128            2 
-   1           54            5 
+   0       128         2 
+   1        54         5 
 
 Number of cases 'correctly predicted' = 133 (accuracy 70.4%)
 ----------------------------------
 
 Posterior joint probability of variables:
                     age            lwt        Drace_2        Drace_3          smoke            ptl             ht             ui            ftv
-    age        0.000000       0.176000       0.114778       0.093444       0.136333       0.143000       0.187111       0.109222       0.035889
-    lwt        0.176000       0.000000       0.493333       0.321889       0.498222       0.421778       0.718667       0.397222       0.107333
-Drace_2        0.114778       0.493333       0.000000       0.315556       0.389222       0.291333       0.485889       0.286889       0.076778
-Drace_3        0.093444       0.321889       0.315556       0.000000       0.353333       0.216000       0.359667       0.208000       0.067444
-  smoke        0.136333       0.498222       0.389222       0.353333       0.000000       0.304222       0.527222       0.297778       0.099556
-    ptl        0.143000       0.421778       0.291333       0.216000       0.304222       0.000000       0.448333       0.227111       0.080667
-     ht        0.187111       0.718667       0.485889       0.359667       0.527222       0.448333       0.000000       0.424778       0.117889
-     ui        0.109222       0.397222       0.286889       0.208000       0.297778       0.227111       0.424778       0.000000       0.077111
-    ftv        0.035889       0.107333       0.076778       0.067444       0.099556       0.080667       0.117889       0.077111       0.000000
+    age        0.000000       0.174444       0.126444       0.097111       0.146667       0.141889       0.190000       0.119889       0.042222
+    lwt        0.174444       0.000000       0.523111       0.370000       0.518889       0.400778       0.701778       0.431444       0.140333
+Drace_2        0.126444       0.523111       0.000000       0.347111       0.435667       0.308889       0.507111       0.333889       0.112444
+Drace_3        0.097111       0.370000       0.347111       0.000000       0.394889       0.237889       0.383556       0.257667       0.092111
+  smoke        0.146667       0.518889       0.435667       0.394889       0.000000       0.311889       0.527889       0.344222       0.119667
+    ptl        0.141889       0.400778       0.308889       0.237889       0.311889       0.000000       0.417556       0.224667       0.087000
+     ht        0.190000       0.701778       0.507111       0.383556       0.527889       0.417556       0.000000       0.448000       0.135889
+     ui        0.119889       0.431444       0.333889       0.257667       0.344222       0.224667       0.448000       0.000000       0.088111
+    ftv        0.042222       0.140333       0.112444       0.092111       0.119667       0.087000       0.135889       0.088111       0.000000
 
 Jointness statistics (Doppelhofer-Weeks Measure (DW1)):
                     age            lwt        Drace_2        Drace_3          smoke            ptl             ht             ui            ftv
-    age             nan      -0.065050      -0.148899      -0.094911      -0.074126       0.120968      -0.043934      -0.030454       0.021482
-    lwt       -0.065050            nan       0.060431      -0.106929      -0.027040      -0.046255       0.052904       0.011800      -0.131864
-Drace_2       -0.148899       0.060431            nan       0.216837       0.069702      -0.072628       0.005124       0.030037      -0.123250
-Drace_3       -0.094911      -0.106929       0.216837            nan       0.232582      -0.112199      -0.036060      -0.031902       0.006758
-  smoke       -0.074126      -0.027040       0.069702       0.232582            nan      -0.126670      -0.010566      -0.030043       0.039218
-    ptl        0.120968      -0.046255      -0.072628      -0.112199      -0.126670            nan      -0.025299      -0.153599      -0.023820
-     ht       -0.043934       0.052904       0.005124      -0.036060      -0.010566      -0.025299            nan       0.038768      -0.078163
-     ui       -0.030454       0.011800       0.030037      -0.031902      -0.030043      -0.153599       0.038768            nan       0.049140
-    ftv        0.021482      -0.131864      -0.123250       0.006758       0.039218      -0.023820      -0.078163       0.049140            nan
-
+    age             nan      -0.084037      -0.138828      -0.167984      -0.045181       0.132338      -0.016808      -0.055956       0.040789
+    lwt       -0.084037            nan       0.052601      -0.058898      -0.010216      -0.057861       0.061223      -0.003945       0.013301
+Drace_2       -0.138828       0.052601            nan       0.144256       0.081984      -0.051275       0.003348       0.006737       0.058752
+Drace_3       -0.167984      -0.058898       0.144256            nan       0.218503      -0.077661      -0.041105      -0.017613       0.094080
+  smoke       -0.045181      -0.010216       0.081984       0.218503            nan      -0.096322      -0.011208      -0.017496       0.066291
+    ptl        0.132338      -0.057861      -0.051275      -0.077661      -0.096322            nan      -0.035039      -0.233529      -0.041875
+     ht       -0.016808       0.061223       0.003348      -0.041105      -0.011208      -0.035039            nan       0.015521      -0.037070
+     ui       -0.055956      -0.003945       0.006737      -0.017613      -0.017496      -0.233529       0.015521            nan      -0.048999
+    ftv        0.040789       0.013301       0.058752       0.094080       0.066291      -0.041875      -0.037070      -0.048999            nan
 
 Best specifications (MLE estimates for logit model):
 ----------------------------------
 
-Model 1: HBIC: 228.043710, posterior probability: 0.042667
+Model 1: HBIC: 228.043710, posterior probability: 0.047889
              coefficient   std. error      z       p-value
   --------------------------------------------------------
   const       0.0562761    0.937860      0.06000   0.9522 
@@ -324,10 +372,9 @@ Model 1: HBIC: 228.043710, posterior probability: 0.042667
   ht          1.87142      0.690905      2.709     0.0068  ***
   ui          0.904974     0.447554      2.022     0.0432  **
 
-
 ----------------------------------
 
-Model 2: HBIC: 228.670636, posterior probability: 0.039333
+Model 2: HBIC: 228.670636, posterior probability: 0.036111
              coefficient   std. error      z      p-value
   -------------------------------------------------------
   const       0.352049     0.924443      0.3808   0.7033 
@@ -337,10 +384,9 @@ Model 2: HBIC: 228.670636, posterior probability: 0.039333
   smoke       1.07157      0.387519      2.765    0.0057  ***
   ht          1.74916      0.690822      2.532    0.0113  **
 
-
 ----------------------------------
 
-Model 3: HBIC: 228.724775, posterior probability: 0.028444
+Model 3: HBIC: 228.724775, posterior probability: 0.035889
              coefficient   std. error      z      p-value
   -------------------------------------------------------
   const       0.117888     0.944157      0.1249   0.9006 
@@ -351,21 +397,21 @@ Model 3: HBIC: 228.724775, posterior probability: 0.028444
   ptl         0.602481     0.335234      1.797    0.0723  *
   ht          1.74505      0.694904      2.511    0.0120  **
 
-
 ----------------------------------
 
-Model 4: HBIC: 229.579277, posterior probability: 0.027000
+Model 4: HBIC: 229.437919, posterior probability: 0.026667
              coefficient   std. error     z      p-value
   ------------------------------------------------------
-  const       1.09291      0.841493      1.299   0.1940 
-  lwt        -0.0170673    0.00666578   -2.560   0.0105  **
-  ptl         0.725600     0.327935      2.213   0.0269  **
-  ht          1.85604      0.704894      2.633   0.0085  ***
-
+  const       0.936957     0.859147      1.091   0.2755 
+  lwt        -0.0192464    0.00678574   -2.836   0.0046  ***
+  Drace_2     0.941682     0.477936      1.970   0.0488  **
+  smoke       0.664401     0.339388      1.958   0.0503  *
+  ht          1.93815      0.687342      2.820   0.0048  ***
+  ui          0.931897     0.441674      2.110   0.0349  **
 
 ----------------------------------
 
-Model 5: HBIC: 229.452650, posterior probability: 0.023667
+Model 5: HBIC: 229.452650, posterior probability: 0.025778
              coefficient   std. error     z      p-value
   ------------------------------------------------------
   const       1.28483      0.850548      1.511   0.1309 
@@ -376,12 +422,12 @@ Model 5: HBIC: 229.452650, posterior probability: 0.023667
 
 ----------------------------------
 
-
-
 BACE setup:           done!
 MC3 setup:            done!
-MC3:                  done!
-Collecting results:   done!
+MC3 overall progress: [#########################] 100.0%
+Collecting results:
+           averaging: [#########################] 100.0%
+                      done!
 Summarizing:          done!
 ----------------------------------
 Model type: logit
@@ -395,8 +441,8 @@ Threshold for binary dependent variable: 0.600000
 Total number of iterations: 10000
 Number of burn-in draws: 1000
 Total number of possible models: 512
-Number of models visited: 414
-Number of models accepted: 278
+Number of models visited: 432
+Number of models accepted: 331
 
 ----------------------------------
 The initial model: logit, dependent variable: low
@@ -419,101 +465,127 @@ Prior:
 	average model size: NA
 	standard deviation: NA
 Posterior:
-	average model size: 4.828000
-	standard deviation: 1.305618
+	average model size: 4.836556
+	standard deviation: 1.339344
 
 ----------------------------------
 
 Posterior moments (unconditional and conditional on inclusion):
                     PIP           Mean       Std.Dev.      Cond.Mean  Cond.Std.Dev.
-  const        1.000000      -0.222797       1.337978      -0.222797       1.337978
-     ht        0.908333       1.524829       0.839209       1.678711       0.719042
-     ui        0.814111       0.706633       0.529094       0.867981       0.451457
-    ftv        0.637778      -0.028377       0.136091      -0.044494       0.168292
-    ptl        0.594111       0.375367       0.408005       0.631813       0.343761
-  smoke        0.587222       0.454442       0.489290       0.773885       0.400598
-    lwt        0.554111      -0.009246       0.009783      -0.016685       0.006969
-Drace_2        0.355889       0.358285       0.578408       1.006733       0.535950
-Drace_3        0.350889       0.265089       0.452877       0.755479       0.462633
-    age        0.025556      -0.001098       0.008911      -0.042954       0.036188
+  const        1.000000      -0.242058       1.319047      -0.242058       1.319047
+     ht        0.878000       1.470948       0.867353       1.675339       0.717224
+     ui        0.824556       0.712635       0.525887       0.864266       0.452054
+    ftv        0.620778      -0.026204       0.134627      -0.042212       0.168881
+    ptl        0.615556       0.390926       0.410198       0.635078       0.343941
+  smoke        0.594778       0.461756       0.492180       0.776351       0.403787
+    lwt        0.539222      -0.008888       0.009688      -0.016484       0.006989
+Drace_2        0.353778       0.360986       0.583950       1.020375       0.539491
+Drace_3        0.353667       0.269487       0.456904       0.761980       0.463687
+    age        0.056222      -0.002560       0.013496      -0.045527       0.035824
+
+Posterior odds ratios:
+                    PIP     odds ratio       Std.Dev.
+     ht        0.878000       6.214094       5.814538
+     ui        0.824556       2.342416       1.290808
+    ftv        0.620778       0.982904       0.131363
+    ptl        0.615556       1.616786       0.738967
+  smoke        0.594778       1.810145       1.035770
+    lwt        0.539222       0.991197       0.009576
+Drace_2        0.353778       1.783592       1.552613
+Drace_3        0.353667       1.490756       0.965902
+    age        0.056222       0.997532       0.012973
+
+Posterior average marginal effects (model averaged):
+                     PIP         P(Y=0)         P(Y=1)
+     ht*        0.878000      -0.314361       0.314361
+     ui*        0.824556      -0.150232       0.150232
+     ftv        0.620778       0.005143      -0.005143
+     ptl        0.615556      -0.074803       0.074803
+  smoke*        0.594778      -0.090685       0.090685
+     lwt        0.539222       0.001671      -0.001671
+Drace_2*        0.353778      -0.073121       0.073121
+Drace_3*        0.353667      -0.051742       0.051742
+     age        0.056222       0.000490      -0.000490
+* Average discrete change for a binary regressor (0 -> 1).
+  Unmarked regressors: average derivative per unit increase.
+  Effects are changes in probabilities (multiply by 100 for pp).
 
 Inclusion Probabilities
                   Prior            PIP
-     ht        0.700000       0.908333
-     ui        0.800000       0.814111
-    ftv        0.900000       0.637778
-    ptl        0.600000       0.594111
-  smoke        0.500000       0.587222
-    lwt        0.200000       0.554111
-Drace_2        0.300000       0.355889
-Drace_3        0.400000       0.350889
-    age        0.100000       0.025556
+     ht        0.700000       0.878000
+     ui        0.800000       0.824556
+    ftv        0.900000       0.620778
+    ptl        0.600000       0.615556
+  smoke        0.500000       0.594778
+    lwt        0.200000       0.539222
+Drace_2        0.300000       0.353778
+Drace_3        0.400000       0.353667
+    age        0.100000       0.056222
 
 ----------------------------------
 
 Posterior probability of models:
-Best 5	 models account for 0.1607 of mass
-Best 25	 models account for 0.5051 of mass
-Best 50	 models account for 0.7244 of mass
-Best 75	 models account for 0.8300 of mass
-Best 100 models account for 0.8929 of mass
-Best 101 models account for 0.8948 of mass
-Best 104 models account for 0.9004 of mass
-Best 140 models account for 0.9501 of mass
-Best 216 models account for 0.9900 of mass
-Best 278 models account for 1.0000 of mass
+Best 5	 models account for 0.1530 of mass
+Best 25	 models account for 0.5000 of mass
+Best 50	 models account for 0.7027 of mass
+Best 75	 models account for 0.8002 of mass
+Best 100 models account for 0.8603 of mass
+Best 101 models account for 0.8623 of mass
+Best 125 models account for 0.9011 of mass
+Best 176 models account for 0.9506 of mass
+Best 262 models account for 0.9901 of mass
+Best 331 models account for 1.0000 of mass
 
 Best models ranking:
-Model 1:	0.045111
-Model 2:	0.035556
-Model 3:	0.027111
-Model 4:	0.026778
-Model 5:	0.026111
-Total probability of the models in ranking (numerical): 0.160667
+Model 1:	0.035889
+Model 2:	0.029667
+Model 3:	0.029444
+Model 4:	0.029111
+Model 5:	0.028889
+Total probability of the models in ranking (numerical): 0.153000
 
 Correlation coefficient between the analytical
-and numerical probabilities of the above models: 0.679115
+and numerical probabilities of the above models: 0.683801
 
 ----------------------------------
 
 Contingency table (actual in rows, predicted in columns):
-                0            1 
+             0         1 
 
-   0          128            2 
-   1           53            6 
+   0       128         2 
+   1        54         5 
 
-Number of cases 'correctly predicted' = 134 (accuracy 70.9%)
+Number of cases 'correctly predicted' = 133 (accuracy 70.4%)
 ----------------------------------
 
 Posterior joint probability of variables:
                     age            lwt        Drace_2        Drace_3          smoke            ptl             ht             ui            ftv
-    age        0.000000       0.012556       0.010000       0.004889       0.015333       0.016889       0.025000       0.022667       0.017000
-    lwt        0.012556       0.000000       0.227778       0.151444       0.303222       0.309889       0.534444       0.448444       0.344222
-Drace_2        0.010000       0.227778       0.000000       0.176111       0.228222       0.200333       0.323778       0.290333       0.222667
-Drace_3        0.004889       0.151444       0.176111       0.000000       0.276333       0.207222       0.308444       0.278667       0.226889
-  smoke        0.015333       0.303222       0.228222       0.276333       0.000000       0.311000       0.528667       0.476444       0.381222
-    ptl        0.016889       0.309889       0.200333       0.207222       0.311000       0.000000       0.546333       0.457556       0.374667
-     ht        0.025000       0.534444       0.323778       0.308444       0.528667       0.546333       0.000000       0.740333       0.575889
-     ui        0.022667       0.448444       0.290333       0.278667       0.476444       0.457556       0.740333       0.000000       0.518222
-    ftv        0.017000       0.344222       0.222667       0.226889       0.381222       0.374667       0.575889       0.518222       0.000000
+    age        0.000000       0.022444       0.012111       0.019889       0.033000       0.040778       0.051889       0.042000       0.033667
+    lwt        0.022444       0.000000       0.231444       0.168000       0.295778       0.316778       0.506889       0.440667       0.328889
+Drace_2        0.012111       0.231444       0.000000       0.182667       0.234111       0.199111       0.311111       0.293556       0.223556
+Drace_3        0.019889       0.168000       0.182667       0.000000       0.287889       0.193778       0.301667       0.289667       0.232222
+  smoke        0.033000       0.295778       0.234111       0.287889       0.000000       0.323778       0.514778       0.493889       0.384778
+    ptl        0.040778       0.316778       0.199111       0.193778       0.323778       0.000000       0.537111       0.474222       0.367889
+     ht        0.051889       0.506889       0.311111       0.301667       0.514778       0.537111       0.000000       0.733333       0.537667
+     ui        0.042000       0.440667       0.293556       0.289667       0.493889       0.474222       0.733333       0.000000       0.513778
+    ftv        0.033667       0.328889       0.223556       0.232222       0.384778       0.367889       0.537667       0.513778       0.000000
 
 Jointness statistics (Modified Yule's Q Measure (MYQ)):
                     age            lwt        Drace_2        Drace_3          smoke            ptl             ht             ui            ftv
-    age             nan      -0.109587       0.272562       0.253330      -0.159730      -0.164512      -0.759996      -0.577512      -0.251567
-    lwt       -0.109587            nan       0.123954      -0.234926      -0.091970      -0.077092       0.252039       0.045253      -0.020555
-Drace_2        0.272562       0.123954            nan       0.320283       0.053314      -0.098850      -0.215879      -0.155871      -0.086830
-Drace_3        0.253330      -0.234926       0.320283            nan       0.299752      -0.052138      -0.282280      -0.201040      -0.052544
-  smoke       -0.159730      -0.091970       0.053314       0.299752            nan      -0.157161       0.105701       0.087119       0.072092
-    ptl       -0.164512      -0.077092      -0.098850      -0.052138      -0.157161            nan       0.179031      -0.033659       0.021596
-     ht       -0.759996       0.252039      -0.215879      -0.282280       0.105701       0.179031            nan       0.492870       0.190136
-     ui       -0.577512       0.045253      -0.155871      -0.201040       0.087119      -0.033659       0.492870            nan       0.146653
-    ftv       -0.251567      -0.020555      -0.086830      -0.052544       0.072092       0.021596       0.190136       0.146653            nan
-
+    age             nan      -0.110860       0.203772       0.247766      -0.162541      -0.160428      -0.643375      -0.581455      -0.211140
+    lwt       -0.110860            nan       0.179499      -0.129391      -0.108572      -0.058865       0.233218       0.023794      -0.013082
+Drace_2        0.203772       0.179499            nan       0.349696       0.071078      -0.147125      -0.198702      -0.157964      -0.038700
+Drace_3        0.247766      -0.129391       0.349696            nan       0.331552      -0.172829      -0.248938      -0.178001       0.004405
+  smoke       -0.162541      -0.108572       0.071078       0.331552            nan      -0.170702       0.089600       0.126110       0.113154
+    ptl       -0.160428      -0.058865      -0.147125      -0.172829      -0.170702            nan       0.140547      -0.044201      -0.024205
+     ht       -0.643375       0.233218      -0.198702      -0.248938       0.089600       0.140547            nan       0.510454       0.125965
+     ui       -0.581455       0.023794      -0.157964      -0.178001       0.126110      -0.044201       0.510454            nan       0.148015
+    ftv       -0.211140      -0.013082      -0.038700       0.004405       0.113154      -0.024205       0.125965       0.148015            nan
 
 Best specifications (MLE estimates for logit model):
 ----------------------------------
 
-Model 1: HBIC: 233.370624, posterior probability: 0.045111
+Model 1: HBIC: 233.370624, posterior probability: 0.035889
              coefficient   std. error      z      p-value
   -------------------------------------------------------
   const       0.854236     0.854265      1.000    0.3173 
@@ -523,35 +595,9 @@ Model 1: HBIC: 233.370624, posterior probability: 0.045111
   ui          0.767591     0.446548      1.719    0.0856  *
   ftv        -0.0434157    0.169798     -0.2557   0.7982 
 
-
 ----------------------------------
 
-Model 2: HBIC: 233.225015, posterior probability: 0.035556
-             coefficient   std. error      z      p-value
-  -------------------------------------------------------
-  const       0.733923     0.854391      0.8590   0.3903 
-  lwt        -0.0162215    0.00657909   -2.466    0.0137  **
-  smoke       0.649583     0.336432      1.931    0.0535  *
-  ht          1.91057      0.685881      2.786    0.0053  ***
-  ui          0.892759     0.443728      2.012    0.0442  **
-  ftv        -0.0261899    0.169644     -0.1544   0.8773 
-
-
-----------------------------------
-
-Model 3: HBIC: 236.383619, posterior probability: 0.027111
-             coefficient   std. error      z      p-value 
-  --------------------------------------------------------
-  const      -1.12653       0.238781    -4.718    2.38e-06 ***
-  ptl         0.699612      0.332001     2.107    0.0351   **
-  ht          1.39429       0.622095     2.241    0.0250   **
-  ui          0.873165      0.439621     1.986    0.0470   **
-  ftv        -0.0795111     0.161122    -0.4935   0.6217  
-
-
-----------------------------------
-
-Model 4: HBIC: 230.032610, posterior probability: 0.026778
+Model 2: HBIC: 230.032610, posterior probability: 0.029667
              coefficient   std. error      z      p-value
   -------------------------------------------------------
   const       0.832459     0.848411      0.9812   0.3265 
@@ -560,24 +606,44 @@ Model 4: HBIC: 230.032610, posterior probability: 0.026778
   ht          1.94472      0.700715      2.775    0.0055  ***
   ui          0.773244     0.445822      1.734    0.0828  *
 
+----------------------------------
+
+Model 3: HBIC: 236.862552, posterior probability: 0.029444
+             coefficient   std. error      z      p-value 
+  --------------------------------------------------------
+  const      -1.35703       0.281311    -4.824    1.41e-06 ***
+  smoke       0.577439      0.336980     1.714    0.0866   *
+  ptl         0.603929      0.336867     1.793    0.0730   *
+  ht          1.39290       0.623641     2.233    0.0255   **
+  ui          0.872142      0.444379     1.963    0.0497   **
+  ftv        -0.0692273     0.159880    -0.4330   0.6650  
 
 ----------------------------------
 
-Model 5: HBIC: 234.117534, posterior probability: 0.026111
-             coefficient   std. error      z      p-value
-  -------------------------------------------------------
-  const       0.574730     0.865354      0.6642   0.5066 
-  lwt        -0.0154207    0.00662568   -2.327    0.0199  **
-  smoke       0.560667     0.343212      1.634    0.1023 
-  ptl         0.534041     0.341772      1.563    0.1182 
-  ht          1.89549      0.688929      2.751    0.0059  ***
-  ui          0.766520     0.453631      1.690    0.0911  *
-  ftv        -0.0239843    0.169622     -0.1414   0.8876 
+Model 4: HBIC: 231.389666, posterior probability: 0.029111
+             coefficient   std. error      z       p-value
+  --------------------------------------------------------
+  const       0.0361516    0.935357      0.03865   0.9692 
+  lwt        -0.0169366    0.00683210   -2.479     0.0132  **
+  Drace_2     1.33508      0.523438      2.551     0.0108  **
+  Drace_3     0.940259     0.433575      2.169     0.0301  **
+  smoke       1.04592      0.394318      2.652     0.0080  ***
+  ht          1.89094      0.696723      2.714     0.0066  ***
+  ui          0.911636     0.448005      2.035     0.0419  **
+  ftv         0.0408344    0.169081      0.2415    0.8092 
 
 ----------------------------------
 
+Model 5: HBIC: 236.383619, posterior probability: 0.028889
+             coefficient   std. error      z      p-value 
+  --------------------------------------------------------
+  const      -1.12653       0.238781    -4.718    2.38e-06 ***
+  ptl         0.699612      0.332001     2.107    0.0351   **
+  ht          1.39429       0.622095     2.241    0.0250   **
+  ui          0.873165      0.439621     1.986    0.0470   **
+  ftv        -0.0795111     0.161122    -0.4935   0.6217  
 
-Total execution time: 0.15 sec.
+----------------------------------
 
-
+Total execution time: 0.65 sec.
 

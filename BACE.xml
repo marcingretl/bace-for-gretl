@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<gretl-addon name="BACE" minver="2023a" lives-in-subdir="true">
+<gretl-addon name="BACE" minver="2026a" lives-in-subdir="true">
 <author>Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.2</version>
 <date>2026-11-09</date>

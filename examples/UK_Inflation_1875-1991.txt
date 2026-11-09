@@ -1,12 +1,14 @@
-gretl version 2024c
-Current session: 2024-12-12 14:42
+gretl version 2026e
+Current session: 2026-11-09 12:56
 
-BACE 3.11, 2024-12-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+BACE 3.2, 2026-11-09 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
-MC3:                  done!
-Collecting results:   done!
+MC3 overall progress: [#########################] 100.0%
+Collecting results:
+           averaging: [#########################] 100.0%
+                      done!
 Summarizing:          done!
 ----------------------------------
 Model type: linear
@@ -19,8 +21,8 @@ Data transformation: none
 Total number of iterations: 1000000
 Number of burn-in draws: 250000
 Total number of possible models: 1048575
-Number of models visited: 9513
-Number of models accepted: 1402
+Number of models visited: 9636
+Number of models accepted: 1450
 
 ----------------------------------
 The initial model: ols, dependent variable: d_p
@@ -51,64 +53,63 @@ Prior:
 	average model size: 10.000000
 	standard deviation: 2.236048
 Posterior:
-	average model size: 10.736321
-	standard deviation: 1.072659
+	average model size: 10.742881
+	standard deviation: 1.080150
 
 ----------------------------------
 
 Posterior moments (unconditional and conditional on inclusion):
                      PIP           Mean       Std.Dev.      Cond.Mean  Cond.Std.Dev.
-pistar_1        1.000000      -0.186844       0.024506      -0.186844       0.024506
+pistar_1        1.000000      -0.186882       0.024491      -0.186882       0.024491
       Id        1.000000       0.037903       0.001490       0.037903       0.001490
-    d_pe        1.000000       0.264119       0.023777       0.264119       0.023777
-     S_1        1.000000      -0.856166       0.085835      -0.856166       0.085835
-   d_p_1        1.000000       0.279046       0.031960       0.279046       0.031960
-    yd_1        0.999996       0.193686       0.035108       0.193687       0.035106
-  d_Rs_1        0.999949       0.609606       0.108555       0.609636       0.108471
-   d_m_1        0.999936       0.173201       0.028292       0.173212       0.028259
-  d_po_1        0.987283       0.038862       0.011197       0.039363       0.010358
-    Ud_1        0.610013      -0.041815       0.040144      -0.068548       0.028450
-    nd_1        0.194672       0.000631       0.001653       0.003241       0.002361
-    Rl_1        0.151855       0.006635       0.022286       0.043695       0.040638
-  d_Rl_1        0.126007       0.026201       0.108198       0.207931       0.234775
-  d_pe_1        0.105244       0.002085       0.010901       0.019811       0.027890
-    md_1        0.104247      -0.000513       0.004300      -0.004924       0.012475
-  d_Ur_1        0.097311      -0.002368       0.023364      -0.024339       0.071237
-   const        0.095136       0.000021       0.000614       0.000218       0.001981
-   d_c_1        0.090481      -0.000170       0.009650      -0.001879       0.032032
-   d_n_1        0.089092       0.000461       0.004379       0.005178       0.013813
-   d_w_1        0.085100      -0.000306       0.011629      -0.003591       0.039715
+   d_m_1        1.000000       0.173233       0.028261       0.173233       0.028261
+    d_pe        1.000000       0.264098       0.023778       0.264098       0.023778
+     S_1        1.000000      -0.856088       0.085851      -0.856088       0.085851
+   d_p_1        1.000000       0.279042       0.032077       0.279042       0.032077
+    yd_1        0.999987       0.193695       0.035130       0.193698       0.035124
+  d_Rs_1        0.999912       0.609410       0.108570       0.609464       0.108424
+  d_po_1        0.988400       0.038922       0.011131       0.039378       0.010361
+    Ud_1        0.607559      -0.041687       0.040179      -0.068614       0.028453
+    nd_1        0.196183       0.000637       0.001660       0.003246       0.002362
+    Rl_1        0.147595       0.006500       0.022138       0.044040       0.040834
+  d_Rl_1        0.124128       0.025621       0.106932       0.206407       0.234100
+    md_1        0.103416      -0.000522       0.004296      -0.005045       0.012476
+  d_pe_1        0.103216       0.002034       0.010782       0.019709       0.027892
+  d_Ur_1        0.100955      -0.002478       0.023809      -0.024548       0.071226
+   const        0.097012       0.000022       0.000621       0.000229       0.001981
+   d_c_1        0.091796      -0.000167       0.009839      -0.001821       0.032426
+   d_n_1        0.091789       0.000468       0.004438       0.005103       0.013818
+   d_w_1        0.090935      -0.000318       0.012102      -0.003502       0.039994
 
 ----------------------------------
 
 Posterior probability of models:
-Best 5	 models account for 0.3939 of mass
-Best 25	 models account for 0.6944 of mass
-Best 50	 models account for 0.7824 of mass
-Best 75	 models account for 0.8419 of mass
-Best 100 models account for 0.8832 of mass
-Best 101 models account for 0.8843 of mass
-Best 118 models account for 0.9003 of mass
-Best 236 models account for 0.9501 of mass
-Best 588 models account for 0.9900 of mass
-Best 1402 models account for 1.0000 of mass
+Best 5	 models account for 0.3909 of mass
+Best 25	 models account for 0.6916 of mass
+Best 50	 models account for 0.7781 of mass
+Best 75	 models account for 0.8391 of mass
+Best 100 models account for 0.8822 of mass
+Best 101 models account for 0.8833 of mass
+Best 119 models account for 0.9002 of mass
+Best 239 models account for 0.9502 of mass
+Best 589 models account for 0.9900 of mass
+Best 1450 models account for 1.0000 of mass
 
 Best models ranking:
-Model 1:	0.200439
-Model 2:	0.095024
-Model 3:	0.037464
-Model 4:	0.034749
-Model 5:	0.026263
-Total probability of the models in ranking (numerical): 0.393939
+Model 1:	0.196436
+Model 2:	0.096812
+Model 3:	0.038087
+Model 4:	0.033976
+Model 5:	0.025540
+Total probability of the models in ranking (numerical): 0.390851
 
 Correlation coefficient between the analytical
-and numerical probabilities of the above models: 0.999883
-
+and numerical probabilities of the above models: 0.999916
 
 Best specifications (MLE estimates for linear model):
 ----------------------------------
 
-Model 1: BIC: -683.419272, posterior probability: 0.200439
+Model 1: BIC: -683.419272, posterior probability: 0.196436
              coefficient   std. error      z       p-value 
   ---------------------------------------------------------
   d_p_1       0.286985     0.0256983     11.17    5.88e-29  ***
@@ -122,10 +123,9 @@ Model 1: BIC: -683.419272, posterior probability: 0.200439
   Id          0.0381333    0.00142376    26.78    5.03e-158 ***
   pistar_1   -0.186778     0.0223983     -8.339   7.50e-17  ***
 
-
 ----------------------------------
 
-Model 2: BIC: -681.980047, posterior probability: 0.095024
+Model 2: BIC: -681.980047, posterior probability: 0.096812
              coefficient   std. error      z       p-value 
   ---------------------------------------------------------
   d_p_1       0.267624     0.0252058     10.62    2.47e-26  ***
@@ -138,10 +138,9 @@ Model 2: BIC: -681.980047, posterior probability: 0.095024
   Id          0.0376822    0.00145062    25.98    9.12e-149 ***
   pistar_1   -0.186319     0.0229991     -8.101   5.45e-16  ***
 
-
 ----------------------------------
 
-Model 3: BIC: -680.077288, posterior probability: 0.037464
+Model 3: BIC: -680.077288, posterior probability: 0.038087
              coefficient   std. error      z       p-value 
   ---------------------------------------------------------
   d_p_1       0.288003     0.0255567     11.27    1.86e-29  ***
@@ -156,10 +155,9 @@ Model 3: BIC: -680.077288, posterior probability: 0.037464
   Id          0.0381227    0.00141517    26.94    7.76e-160 ***
   pistar_1   -0.193690     0.0229893     -8.425   3.60e-17  ***
 
-
 ----------------------------------
 
-Model 4: BIC: -679.904779, posterior probability: 0.034749
+Model 4: BIC: -679.904779, posterior probability: 0.033976
              coefficient   std. error      z       p-value 
   ---------------------------------------------------------
   d_p_1       0.271624     0.0250339     10.85    1.99e-27  ***
@@ -173,10 +171,9 @@ Model 4: BIC: -679.904779, posterior probability: 0.034749
   Id          0.0377281    0.00143433    26.30    1.74e-152 ***
   pistar_1   -0.195916     0.0234577     -8.352   6.72e-17  ***
 
-
 ----------------------------------
 
-Model 5: BIC: -679.422201, posterior probability: 0.026263
+Model 5: BIC: -679.422201, posterior probability: 0.025540
              coefficient   std. error      z       p-value 
   ---------------------------------------------------------
   d_p_1       0.263896     0.0250922     10.52    7.21e-26  ***
@@ -192,6 +189,4 @@ Model 5: BIC: -679.422201, posterior probability: 0.026263
 
 ----------------------------------
 
-
-
-BACE for GUMFinal took 7.37 sec.
+BACE for GUMFinal took 8.11 sec.

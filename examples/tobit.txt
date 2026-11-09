@@ -1,12 +1,14 @@
-gretl version 2024c
-Current session: 2024-12-12 14:44
+gretl version 2026e
+Current session: 2026-11-09 12:58
 
-BACE 3.11, 2024-12-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+BACE 3.2, 2026-11-09 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
-MC3:                  done!
-Collecting results:   done!
+MC3 overall progress: [#########################] 100.0%
+Collecting results:
+           averaging: [#########################] 100.0%
+                      done!
 Summarizing:          done!
 ----------------------------------
 Model type: tobit
@@ -48,42 +50,41 @@ Prior:
 	average model size: 2.000000
 	standard deviation: 1.000000
 Posterior:
-	average model size: 3.184556
-	standard deviation: 0.447021
+	average model size: 3.206667
+	standard deviation: 0.455290
 
 ----------------------------------
 
 Posterior moments (unconditional and conditional on inclusion):
                            PIP           Mean       Std.Dev.      Cond.Mean  Cond.Std.Dev.
-         const        1.000000     209.455730      33.903970     209.455730      33.903970
-          math        1.000000       5.824208       0.709439       5.824208       0.709439
-          read        1.000000       2.656789       0.620383       2.656789       0.620383
-progvocational        0.968444     -39.212234      14.288368     -40.489916      12.612551
-   proggeneral        0.216111      -2.600924       7.785254     -12.035122      12.919624
+         const        1.000000     209.572102      33.800141     209.572102      33.800141
+          math        1.000000       5.825142       0.709155       5.825142       0.709155
+          read        1.000000       2.657225       0.620248       2.657225       0.620248
+progvocational        0.971333     -39.462534      14.209225     -40.627180      12.670614
+   proggeneral        0.235333      -2.842961       8.083655     -12.080569      12.887065
 
 ----------------------------------
 
 Posterior probability of models:
-Best 1	 models account for 0.7592 of mass
-Best 2	 models account for 0.9684 of mass
-Best 3	 models account for 0.9931 of mass
+Best 1	 models account for 0.7430 of mass
+Best 2	 models account for 0.9713 of mass
+Best 3	 models account for 0.9930 of mass
 Best 4	 models account for 1.0000 of mass
 
 Best models ranking:
-Model 1:	0.759222
-Model 2:	0.209222
-Model 3:	0.024667
-Model 4:	0.006889
+Model 1:	0.743000
+Model 2:	0.228333
+Model 3:	0.021667
+Model 4:	0.007000
 Total probability of the models in ranking (numerical): 1.000000
 
 Correlation coefficient between the analytical
-and numerical probabilities of the above models: 0.871097
-
+and numerical probabilities of the above models: 0.884898
 
 Best specifications (MLE estimates for tobit model):
 ----------------------------------
 
-Model 1: HBIC: 2097.014165, posterior probability: 0.759222
+Model 1: HBIC: 2097.014165, posterior probability: 0.743000
                    coefficient   std. error     z      p-value 
   -------------------------------------------------------------
   const             211.451      32.8161       6.444   1.17e-10 ***
@@ -91,10 +92,9 @@ Model 1: HBIC: 2097.014165, posterior probability: 0.759222
   math                5.77919     0.699242     8.265   1.40e-16 ***
   progvocational    -38.9318     11.8225      -3.293   0.0010   ***
 
-
 ----------------------------------
 
-Model 2: HBIC: 2099.427948, posterior probability: 0.209222
+Model 2: HBIC: 2099.427948, posterior probability: 0.228333
                    coefficient   std. error     z      p-value 
   -------------------------------------------------------------
   const             209.566      32.7720       6.395   1.61e-10 ***
@@ -103,20 +103,18 @@ Model 2: HBIC: 2099.427948, posterior probability: 0.209222
   proggeneral       -12.7148     12.4065      -1.025   0.3054  
   progvocational    -46.1439     13.7242      -3.362   0.0008   ***
 
-
 ----------------------------------
 
-Model 3: HBIC: 2104.024489, posterior probability: 0.024667
+Model 3: HBIC: 2104.024489, posterior probability: 0.021667
              coefficient   std. error     z     p-value 
   ------------------------------------------------------
   const       159.004      29.9037      5.317   1.05e-07 ***
   read          2.88961     0.632946    4.565   4.99e-06 ***
   math          6.34441     0.703059    9.024   1.81e-19 ***
 
-
 ----------------------------------
 
-Model 4: HBIC: 2106.876767, posterior probability: 0.006889
+Model 4: HBIC: 2106.876767, posterior probability: 0.007000
                 coefficient   std. error     z      p-value 
   ----------------------------------------------------------
   const          166.896      31.4783      5.302    1.15e-07 ***
@@ -126,5 +124,4 @@ Model 4: HBIC: 2106.876767, posterior probability: 0.006889
 
 ----------------------------------
 
-
-Total execution time: 0.09 sec.
+Total execution time: 0.49 sec.

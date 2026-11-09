@@ -1,12 +1,14 @@
-gretl version 2024c
-Current session: 2024-12-12 14:43
+gretl version 2026e
+Current session: 2026-11-09 14:06
 
-BACE 3.11, 2024-12-12 (Marcin Błażejowski, Jacek Kwiatkowski)
+BACE 3.2, 2026-11-09 (Marcin Błażejowski, Jacek Kwiatkowski)
 
 BACE setup:           done!
 MC3 setup:            done!
-MC3:                  done!
-Collecting results:   done!
+MC3 overall progress: [#########################] 100.0%
+Collecting results:
+           averaging: [#########################] 100.0%
+                      done!
 Summarizing:          done!
 ----------------------------------
 Model type: intreg
@@ -25,11 +27,10 @@ Number of models accepted: 14
 ----------------------------------
 The initial model: intreg, Lower limit: lo, Upper limit: hi
 
-             coefficient   std. error     z      p-value 
-  -------------------------------------------------------
-  const        7.70734      4.12663      1.868   0.0618   *
-  bid1         0.744302     0.131393     5.665   1.47e-08 ***
-  female      -8.62313      4.18644     -2.060   0.0394   **
+             coefficient   std. error     z     p-value 
+  ------------------------------------------------------
+  const       4.41623      3.43719      1.285   0.1988  
+  bidh        0.292363     0.0524338    5.576   2.46e-08 ***
 
 Left-unbounded observations: 123
 Right-unbounded observations: 58
@@ -38,54 +39,53 @@ Point observations: 0
 
 Test for normality of residual -
   Null hypothesis: error is normally distributed
-  Test statistic: Chi-square(2) = 24.376091
-  with p-value = 0.000005
+  Test statistic: Chi-square(2) = 27.725363
+  with p-value = 0.000001
 ----------------------------------
 
 Prior:
 	average model size: 2.500000
 	standard deviation: 1.118034
 Posterior:
-	average model size: 3.238556
-	standard deviation: 0.711245
+	average model size: 3.183111
+	standard deviation: 0.717730
 
 ----------------------------------
 
 Posterior moments (unconditional and conditional on inclusion):
                    PIP           Mean       Std.Dev.      Cond.Mean  Cond.Std.Dev.
- const        1.000000      17.226963       8.868394      17.226963       8.868394
-   age        0.998667      -6.138826       1.468319      -6.147022       1.452053
-income        0.756222       2.961589       2.186195       3.916295       1.606629
-  bidh        0.702000       0.212593       0.184649       0.302838       0.145736
-  bid1        0.395000       0.172307       0.454651       0.436220       0.638894
-female        0.386667      -2.698842       4.226573      -6.979763       4.039800
+ const        1.000000      17.648058       8.915849      17.648058       8.915849
+   age        0.999333      -6.175341       1.464299      -6.179460       1.456071
+  bidh        0.747111       0.223998       0.175928       0.299819       0.136728
+income        0.721889       2.829500       2.223806       3.919579       1.605574
+female        0.372667      -2.605275       4.184335      -6.990899       4.040130
+  bid1        0.342111       0.144573       0.431300       0.422590       0.652881
 
 ----------------------------------
 
 Posterior probability of models:
-Best 5	 models account for 0.7640 of mass
-Best 6	 models account for 0.8244 of mass
-Best 8	 models account for 0.9150 of mass
-Best 10	 models account for 0.9762 of mass
-Best 12 models account for 0.9987 of mass
+Best 5	 models account for 0.7612 of mass
+Best 6	 models account for 0.8250 of mass
+Best 8	 models account for 0.9182 of mass
+Best 10	 models account for 0.9757 of mass
+Best 12 models account for 0.9993 of mass
 Best 14 models account for 1.0000 of mass
 
 Best models ranking:
-Model 1:	0.287778
-Model 2:	0.172889
-Model 3:	0.140000
-Model 4:	0.083667
-Model 5:	0.079667
-Total probability of the models in ranking (numerical): 0.764000
+Model 1:	0.314778
+Model 2:	0.173111
+Model 3:	0.104000
+Model 4:	0.102444
+Model 5:	0.066889
+Total probability of the models in ranking (numerical): 0.761222
 
 Correlation coefficient between the analytical
-and numerical probabilities of the above models: 0.999458
-
+and numerical probabilities of the above models: 0.967259
 
 Best specifications (MLE estimates for intreg model):
 ----------------------------------
 
-Model 1: HBIC: 774.417407, posterior probability: 0.287778
+Model 1: HBIC: 774.417407, posterior probability: 0.314778
              coefficient   std. error     z      p-value 
   -------------------------------------------------------
   const       13.2094      7.14647       1.848   0.0645   *
@@ -93,10 +93,9 @@ Model 1: HBIC: 774.417407, posterior probability: 0.287778
   age         -5.99029     1.40727      -4.257   2.07e-05 ***
   income       3.95656     1.60396       2.467   0.0136   **
 
-
 ----------------------------------
 
-Model 2: HBIC: 775.327899, posterior probability: 0.172889
+Model 2: HBIC: 775.327899, posterior probability: 0.173111
              coefficient   std. error     z      p-value 
   -------------------------------------------------------
   const       16.3245      7.33873       2.224   0.0261   **
@@ -105,10 +104,9 @@ Model 2: HBIC: 775.327899, posterior probability: 0.172889
   female      -6.95114     4.02678      -1.726   0.0843   *
   income       3.88270     1.59789       2.430   0.0151   **
 
-
 ----------------------------------
 
-Model 3: HBIC: 775.779162, posterior probability: 0.140000
+Model 3: HBIC: 775.779162, posterior probability: 0.104000
              coefficient   std. error     z      p-value 
   -------------------------------------------------------
   const       12.5203       7.21848      1.734   0.0828   *
@@ -116,29 +114,25 @@ Model 3: HBIC: 775.779162, posterior probability: 0.140000
   age         -5.98826      1.40878     -4.251   2.13e-05 ***
   income       3.88054      1.60714      2.415   0.0158   **
 
-
 ----------------------------------
 
-Model 4: HBIC: 776.741298, posterior probability: 0.083667
+Model 4: HBIC: 776.741298, posterior probability: 0.102444
              coefficient   std. error     z      p-value 
   -------------------------------------------------------
   const       25.6525      5.30277       4.838   1.31e-06 ***
   bidh         0.284130    0.0508531     5.587   2.31e-08 ***
   age         -6.89295     1.38671      -4.971   6.67e-07 ***
 
-
 ----------------------------------
 
-Model 5: HBIC: 776.849965, posterior probability: 0.079667
+Model 5: HBIC: 777.461361, posterior probability: 0.066889
              coefficient   std. error     z      p-value 
   -------------------------------------------------------
-  const       15.5487       7.41354      2.097   0.0360   **
-  bid1         0.704085     0.126994     5.544   2.95e-08 ***
-  age         -5.83630      1.40131     -4.165   3.12e-05 ***
-  female      -6.76101      4.02643     -1.679   0.0931   *
-  income       3.80750      1.60188      2.377   0.0175   **
+  const       28.6309      5.56889       5.141   2.73e-07 ***
+  bidh         0.292117    0.0507579     5.755   8.66e-09 ***
+  age         -6.70446     1.37887      -4.862   1.16e-06 ***
+  female      -7.22004     4.05680      -1.780   0.0751   *
 
 ----------------------------------
 
-
-Total execution time: 0.27 sec.
+Total execution time: 0.58 sec.
