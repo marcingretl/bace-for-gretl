@@ -15,6 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
+
 function bundle BACE (list Y "Dependent variable(s)",
       list X_list "List of indenpendent variables (X)",
       bundle Options[null])
@@ -23,6 +24,8 @@ function bundle BACE (list Y "Dependent variable(s)",
        Function returns bundle MODEL with (formatted) results.
     */
 
+    # we force locale off to avoid decimal-point issues
+    set force_decpoint on
     bundle MODEL
     string err
     series Y1, Y2
@@ -92,6 +95,9 @@ function bundle BACE (list Y "Dependent variable(s)",
         endif
         BACE_main(&MODEL)
         BACE_summary(&MODEL)
+
+        # we restore locale
+        set force_decpoint off
         if MODEL["verbosity"]
             BACE_Print(&MODEL)
             if MODEL["do_plot"]
@@ -99,7 +105,7 @@ function bundle BACE (list Y "Dependent variable(s)",
             endif
         endif
     endif
-    
+
     # avoid fixing MODEL.plotspec in place in GUI
     if inbundle(MODEL, "plotspec")
         delete MODEL.plotspec

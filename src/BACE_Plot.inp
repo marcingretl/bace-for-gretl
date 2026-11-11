@@ -230,6 +230,7 @@ function void BACE_Plot (const bundle *MODEL)
             plot_title = "Predictive results (with +/- one standard deviations as bars)"
             bars = MODEL.prediction[,2:3]
         endif
+        bars_b = _(bandmat=bars, factor=1, style="bars")
         cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
 
         output = BACE_get_plot_outname(basename, "-predict")
@@ -245,7 +246,7 @@ function void BACE_Plot (const bundle *MODEL)
         catch plot plotmat
             options time-series with-lines
             options with-line fit=none
-            options band=bars,1 band-style=bars
+            options band=bars_b
             printf "set title \"%s\"", plot_title
             printf "set xlabel \"%s\"", "Observation"
             printf "set xtics %s", xtics
