@@ -3,7 +3,7 @@
 <gretl-function-package name="BACE" minver="2026a" lives-in-subdir="true">
 <author email="marcin@gretlconference.org">Marcin Błażejowski, Jacek Kwiatkowski</author>
 <version>3.2</version>
-<date>2026-11-09</date>
+<date>2026-11-11</date>
 <description>Bayesian Averaging of Classical Estimates (BACE) procedure</description>
 <tags>C20 C52</tags>
 <label>BACE</label>
@@ -28,6 +28,8 @@ Bundle-based BACE analysis.
 Function returns bundle MODEL with (formatted) results.
 */
 
+# we force locale off to avoid decimal-point issues
+set force_decpoint on
 bundle MODEL
 string err
 series Y1, Y2
@@ -97,6 +99,9 @@ else
   endif
   BACE_main(&amp;MODEL)
   BACE_summary(&amp;MODEL)
+
+  # we restore locale
+  set force_decpoint off
   if MODEL[&quot;verbosity&quot;]
     BACE_Print(&amp;MODEL)
     if MODEL[&quot;do_plot&quot;]
@@ -728,6 +733,7 @@ if MODEL.Npredict
     plot_title = &quot;Predictive results (with +/- one standard deviations as bars)&quot;
     bars = MODEL.prediction[,2:3]
   endif
+  bars_b = _(bandmat=bars, factor=1, style=&quot;bars&quot;)
   cnameset(plotmat, cnameget(MODEL.prediction)[1:2])
 
   output = BACE_get_plot_outname(basename, &quot;-predict&quot;)
@@ -743,7 +749,7 @@ if MODEL.Npredict
   catch plot plotmat
     options time-series with-lines
     options with-line fit=none
-    options band=bars,1 band-style=bars
+    options band=bars_b
     printf &quot;set title \&quot;%s\&quot;&quot;, plot_title
     printf &quot;set xlabel \&quot;%s\&quot;&quot;, &quot;Observation&quot;
     printf &quot;set xtics %s&quot;, xtics
